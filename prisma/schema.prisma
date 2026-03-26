@@ -5,7 +5,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
+}
+
+enum PreScreenSessionStatus {
+  STARTED
+  COMPLETED
+  REPORT_READY
 }
 
 model User {
@@ -71,4 +77,44 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model PreScreenQuestionnaireDraft {
+  id                 String                 @id @default(cuid())
+  status             PreScreenSessionStatus @default(STARTED)
+  currentStep        String                 @default("intro")
+  schemaVersion      Int                    @default(1)
+  questionSetKey     String                 @default("pre-screen-v1")
+  answers            Json
+  latestAgentContext Json?
+  completedAt        DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  session            PreScreenSession?
+
+  @@index([status])
+  @@index([updatedAt])
+  @@index([questionSetKey, schemaVersion])
+}
+
+model PreScreenSession {
+  id                String                   @id @default(cuid())
+  draftId           String                   @unique
+  draft             PreScreenQuestionnaireDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  status            PreScreenSessionStatus   @default(STARTED)
+  roomName          String?                  @unique
+  agentType         String
+  egressId          String?
+  audioUrl          String?
+  startedAt         DateTime                 @default(now())
+  endedAt           DateTime?
+  transcript        Json?
+  transcriptSummary Json?
+  sessionMetadata   Json?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([status])
+  @@index([startedAt])
+  @@index([egressId])
 }

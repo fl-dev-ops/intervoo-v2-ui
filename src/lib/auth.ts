@@ -7,7 +7,7 @@ import { sendWhatsAppOTP } from "./twilio";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "postgresql",
+    provider: "sqlite",
   }),
   emailAndPassword: {
     enabled: true,

@@ -8,133 +8,191 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as RegisterRouteImport } from "./routes/register";
+import { Route as PreScreenRouteImport } from "./routes/pre-screen";
+import { Route as LoginRouteImport } from "./routes/login";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as ApiWebhooksLivekitRouteImport } from "./routes/api/webhooks/livekit";
+import { Route as ApiTrpcSplatRouteImport } from "./routes/api.trpc.$";
+import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
 
 const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
+  id: "/register",
+  path: "/register",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
+const PreScreenRoute = PreScreenRouteImport.update({
+  id: "/pre-screen",
+  path: "/pre-screen",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+  id: "/login",
+  path: "/login",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
+const ApiWebhooksLivekitRoute = ApiWebhooksLivekitRouteImport.update({
+  id: "/api/webhooks/livekit",
+  path: "/api/webhooks/livekit",
+  getParentRoute: () => rootRouteImport,
+} as any);
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
-  id: '/api/trpc/$',
-  path: '/api/trpc/$',
+  id: "/api/trpc/$",
+  path: "/api/trpc/$",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
+  id: "/api/auth/$",
+  path: "/api/auth/$",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/trpc/$': typeof ApiTrpcSplatRoute
+  "/": typeof IndexRoute;
+  "/login": typeof LoginRoute;
+  "/pre-screen": typeof PreScreenRoute;
+  "/register": typeof RegisterRoute;
+  "/api/auth/$": typeof ApiAuthSplatRoute;
+  "/api/trpc/$": typeof ApiTrpcSplatRoute;
+  "/api/webhooks/livekit": typeof ApiWebhooksLivekitRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/trpc/$': typeof ApiTrpcSplatRoute
+  "/": typeof IndexRoute;
+  "/login": typeof LoginRoute;
+  "/pre-screen": typeof PreScreenRoute;
+  "/register": typeof RegisterRoute;
+  "/api/auth/$": typeof ApiAuthSplatRoute;
+  "/api/trpc/$": typeof ApiTrpcSplatRoute;
+  "/api/webhooks/livekit": typeof ApiWebhooksLivekitRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/trpc/$': typeof ApiTrpcSplatRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/login": typeof LoginRoute;
+  "/pre-screen": typeof PreScreenRoute;
+  "/register": typeof RegisterRoute;
+  "/api/auth/$": typeof ApiAuthSplatRoute;
+  "/api/trpc/$": typeof ApiTrpcSplatRoute;
+  "/api/webhooks/livekit": typeof ApiWebhooksLivekitRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/api/auth/$' | '/api/trpc/$'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register' | '/api/auth/$' | '/api/trpc/$'
-  id: '__root__' | '/' | '/login' | '/register' | '/api/auth/$' | '/api/trpc/$'
-  fileRoutesById: FileRoutesById
+  fileRoutesByFullPath: FileRoutesByFullPath;
+  fullPaths:
+    | "/"
+    | "/login"
+    | "/pre-screen"
+    | "/register"
+    | "/api/auth/$"
+    | "/api/trpc/$"
+    | "/api/webhooks/livekit";
+  fileRoutesByTo: FileRoutesByTo;
+  to:
+    | "/"
+    | "/login"
+    | "/pre-screen"
+    | "/register"
+    | "/api/auth/$"
+    | "/api/trpc/$"
+    | "/api/webhooks/livekit";
+  id:
+    | "__root__"
+    | "/"
+    | "/login"
+    | "/pre-screen"
+    | "/register"
+    | "/api/auth/$"
+    | "/api/trpc/$"
+    | "/api/webhooks/livekit";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  LoginRoute: typeof LoginRoute
-  RegisterRoute: typeof RegisterRoute
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
+  IndexRoute: typeof IndexRoute;
+  LoginRoute: typeof LoginRoute;
+  PreScreenRoute: typeof PreScreenRoute;
+  RegisterRoute: typeof RegisterRoute;
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
+  ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute;
+  ApiWebhooksLivekitRoute: typeof ApiWebhooksLivekitRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/trpc/$': {
-      id: '/api/trpc/$'
-      path: '/api/trpc/$'
-      fullPath: '/api/trpc/$'
-      preLoaderRoute: typeof ApiTrpcSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+    "/register": {
+      id: "/register";
+      path: "/register";
+      fullPath: "/register";
+      preLoaderRoute: typeof RegisterRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/pre-screen": {
+      id: "/pre-screen";
+      path: "/pre-screen";
+      fullPath: "/pre-screen";
+      preLoaderRoute: typeof PreScreenRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/login": {
+      id: "/login";
+      path: "/login";
+      fullPath: "/login";
+      preLoaderRoute: typeof LoginRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/webhooks/livekit": {
+      id: "/api/webhooks/livekit";
+      path: "/api/webhooks/livekit";
+      fullPath: "/api/webhooks/livekit";
+      preLoaderRoute: typeof ApiWebhooksLivekitRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/trpc/$": {
+      id: "/api/trpc/$";
+      path: "/api/trpc/$";
+      fullPath: "/api/trpc/$";
+      preLoaderRoute: typeof ApiTrpcSplatRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/auth/$": {
+      id: "/api/auth/$";
+      path: "/api/auth/$";
+      fullPath: "/api/auth/$";
+      preLoaderRoute: typeof ApiAuthSplatRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  PreScreenRoute: PreScreenRoute,
   RegisterRoute: RegisterRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
-}
+  ApiWebhooksLivekitRoute: ApiWebhooksLivekitRoute,
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
 
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
+import type { getRouter } from "./router.tsx";
+import type { createStart } from "@tanstack/react-start";
+declare module "@tanstack/react-start" {
   interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
+    ssr: true;
+    router: Awaited<ReturnType<typeof getRouter>>;
   }
 }

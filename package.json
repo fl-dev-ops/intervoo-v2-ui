@@ -19,6 +19,7 @@
     "postinstall": "prisma generate && prisma migrate deploy"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.15",
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/adapter-better-sqlite3": "^7.4.2",
     "@prisma/adapter-neon": "^7.5.0",
@@ -37,6 +38,8 @@
     "@trpc/server": "^11.11.0",
     "@trpc/tanstack-react-query": "^11.11.0",
     "better-auth": "^1.5.3",
+    "livekit-client": "2.15.11",
+    "livekit-server-sdk": "^2.14.2",
     "lucide-react": "^0.545.0",
     "nitro": "npm:nitro-nightly@latest",
     "prisma": "^7.4.2",

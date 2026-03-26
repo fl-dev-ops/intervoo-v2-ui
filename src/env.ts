@@ -7,6 +7,16 @@ export const env = createEnv({
     TWILIO_ACCOUNT_SID: z.string().min(1),
     TWILIO_AUTH_TOKEN: z.string().min(1),
     TWILIO_WHATSAPP_FROM: z.string().min(1),
+    LIVEKIT_URL: z.string().url().optional(),
+    LIVEKIT_API_KEY: z.string().min(1).optional(),
+    LIVEKIT_API_SECRET: z.string().min(1).optional(),
+    LIVEKIT_WEBHOOK_ALLOW_UNVERIFIED: z.enum(["true", "false"]).optional(),
+    S3_ACCESS_KEY: z.string().min(1).optional(),
+    S3_SECRET_KEY: z.string().min(1).optional(),
+    S3_REGION: z.string().min(1).optional(),
+    S3_BUCKET: z.string().min(1).optional(),
+    S3_ENDPOINT: z.string().url().optional(),
+    S3_FORCE_PATH_STYLE: z.enum(["true", "false"]).optional(),
   },
 
   /**

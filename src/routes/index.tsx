@@ -15,7 +15,7 @@ function HomePage() {
 
   return (
     <main style={{ padding: "2rem", maxWidth: "600px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Diagnostics Platform</h1>
+      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Pre-Screen Platform</h1>
 
       {session?.user ? (
         <div>
@@ -40,6 +40,19 @@ function HomePage() {
         <div>
           <p>Please log in or register to continue.</p>
           <div style={{ display: "flex", gap: "0.75rem", marginTop: "1rem" }}>
+            <a
+              href="/pre-screen"
+              style={{
+                display: "inline-block",
+                padding: "0.75rem 1.5rem",
+                backgroundColor: "#111827",
+                color: "#fff",
+                textDecoration: "none",
+                borderRadius: "999px",
+              }}
+            >
+              Open Pre-Screen
+            </a>
             <a
               href="/login"
               style={{
