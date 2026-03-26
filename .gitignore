@@ -13,3 +13,4 @@ __unconfig*
 todos.json
 dev.db
 src/generated
+src/routeTree.gen.ts
