@@ -19,18 +19,25 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Pre-Screen Platform" },
+      { title: "Intervoo" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
   component: RootLayout,
   notFoundComponent: () => (
-    <main style={{ padding: "2rem", maxWidth: "600px", margin: "0 auto", textAlign: "center" }}>
-      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>404</h1>
-      <p>Page not found.</p>
-      <a href="/" style={{ color: "#333" }}>
-        Go home
-      </a>
+    <main className="not-found-shell app-screen">
+      <div className="not-found-card content-card">
+        <div className="hero-accent">Lost in the journey</div>
+        <h1 className="section-title">
+          Page not <em>found</em>
+        </h1>
+        <p className="section-copy">The page you are looking for is no longer part of this flow.</p>
+        <div className="button-row" style={{ marginTop: "18px" }}>
+          <a className="primary-button" href="/">
+            Go home
+          </a>
+        </div>
+      </div>
     </main>
   ),
 });

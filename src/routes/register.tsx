@@ -1,34 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { OtpCodeField } from "#/components/otp-code-field";
 import { authClient } from "#/lib/auth-client";
+import { getSession } from "#/lib/auth.functions";
 
 export const Route = createFileRoute("/register")({
+  beforeLoad: async () => {
+    const session = await getSession();
+
+    if (session?.user) {
+      throw redirect({
+        to: session.user.hasCompletedOnboarding ? "/" : "/onboarding",
+      });
+    }
+  },
   component: RegisterPage,
 });
 
-const inputStyle = {
-  width: "100%",
-  padding: "0.5rem",
-  border: "1px solid #ccc",
-  borderRadius: "4px",
-  fontSize: "1rem",
-};
-
-const buttonStyle = {
-  padding: "0.75rem",
-  backgroundColor: "#333",
-  color: "#fff",
-  border: "none",
-  borderRadius: "4px",
-  fontSize: "1rem",
-  cursor: "pointer",
-};
-
 function RegisterPage() {
-  const [step, setStep] = useState<"form" | "otp">("form");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
@@ -38,82 +28,81 @@ function RegisterPage() {
 
   useEffect(() => {
     return () => {
-      if (cooldownRef.current) clearInterval(cooldownRef.current);
+      if (cooldownRef.current) {
+        clearInterval(cooldownRef.current);
+      }
     };
   }, []);
 
   function startCooldown() {
-    setResendCooldown(60);
-    if (cooldownRef.current) clearInterval(cooldownRef.current);
+    setResendCooldown(38);
+    if (cooldownRef.current) {
+      clearInterval(cooldownRef.current);
+    }
+
     cooldownRef.current = setInterval(() => {
       setResendCooldown((prev) => {
         if (prev <= 1) {
-          if (cooldownRef.current) clearInterval(cooldownRef.current);
+          if (cooldownRef.current) {
+            clearInterval(cooldownRef.current);
+          }
+
           return 0;
         }
+
         return prev - 1;
       });
     }, 1000);
   }
 
-  async function handleFormSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function sendOtp() {
+    const { error: otpError } = await authClient.phoneNumber.sendOtp({
+      phoneNumber: phone,
+    });
+
+    if (otpError) {
+      setError(otpError.message ?? "Failed to send OTP");
+      return false;
+    }
+
+    startCooldown();
+    setStep("otp");
+    return true;
+  }
+
+  async function handlePhoneSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      // Step 1: Create account
-      const { error: signUpErr } = await authClient.signUp.email({
-        email,
-        password,
-        name,
-        phoneNumber: phone,
-      });
-
-      if (signUpErr) {
-        setError(signUpErr.message ?? "Registration failed");
-        return;
-      }
-
-      // Step 2: Send OTP
-      const { error: otpErr } = await authClient.phoneNumber.sendOtp({
-        phoneNumber: phone,
-      });
-
-      if (otpErr) {
-        setError(otpErr.message ?? "Failed to send OTP. Please try again.");
-        setStep("otp"); // Account created, let them resend
-        return;
-      }
-
-      startCooldown();
-      setStep("otp");
+      await sendOtp();
     } catch {
-      setError("Something went wrong");
+      setError("Something went wrong while sending the code.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleOTPSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleOtpSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      const { error: verifyErr } = await authClient.phoneNumber.verify({
+      const { error: verifyError } = await authClient.phoneNumber.verify({
         phoneNumber: phone,
         code: otp,
       });
 
-      if (verifyErr) {
-        setError(verifyErr.message ?? "Verification failed");
+      if (verifyError) {
+        setError(verifyError.message ?? "Verification failed");
         return;
       }
 
-      window.location.href = "/";
+      window.location.href = "/onboarding";
     } catch {
-      setError("Something went wrong");
+      setError("Something went wrong while verifying the code.");
     } finally {
       setLoading(false);
     }
@@ -124,222 +113,133 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const { error: otpErr } = await authClient.phoneNumber.sendOtp({
-        phoneNumber: phone,
-      });
-
-      if (otpErr) {
-        setError(otpErr.message ?? "Failed to resend OTP");
-        return;
-      }
-
-      startCooldown();
+      await sendOtp();
     } catch {
-      setError("Something went wrong");
+      setError("Something went wrong while sending the code.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main style={{ padding: "2rem", maxWidth: "400px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "1.5rem", marginBottom: "1.5rem" }}>Register</h1>
-
-      {error && (
-        <div
-          style={{
-            padding: "0.75rem",
-            marginBottom: "1rem",
-            backgroundColor: "#fee",
-            borderRadius: "4px",
-            color: "#c00",
-            fontSize: "0.875rem",
-          }}
-        >
-          {error}
+    <main className="app-screen">
+      <div className="mobile-shell">
+        <div className="status-row">
+          <span className="status-time">9:41</span>
+          <span className="status-meta">New account</span>
         </div>
-      )}
 
-      {step === "form" && (
-        <form
-          onSubmit={handleFormSubmit}
-          style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-        >
-          <div>
-            <label
-              htmlFor="name"
-              style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem" }}
-            >
-              Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="email"
-              style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem" }}
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem" }}
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="phone"
-              style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem" }}
-            >
-              WhatsApp Number
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              placeholder="+1234567890"
-              style={inputStyle}
-            />
-            <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "#666" }}>
-              Enter in international format (e.g. +1234567890)
-            </p>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              ...buttonStyle,
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
-            {loading ? "Creating account..." : "Continue"}
-          </button>
-
-          <p style={{ fontSize: "0.875rem", textAlign: "center" }}>
-            Already have an account?{" "}
-            <a href="/login" style={{ color: "#333", fontWeight: "bold" }}>
-              Login
-            </a>
-          </p>
-        </form>
-      )}
-
-      {step === "otp" && (
-        <form
-          onSubmit={handleOTPSubmit}
-          style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-        >
-          <p style={{ fontSize: "0.875rem", color: "#555" }}>
-            We sent a verification code to <strong>{phone}</strong> via WhatsApp.
-          </p>
-
-          <div>
-            <label
-              htmlFor="otp"
-              style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.875rem" }}
-            >
-              Verification Code
-            </label>
-            <input
-              id="otp"
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              required
-              maxLength={6}
-              placeholder="123456"
-              style={{ ...inputStyle, letterSpacing: "0.5em", textAlign: "center" }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              ...buttonStyle,
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
-            {loading ? "Verifying..." : "Verify"}
-          </button>
-
-          <div style={{ textAlign: "center", fontSize: "0.875rem" }}>
-            {resendCooldown > 0 ? (
-              <p style={{ color: "#666" }}>Resend code in {resendCooldown}s</p>
+        <section className="content-card" style={{ marginTop: "16px" }}>
+          <div className="journey-pill">Step {step === "phone" ? "1" : "2"} of 2</div>
+          <h2 className="section-title">
+            {step === "phone" ? (
+              <>
+                Enter your <em>mobile number</em>
+              </>
             ) : (
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={loading}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#333",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  fontSize: "0.875rem",
-                }}
-              >
-                Resend Code
-              </button>
+              <>
+                Verify your <em>OTP</em>
+              </>
             )}
-          </div>
+          </h2>
+          <p className="section-copy">
+            {step === "phone"
+              ? "We will send a one-time code to verify your number."
+              : `We sent a 6-digit code to ${phone}.`}
+          </p>
 
-          <button
-            type="button"
-            onClick={() => {
-              setStep("form");
-              setOtp("");
-              setError("");
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#666",
-              cursor: "pointer",
-              fontSize: "0.875rem",
-            }}
-          >
-            Back to registration
-          </button>
-        </form>
-      )}
+          <div className="content-stack">
+            {error ? <div className="alert alert-danger">{error}</div> : null}
+
+            {step === "phone" ? (
+              <form className="page-form" onSubmit={handlePhoneSubmit}>
+                <label className="field-stack">
+                  <span className="field-label">WhatsApp number</span>
+                  <div className="input-prefix-shell">
+                    <span className="input-prefix-label">Intl</span>
+                    <input
+                      className="text-input"
+                      id="phone"
+                      placeholder="+91 98765 43210"
+                      required
+                      type="tel"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                    />
+                  </div>
+                  <span className="helper-copy">We only use this number for authentication.</span>
+                </label>
+
+                <div className="button-row">
+                  <button className="primary-button" disabled={loading} type="submit">
+                    {loading ? "Sending OTP..." : "Continue"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form className="page-form" onSubmit={handleOtpSubmit}>
+                <label className="field-stack">
+                  <span className="field-label">Verification code</span>
+                  <OtpCodeField disabled={loading} value={otp} onChange={setOtp} />
+                </label>
+
+                <div className="button-row">
+                  <button
+                    className="primary-button"
+                    disabled={loading || otp.length !== 6}
+                    type="submit"
+                  >
+                    {loading ? "Verifying..." : "Verify & continue"}
+                  </button>
+                  <button
+                    className="ghost-button"
+                    disabled={loading}
+                    type="button"
+                    onClick={() => {
+                      setStep("phone");
+                      setOtp("");
+                      setError("");
+                    }}
+                  >
+                    Edit phone number
+                  </button>
+                </div>
+
+                {resendCooldown > 0 ? (
+                  <p className="countdown-copy">
+                    Resend available in {formatCountdown(resendCooldown)}
+                  </p>
+                ) : (
+                  <div className="support-actions">
+                    <button
+                      className="text-link-button"
+                      disabled={loading}
+                      type="button"
+                      onClick={handleResend}
+                    >
+                      Resend code
+                    </button>
+                  </div>
+                )}
+              </form>
+            )}
+
+            <div className="support-actions">
+              <p className="muted-copy">
+                Already have an account?{" "}
+                <a className="support-link" href="/login">
+                  Sign in
+                </a>
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
     </main>
   );
+}
+
+function formatCountdown(value: number) {
+  const seconds = String(value).padStart(2, "0");
+  return `0:${seconds}`;
 }
