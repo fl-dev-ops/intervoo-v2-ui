@@ -61,6 +61,12 @@ body > div[data-router-root] {
   min-height: 100vh;
 }
 
+.app-screen--session {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
 .mobile-shell {
   position: relative;
   width: min(100%, 420px);
@@ -70,6 +76,15 @@ body > div[data-router-root] {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+}
+
+.mobile-shell--session {
+  height: 100%;
+  min-height: 0;
+  padding-top: calc(18px + env(safe-area-inset-top));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  justify-content: flex-start;
+  overflow: hidden;
 }
 
 .mobile-shell::before {
@@ -116,6 +131,10 @@ body > div[data-router-root] {
   align-items: center;
   gap: 12px;
   margin-bottom: 18px;
+}
+
+.top-nav--session {
+  flex-shrink: 0;
 }
 
 .top-nav--center {
@@ -1219,6 +1238,517 @@ body > div[data-router-root] {
   text-align: center;
 }
 
+.guide-inline-error {
+  margin-top: 14px;
+  border: 1px solid rgba(255, 143, 131, 0.22);
+  border-radius: 16px;
+  background: rgba(224, 92, 58, 0.08);
+  color: var(--danger);
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pre-screen-session-shell {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pre-screen-livekit-room,
+.pre-screen-session-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid rgba(58, 66, 92, 0.92);
+  border-radius: 34px;
+  background:
+    linear-gradient(180deg, rgba(19, 22, 30, 0.96), rgba(12, 14, 20, 0.98)),
+    radial-gradient(circle at top, rgba(245, 166, 35, 0.08), transparent 38%);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.pre-screen-session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid rgba(58, 66, 92, 0.86);
+}
+
+.pre-screen-session-agent {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pre-screen-session-agent-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  background: linear-gradient(180deg, #ffa93c 0%, #f07735 100%);
+  box-shadow: 0 16px 40px rgba(240, 119, 53, 0.24);
+}
+
+.pre-screen-session-agent-name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.pre-screen-session-agent-subtitle {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.pre-screen-session-end-button {
+  border: 1px solid rgba(92, 156, 245, 0.24);
+  border-radius: 999px;
+  background: rgba(26, 31, 43, 0.95);
+  color: var(--text);
+  min-height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.pre-screen-session-progress {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(58, 66, 92, 0.86);
+  background: rgba(24, 28, 38, 0.8);
+}
+
+.pre-screen-session-progress-block {
+  opacity: 0.5;
+}
+
+.pre-screen-session-progress-block.is-active {
+  opacity: 1;
+}
+
+.pre-screen-session-progress-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pre-screen-session-progress-block.is-active .pre-screen-session-progress-label {
+  color: var(--amber-soft);
+}
+
+.pre-screen-session-progress-bar {
+  margin-top: 10px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(67, 73, 95, 0.9);
+  overflow: hidden;
+}
+
+.pre-screen-session-progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f5a623 0%, #ffc355 100%);
+  transition: width 180ms ease;
+}
+
+.pre-screen-session-body {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 16px 18px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pre-screen-empty-state {
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 20px;
+}
+
+.pre-screen-empty-state-label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pre-screen-empty-state p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.pre-screen-message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pre-screen-message {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.pre-screen-message.is-user {
+  flex-direction: row-reverse;
+}
+
+.pre-screen-message-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.18);
+  flex-shrink: 0;
+}
+
+.pre-screen-message.is-user .pre-screen-message-avatar {
+  background: rgba(92, 156, 245, 0.12);
+  border-color: rgba(92, 156, 245, 0.2);
+}
+
+.pre-screen-message-bubble {
+  max-width: calc(100% - 56px);
+  border: 1px solid rgba(58, 66, 92, 0.94);
+  border-radius: 22px 22px 22px 8px;
+  background: rgba(24, 28, 38, 0.95);
+  padding: 16px 18px;
+}
+
+.pre-screen-message.is-user .pre-screen-message-bubble {
+  background: rgba(43, 31, 13, 0.95);
+  border-color: rgba(130, 90, 28, 0.9);
+  border-radius: 22px 22px 8px 22px;
+}
+
+.pre-screen-message-bubble p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.pre-screen-message-bubble--loader {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pre-screen-loader-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pre-screen-loader-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(237, 234, 224, 0.62);
+  animation: pre-screen-loader-bounce 1s infinite ease-in-out;
+}
+
+.pre-screen-loader-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.pre-screen-loader-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.pre-screen-session-footer {
+  border-top: 1px solid rgba(58, 66, 92, 0.86);
+  padding: 16px 16px 20px;
+  background: rgba(16, 18, 25, 0.98);
+}
+
+.pre-screen-session-footer-label {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.pre-screen-session-live-transcript {
+  margin-top: 12px;
+  margin-left: auto;
+  max-width: min(100%, 72%);
+  border: 1px solid rgba(130, 90, 28, 0.9);
+  border-radius: 22px 22px 8px 22px;
+  background: rgba(43, 31, 13, 0.95);
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.pre-screen-session-control-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pre-screen-session-input-shell {
+  flex: 1;
+  min-height: 58px;
+  border-radius: 24px;
+  border: 1px solid rgba(58, 66, 92, 0.92);
+  background: rgba(28, 32, 44, 0.96);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.pre-screen-session-input-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(120, 125, 142, 0.7);
+  flex-shrink: 0;
+}
+
+.pre-screen-session-input-dot.is-live {
+  background: var(--coral);
+  box-shadow: 0 0 0 8px rgba(224, 92, 58, 0.14);
+}
+
+.pre-screen-session-mic-button {
+  width: 68px;
+  height: 68px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffb23e 0%, #ef6c39 100%);
+  color: #15120c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 18px 36px rgba(240, 119, 53, 0.28);
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    opacity 140ms ease;
+}
+
+.pre-screen-session-mic-button:hover {
+  transform: translateY(-1px);
+}
+
+.pre-screen-session-mic-button:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pre-screen-session-mic-button.is-recording {
+  box-shadow:
+    0 0 0 12px rgba(245, 166, 35, 0.14),
+    0 18px 36px rgba(240, 119, 53, 0.3);
+}
+
+.pre-screen-session-device-picker {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(58, 66, 92, 0.92);
+  background: rgba(24, 28, 38, 0.94);
+  color: var(--text-muted);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.pre-screen-session-device-picker select {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  font-size: 12px;
+}
+
+.pre-screen-session-banner {
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 143, 131, 0.22);
+  border-radius: 16px;
+  background: rgba(224, 92, 58, 0.08);
+  color: var(--danger);
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pre-screen-session-error-card,
+.pre-screen-permission-card {
+  border: 1px solid rgba(58, 66, 92, 0.92);
+  border-radius: 30px;
+  background: rgba(18, 20, 28, 0.96);
+  padding: 28px 22px;
+  text-align: center;
+}
+
+.pre-screen-session-error-card h3,
+.pre-screen-permission-card h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.pre-screen-session-error-card p,
+.pre-screen-permission-card p {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.pre-screen-session-error-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pre-screen-permission-gate {
+  min-height: calc(100vh - 120px);
+  display: grid;
+  place-items: center;
+}
+
+.pre-screen-permission-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 28, 38, 0.96);
+  border: 1px solid rgba(58, 66, 92, 0.92);
+  color: var(--text);
+}
+
+.pre-screen-report-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.pre-screen-report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 18px;
+  border-radius: 28px;
+  border: 1px solid rgba(58, 66, 92, 0.92);
+  background: rgba(18, 20, 28, 0.96);
+}
+
+.pre-screen-report-header h2 {
+  margin: 6px 0 0;
+  font-size: 20px;
+}
+
+.pre-screen-report-header p {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 56ch;
+}
+
+.pre-screen-report-eyebrow {
+  color: var(--accent-blue);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pre-screen-report-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.pre-screen-report-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pre-screen-report-card {
+  border-radius: 24px;
+  border: 1px solid rgba(58, 66, 92, 0.92);
+  background: rgba(18, 20, 28, 0.96);
+  padding: 18px;
+}
+
+.pre-screen-report-card-title {
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.pre-screen-report-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+@keyframes pre-screen-loader-bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.45;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 @media (min-width: 640px) {
   .app-screen {
     padding: 0 24px;
@@ -1226,5 +1756,43 @@ body > div[data-router-root] {
 
   .mobile-shell {
     padding-bottom: 40px;
+  }
+}
+
+@media (max-width: 520px) {
+  .pre-screen-session-header {
+    padding-inline: 16px;
+  }
+
+  .pre-screen-session-progress {
+    gap: 12px;
+    padding-inline: 16px;
+  }
+
+  .pre-screen-session-body {
+    padding-inline: 12px;
+  }
+
+  .pre-screen-session-footer {
+    padding-inline: 12px;
+  }
+
+  .pre-screen-session-control-row {
+    gap: 10px;
+  }
+
+  .pre-screen-session-mic-button {
+    width: 62px;
+    height: 62px;
+  }
+
+  .pre-screen-session-input-shell {
+    min-height: 54px;
+    padding-inline: 12px;
+    font-size: 12px;
+  }
+
+  .pre-screen-report-header {
+    flex-direction: column;
   }
 }

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeaders } from "@tanstack/react-start/server";
+import { getRequest } from "@tanstack/react-start/server";
 import { prisma } from "#/db.server";
 import { auth } from "#/lib/auth.server";
 
@@ -13,7 +13,7 @@ type OnboardingInput = {
 };
 
 export const getSession = createServerFn({ method: "GET" }).handler(async () => {
-  const headers = getRequestHeaders();
+  const headers = getRequest().headers;
   const session = await auth.api.getSession({ headers });
 
   if (!session) {
@@ -38,7 +38,7 @@ export const getSession = createServerFn({ method: "GET" }).handler(async () => 
 export const completeOnboarding = createServerFn({ method: "POST" })
   .inputValidator((data: OnboardingInput) => data)
   .handler(async ({ data }) => {
-    const headers = getRequestHeaders();
+    const headers = getRequest().headers;
     const session = await auth.api.getSession({ headers });
 
     if (!session) {

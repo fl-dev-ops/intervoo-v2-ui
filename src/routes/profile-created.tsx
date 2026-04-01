@@ -59,7 +59,7 @@ function ProfileCreatedPage() {
           </div>
 
           <div className="button-row">
-            <a className="primary-button" href="/pre-screening/native-language">
+            <a className="primary-button" href="/pre-screening">
               Start Pre-screening →
             </a>
           </div>
