@@ -16,11 +16,12 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PreScreeningIndexRouteImport } from './routes/pre-screening.index'
-import { Route as PreScreeningSpeedRouteImport } from './routes/pre-screening.speed'
-import { Route as PreScreeningNativeLanguageRouteImport } from './routes/pre-screening.native-language'
-import { Route as PreScreeningEnglishLevelRouteImport } from './routes/pre-screening.english-level'
+import { Route as ApiWebhooksLivekitRouteImport } from './routes/api/webhooks/livekit'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
+import { Route as ApiLivekitPreScreeningRouteImport } from './routes/api/livekit/pre-screening'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiLivekitPreScreeningSessionIdRouteImport } from './routes/api/livekit/pre-screening.$sessionId'
+import { Route as ApiLivekitPreScreeningSessionIdRetryEvaluationRouteImport } from './routes/api/livekit/pre-screening.$sessionId.retry-evaluation'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -57,26 +58,19 @@ const PreScreeningIndexRoute = PreScreeningIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PreScreeningRoute,
 } as any)
-const PreScreeningSpeedRoute = PreScreeningSpeedRouteImport.update({
-  id: '/speed',
-  path: '/speed',
-  getParentRoute: () => PreScreeningRoute,
+const ApiWebhooksLivekitRoute = ApiWebhooksLivekitRouteImport.update({
+  id: '/api/webhooks/livekit',
+  path: '/api/webhooks/livekit',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PreScreeningNativeLanguageRoute =
-  PreScreeningNativeLanguageRouteImport.update({
-    id: '/native-language',
-    path: '/native-language',
-    getParentRoute: () => PreScreeningRoute,
-  } as any)
-const PreScreeningEnglishLevelRoute =
-  PreScreeningEnglishLevelRouteImport.update({
-    id: '/english-level',
-    path: '/english-level',
-    getParentRoute: () => PreScreeningRoute,
-  } as any)
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   id: '/api/trpc/$',
   path: '/api/trpc/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLivekitPreScreeningRoute = ApiLivekitPreScreeningRouteImport.update({
+  id: '/api/livekit/pre-screening',
+  path: '/api/livekit/pre-screening',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -84,6 +78,18 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLivekitPreScreeningSessionIdRoute =
+  ApiLivekitPreScreeningSessionIdRouteImport.update({
+    id: '/$sessionId',
+    path: '/$sessionId',
+    getParentRoute: () => ApiLivekitPreScreeningRoute,
+  } as any)
+const ApiLivekitPreScreeningSessionIdRetryEvaluationRoute =
+  ApiLivekitPreScreeningSessionIdRetryEvaluationRouteImport.update({
+    id: '/retry-evaluation',
+    path: '/retry-evaluation',
+    getParentRoute: () => ApiLivekitPreScreeningSessionIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -92,12 +98,13 @@ export interface FileRoutesByFullPath {
   '/pre-screening': typeof PreScreeningRouteWithChildren
   '/profile-created': typeof ProfileCreatedRoute
   '/register': typeof RegisterRoute
-  '/pre-screening/english-level': typeof PreScreeningEnglishLevelRoute
-  '/pre-screening/native-language': typeof PreScreeningNativeLanguageRoute
-  '/pre-screening/speed': typeof PreScreeningSpeedRoute
   '/pre-screening/': typeof PreScreeningIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/api/webhooks/livekit': typeof ApiWebhooksLivekitRoute
+  '/api/livekit/pre-screening/$sessionId': typeof ApiLivekitPreScreeningSessionIdRouteWithChildren
+  '/api/livekit/pre-screening/$sessionId/retry-evaluation': typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -105,12 +112,13 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/profile-created': typeof ProfileCreatedRoute
   '/register': typeof RegisterRoute
-  '/pre-screening/english-level': typeof PreScreeningEnglishLevelRoute
-  '/pre-screening/native-language': typeof PreScreeningNativeLanguageRoute
-  '/pre-screening/speed': typeof PreScreeningSpeedRoute
   '/pre-screening': typeof PreScreeningIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/api/webhooks/livekit': typeof ApiWebhooksLivekitRoute
+  '/api/livekit/pre-screening/$sessionId': typeof ApiLivekitPreScreeningSessionIdRouteWithChildren
+  '/api/livekit/pre-screening/$sessionId/retry-evaluation': typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -120,12 +128,13 @@ export interface FileRoutesById {
   '/pre-screening': typeof PreScreeningRouteWithChildren
   '/profile-created': typeof ProfileCreatedRoute
   '/register': typeof RegisterRoute
-  '/pre-screening/english-level': typeof PreScreeningEnglishLevelRoute
-  '/pre-screening/native-language': typeof PreScreeningNativeLanguageRoute
-  '/pre-screening/speed': typeof PreScreeningSpeedRoute
   '/pre-screening/': typeof PreScreeningIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/api/webhooks/livekit': typeof ApiWebhooksLivekitRoute
+  '/api/livekit/pre-screening/$sessionId': typeof ApiLivekitPreScreeningSessionIdRouteWithChildren
+  '/api/livekit/pre-screening/$sessionId/retry-evaluation': typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -136,12 +145,13 @@ export interface FileRouteTypes {
     | '/pre-screening'
     | '/profile-created'
     | '/register'
-    | '/pre-screening/english-level'
-    | '/pre-screening/native-language'
-    | '/pre-screening/speed'
     | '/pre-screening/'
     | '/api/auth/$'
+    | '/api/livekit/pre-screening'
     | '/api/trpc/$'
+    | '/api/webhooks/livekit'
+    | '/api/livekit/pre-screening/$sessionId'
+    | '/api/livekit/pre-screening/$sessionId/retry-evaluation'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -149,12 +159,13 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/profile-created'
     | '/register'
-    | '/pre-screening/english-level'
-    | '/pre-screening/native-language'
-    | '/pre-screening/speed'
     | '/pre-screening'
     | '/api/auth/$'
+    | '/api/livekit/pre-screening'
     | '/api/trpc/$'
+    | '/api/webhooks/livekit'
+    | '/api/livekit/pre-screening/$sessionId'
+    | '/api/livekit/pre-screening/$sessionId/retry-evaluation'
   id:
     | '__root__'
     | '/'
@@ -163,12 +174,13 @@ export interface FileRouteTypes {
     | '/pre-screening'
     | '/profile-created'
     | '/register'
-    | '/pre-screening/english-level'
-    | '/pre-screening/native-language'
-    | '/pre-screening/speed'
     | '/pre-screening/'
     | '/api/auth/$'
+    | '/api/livekit/pre-screening'
     | '/api/trpc/$'
+    | '/api/webhooks/livekit'
+    | '/api/livekit/pre-screening/$sessionId'
+    | '/api/livekit/pre-screening/$sessionId/retry-evaluation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -179,7 +191,9 @@ export interface RootRouteChildren {
   ProfileCreatedRoute: typeof ProfileCreatedRoute
   RegisterRoute: typeof RegisterRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiLivekitPreScreeningRoute: typeof ApiLivekitPreScreeningRouteWithChildren
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
+  ApiWebhooksLivekitRoute: typeof ApiWebhooksLivekitRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -233,32 +247,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreScreeningIndexRouteImport
       parentRoute: typeof PreScreeningRoute
     }
-    '/pre-screening/speed': {
-      id: '/pre-screening/speed'
-      path: '/speed'
-      fullPath: '/pre-screening/speed'
-      preLoaderRoute: typeof PreScreeningSpeedRouteImport
-      parentRoute: typeof PreScreeningRoute
-    }
-    '/pre-screening/native-language': {
-      id: '/pre-screening/native-language'
-      path: '/native-language'
-      fullPath: '/pre-screening/native-language'
-      preLoaderRoute: typeof PreScreeningNativeLanguageRouteImport
-      parentRoute: typeof PreScreeningRoute
-    }
-    '/pre-screening/english-level': {
-      id: '/pre-screening/english-level'
-      path: '/english-level'
-      fullPath: '/pre-screening/english-level'
-      preLoaderRoute: typeof PreScreeningEnglishLevelRouteImport
-      parentRoute: typeof PreScreeningRoute
+    '/api/webhooks/livekit': {
+      id: '/api/webhooks/livekit'
+      path: '/api/webhooks/livekit'
+      fullPath: '/api/webhooks/livekit'
+      preLoaderRoute: typeof ApiWebhooksLivekitRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/trpc/$': {
       id: '/api/trpc/$'
       path: '/api/trpc/$'
       fullPath: '/api/trpc/$'
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/livekit/pre-screening': {
+      id: '/api/livekit/pre-screening'
+      path: '/api/livekit/pre-screening'
+      fullPath: '/api/livekit/pre-screening'
+      preLoaderRoute: typeof ApiLivekitPreScreeningRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -268,26 +275,64 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/livekit/pre-screening/$sessionId': {
+      id: '/api/livekit/pre-screening/$sessionId'
+      path: '/$sessionId'
+      fullPath: '/api/livekit/pre-screening/$sessionId'
+      preLoaderRoute: typeof ApiLivekitPreScreeningSessionIdRouteImport
+      parentRoute: typeof ApiLivekitPreScreeningRoute
+    }
+    '/api/livekit/pre-screening/$sessionId/retry-evaluation': {
+      id: '/api/livekit/pre-screening/$sessionId/retry-evaluation'
+      path: '/retry-evaluation'
+      fullPath: '/api/livekit/pre-screening/$sessionId/retry-evaluation'
+      preLoaderRoute: typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRouteImport
+      parentRoute: typeof ApiLivekitPreScreeningSessionIdRoute
+    }
   }
 }
 
 interface PreScreeningRouteChildren {
-  PreScreeningEnglishLevelRoute: typeof PreScreeningEnglishLevelRoute
-  PreScreeningNativeLanguageRoute: typeof PreScreeningNativeLanguageRoute
-  PreScreeningSpeedRoute: typeof PreScreeningSpeedRoute
   PreScreeningIndexRoute: typeof PreScreeningIndexRoute
 }
 
 const PreScreeningRouteChildren: PreScreeningRouteChildren = {
-  PreScreeningEnglishLevelRoute: PreScreeningEnglishLevelRoute,
-  PreScreeningNativeLanguageRoute: PreScreeningNativeLanguageRoute,
-  PreScreeningSpeedRoute: PreScreeningSpeedRoute,
   PreScreeningIndexRoute: PreScreeningIndexRoute,
 }
 
 const PreScreeningRouteWithChildren = PreScreeningRoute._addFileChildren(
   PreScreeningRouteChildren,
 )
+
+interface ApiLivekitPreScreeningSessionIdRouteChildren {
+  ApiLivekitPreScreeningSessionIdRetryEvaluationRoute: typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRoute
+}
+
+const ApiLivekitPreScreeningSessionIdRouteChildren: ApiLivekitPreScreeningSessionIdRouteChildren =
+  {
+    ApiLivekitPreScreeningSessionIdRetryEvaluationRoute:
+      ApiLivekitPreScreeningSessionIdRetryEvaluationRoute,
+  }
+
+const ApiLivekitPreScreeningSessionIdRouteWithChildren =
+  ApiLivekitPreScreeningSessionIdRoute._addFileChildren(
+    ApiLivekitPreScreeningSessionIdRouteChildren,
+  )
+
+interface ApiLivekitPreScreeningRouteChildren {
+  ApiLivekitPreScreeningSessionIdRoute: typeof ApiLivekitPreScreeningSessionIdRouteWithChildren
+}
+
+const ApiLivekitPreScreeningRouteChildren: ApiLivekitPreScreeningRouteChildren =
+  {
+    ApiLivekitPreScreeningSessionIdRoute:
+      ApiLivekitPreScreeningSessionIdRouteWithChildren,
+  }
+
+const ApiLivekitPreScreeningRouteWithChildren =
+  ApiLivekitPreScreeningRoute._addFileChildren(
+    ApiLivekitPreScreeningRouteChildren,
+  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -297,7 +342,9 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileCreatedRoute: ProfileCreatedRoute,
   RegisterRoute: RegisterRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiLivekitPreScreeningRoute: ApiLivekitPreScreeningRouteWithChildren,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
+  ApiWebhooksLivekitRoute: ApiWebhooksLivekitRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

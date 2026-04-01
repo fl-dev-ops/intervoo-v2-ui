@@ -11,6 +11,7 @@ export const env = createEnv({
     LIVEKIT_API_KEY: z.string().min(1).optional(),
     LIVEKIT_API_SECRET: z.string().min(1).optional(),
     LIVEKIT_WEBHOOK_ALLOW_UNVERIFIED: z.enum(["true", "false"]).optional(),
+    GEMINI_API_KEY: z.string().min(1).optional(),
     S3_ACCESS_KEY: z.string().min(1).optional(),
     S3_SECRET_KEY: z.string().min(1).optional(),
     S3_REGION: z.string().min(1).optional(),

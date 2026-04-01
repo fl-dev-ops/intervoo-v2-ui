@@ -5,6 +5,7 @@ export type PreScreeningSetup = {
 };
 
 const STORAGE_KEY = "pre_screening_setup";
+const REPORT_SESSION_KEY = "pre_screening_report_session";
 
 export function getPreScreeningSetup(): PreScreeningSetup {
   if (typeof window === "undefined") {
@@ -35,4 +36,12 @@ export function savePreScreeningSetup(patch: Partial<PreScreeningSetup>) {
 
 export function hasCompletedPreScreeningSetup(setup = getPreScreeningSetup()) {
   return Boolean(setup.nativeLanguage && setup.englishLevel && setup.speakingSpeed);
+}
+
+export function clearLegacyPreScreeningReportSession() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(REPORT_SESSION_KEY);
 }

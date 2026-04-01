@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { completeOnboarding, getSession } from "#/lib/auth.functions";
+import { cn } from "#/lib/utils";
 
 const yearOptions = [
   { value: "1", label: "1st" },
@@ -28,6 +29,14 @@ export const Route = createFileRoute("/onboarding")({
   },
   component: OnboardingPage,
 });
+
+const shellClassName = "mx-auto flex min-h-screen w-full max-w-[420px] flex-col px-4 py-6 sm:px-0";
+const cardClassName =
+  "rounded-3xl border border-slate-800/90 bg-slate-950/85 p-5 text-slate-100 shadow-[0_28px_60px_rgba(2,6,23,0.55)]";
+const fieldStackClassName = "flex flex-col gap-2";
+const labelClassName = "text-xs font-semibold uppercase tracking-[0.12em] text-slate-400";
+const inputClassName =
+  "h-12 w-full rounded-xl border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/30";
 
 function OnboardingPage() {
   const { session } = Route.useRouteContext();
@@ -68,24 +77,28 @@ function OnboardingPage() {
   }
 
   return (
-    <main className="app-screen">
-      <div className="mobile-shell">
-        <section className="content-card" style={{ marginTop: "16px" }}>
-          <h1 className="display-title">
-            Build your <em>profile</em>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.18),transparent_32%),radial-gradient(circle_at_left_bottom,rgba(56,189,248,0.16),transparent_24%),linear-gradient(180deg,#020617,#0f172a)] px-3 font-['Sora',sans-serif] text-slate-100">
+      <div className={shellClassName}>
+        <section className={cardClassName}>
+          <h1 className="text-2xl leading-tight font-semibold text-slate-50">
+            Build your <em className="not-italic text-amber-300">profile</em>
           </h1>
-          <p className="support-copy">
+          <p className="mt-3 text-sm leading-6 text-slate-300">
             Tell us who you are so the rest of the product can be personalized around your journey.
           </p>
 
-          <div className="content-stack">
-            {error ? <div className="alert alert-danger">{error}</div> : null}
+          <div className="mt-5 space-y-4">
+            {error ? (
+              <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                {error}
+              </div>
+            ) : null}
 
-            <form className="page-form" onSubmit={handleSubmit}>
-              <label className="field-stack">
-                <span className="field-label">Full name</span>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <label className={fieldStackClassName}>
+                <span className={labelClassName}>Full name</span>
                 <input
-                  className="text-input"
+                  className={inputClassName}
                   placeholder="Aisha Patel"
                   required
                   type="text"
@@ -94,10 +107,10 @@ function OnboardingPage() {
                 />
               </label>
 
-              <label className="field-stack">
-                <span className="field-label">Email address</span>
+              <label className={fieldStackClassName}>
+                <span className={labelClassName}>Email address</span>
                 <input
-                  className="text-input"
+                  className={inputClassName}
                   placeholder="aisha@example.com"
                   required
                   type="email"
@@ -106,10 +119,10 @@ function OnboardingPage() {
                 />
               </label>
 
-              <label className="field-stack">
-                <span className="field-label">College / institution</span>
+              <label className={fieldStackClassName}>
+                <span className={labelClassName}>College / institution</span>
                 <input
-                  className="text-input"
+                  className={inputClassName}
                   placeholder="PSG College of Technology"
                   required
                   type="text"
@@ -118,10 +131,10 @@ function OnboardingPage() {
                 />
               </label>
 
-              <label className="field-stack">
-                <span className="field-label">Degree</span>
+              <label className={fieldStackClassName}>
+                <span className={labelClassName}>Degree</span>
                 <select
-                  className="text-select"
+                  className={inputClassName}
                   required
                   value={degree}
                   onChange={(event) => setDegree(event.target.value)}
@@ -136,10 +149,10 @@ function OnboardingPage() {
                 </select>
               </label>
 
-              <label className="field-stack">
-                <span className="field-label">Stream / branch</span>
+              <label className={fieldStackClassName}>
+                <span className={labelClassName}>Stream / branch</span>
                 <input
-                  className="text-input"
+                  className={inputClassName}
                   placeholder="Computer Science"
                   required
                   type="text"
@@ -148,13 +161,18 @@ function OnboardingPage() {
                 />
               </label>
 
-              <div className="field-stack">
-                <span className="field-label">Year of study</span>
-                <div className="year-grid">
+              <div className={fieldStackClassName}>
+                <span className={labelClassName}>Year of study</span>
+                <div className="grid grid-cols-4 gap-2">
                   {yearOptions.map((option) => (
                     <button
                       key={option.value}
-                      className={`year-chip${yearOfStudy === option.value ? " is-active" : ""}`}
+                      className={cn(
+                        "h-10 rounded-xl border text-xs font-semibold transition",
+                        yearOfStudy === option.value
+                          ? "border-amber-300/50 bg-amber-400 text-slate-950"
+                          : "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500",
+                      )}
                       type="button"
                       onClick={() => setYearOfStudy(option.value)}
                     >
@@ -162,17 +180,15 @@ function OnboardingPage() {
                     </button>
                   ))}
                 </div>
-                <input
-                  readOnly
-                  required
-                  style={{ display: "none" }}
-                  tabIndex={-1}
-                  value={yearOfStudy}
-                />
+                <input readOnly required className="hidden" tabIndex={-1} value={yearOfStudy} />
               </div>
 
-              <div className="button-row" style={{ marginTop: "8px" }}>
-                <button className="primary-button" disabled={loading} type="submit">
+              <div className="pt-2">
+                <button
+                  className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-amber-300/50 bg-amber-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={loading}
+                  type="submit"
+                >
                   {loading ? "Saving profile..." : "Save profile"}
                 </button>
               </div>
