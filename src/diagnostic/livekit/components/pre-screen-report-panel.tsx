@@ -98,16 +98,52 @@ function getSignalTone(value: PreScreenResearchSignal) {
   return "partial";
 }
 
-function getSummaryCopy(level: AwarenessLevel) {
+function getPrimaryTargetRole(report: PreScreenReport) {
+  const aimingRoles = splitPlanValue(report.aiming_for);
+  if (aimingRoles.length > 0) {
+    return aimingRoles[0];
+  }
+
+  if (report.roles_mentioned.length > 0) {
+    return report.roles_mentioned[0];
+  }
+
+  const dreamRoles = splitPlanValue(report.dream_job);
+  if (dreamRoles.length > 0) {
+    return dreamRoles[0];
+  }
+
+  return "your target";
+}
+
+function formatCompanyList(companies: string[]) {
+  const cleaned = companies.map((company) => company.trim()).filter(Boolean);
+
+  if (cleaned.length === 0) {
+    return null;
+  }
+
+  if (cleaned.length === 1) {
+    return cleaned[0];
+  }
+
+  if (cleaned.length === 2) {
+    return `${cleaned[0]} & ${cleaned[1]}`;
+  }
+
+  return `${cleaned.slice(0, -1).join(", ")} & ${cleaned[cleaned.length - 1]}`;
+}
+
+function getDifficultyLine(level: AwarenessLevel) {
   if (level === "Strong") {
-    return "The student shows layered planning with realistic fallback thinking.";
+    return "Difficulty set to your advanced awareness level.";
   }
 
   if (level === "Clear") {
-    return "The student has a clear target, with some planning depth still missing.";
+    return "Difficulty set to your current awareness level.";
   }
 
-  return "The student still sounds broad or uncertain about next-step job targets.";
+  return "Difficulty set to build your awareness level step by step.";
 }
 
 function getToneClasses(tone: JobPlanTone) {
@@ -315,6 +351,44 @@ function JobPlanBubble(props: {
   );
 }
 
+function ReadyToScheduleCard(props: { report: PreScreenReport }) {
+  const role = getPrimaryTargetRole(props.report);
+  const companies = formatCompanyList(props.report.companies_mentioned);
+  const difficultyLine = getDifficultyLine(props.report.job_awareness_category);
+
+  return (
+    <Card className="overflow-hidden mt-2 rounded-[28px] border border-blue-400/30 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.2),transparent_34%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]">
+      <CardContent className="p-5">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-lg">
+            📋
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-[14px] leading-6 font-semibold text-blue-300">
+              Your Diagnostic Interview is ready to schedule
+            </h3>
+
+            <p className="text-[13px] leading-6 text-slate-300">
+              Interview questions built around{" "}
+              <span className="font-semibold text-slate-100">{role}</span> roles
+              {companies ? (
+                <>
+                  {" "}
+                  at <span className="font-semibold text-slate-100">{companies}</span>.
+                </>
+              ) : (
+                "."
+              )}{" "}
+              {difficultyLine}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ReportReadyView(props: { report: PreScreenReport; onReset: () => void }) {
   const awarenessTone = getAwarenessTone(props.report.job_awareness_category);
   const researchBreakdown = deriveResearchBreakdown(props.report);
@@ -324,31 +398,6 @@ function ReportReadyView(props: { report: PreScreenReport; onReset: () => void }
 
   return (
     <div className="space-y-6">
-      {/* <Card className="overflow-hidden border-slate-700/70 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.14),transparent_28%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))]">
-        <CardHeader className="flex flex-col items-start gap-4 p-6">
-          <div className="space-y-2">
-            <div className="text-[12px] font-black uppercase tracking-[0.18em] text-slate-300">
-              Pre-screening Summary
-            </div>
-            <CardTitle className="text-[14px] leading-6 font-semibold text-slate-50">
-              Your job plan is ready
-            </CardTitle>
-            <CardDescription className="max-w-xl text-[13px] leading-6 text-slate-400">
-              A clear view of the job paths and research clarity discussed in
-              your session.
-            </CardDescription>
-          </div>
-
-          <Button
-            variant="secondary"
-            className="h-auto w-full justify-center rounded-[28px] px-5 py-4 text-[13px] leading-tight"
-            onClick={props.onReset}
-          >
-            Back to pre-screening
-          </Button>
-        </CardHeader>
-      </Card> */}
-
       <div className="space-y-6">
         <section className="space-y-4">
           <SectionHeader
@@ -442,8 +491,9 @@ function ReportReadyView(props: { report: PreScreenReport; onReset: () => void }
             </div>
           </div>
         </section>
+        <ReadyToScheduleCard report={props.report} />
 
-        <Card className="rounded-[28px] border-orange-400/30 bg-slate-950/78">
+        {/* <Card className="rounded-[28px] border-orange-400/30 bg-slate-950/78">
           <CardHeader className="pb-3">
             <CardTitle className="text-[14px] font-semibold uppercase tracking-[0.14em] text-slate-400">
               Summary
@@ -454,7 +504,7 @@ function ReportReadyView(props: { report: PreScreenReport; onReset: () => void }
               {getSummaryCopy(props.report.job_awareness_category)}
             </p>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );
@@ -476,20 +526,20 @@ function WaitingReportView() {
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-[24px] leading-tight font-semibold text-slate-100">
+            <h3 className="text-[14px] leading-6 font-semibold text-slate-100">
               Building your Diagnostic Interview...
             </h3>
 
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2.5 text-[18px] leading-7 text-slate-300">
+              <div className="flex items-center gap-2.5 text-[13px] leading-6 text-slate-300">
                 <CheckCircle2 className="size-5 text-emerald-400" />
                 <span>Job targets captured</span>
               </div>
-              <div className="flex items-center gap-2.5 text-[18px] leading-7 text-slate-300">
+              <div className="flex items-center gap-2.5 text-[13px] leading-6 text-slate-300">
                 <CheckCircle2 className="size-5 text-emerald-400" />
                 <span>Research depth assessed</span>
               </div>
-              <div className="flex items-center gap-2.5 text-[18px] leading-7 text-sky-300">
+              <div className="flex items-center gap-2.5 text-[14px] leading-6 text-sky-300">
                 <LoaderCircle className="size-5 animate-spin" />
                 <span className="font-semibold">Personalising interview questions...</span>
               </div>
