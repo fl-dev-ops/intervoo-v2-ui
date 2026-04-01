@@ -4,9 +4,11 @@ import path from "node:path";
 import { z } from "zod";
 import type { PreScreenReport } from "#/diagnostic/pre-screening-types";
 
-const PRE_SCREEN_PROMPT_PATH = path.resolve(process.cwd(), "prompts/pre-call.md");
+const PRE_SCREEN_PROMPT_PATH = path.resolve(process.cwd(), "rubrics/pre-call.md");
 
 const awarenessCategorySchema = z.enum(["Unclear", "Clear", "Strong"]);
+const researchCategorySchema = z.enum(["Not Enough", "Good", "Strong"]);
+const researchSignalSchema = z.enum(["Good", "Some gaps", "Rough idea", "Not yet", "Clear"]);
 
 export const preScreenReportSchema = z.object({
   dream_job: z.string().nullable(),
@@ -17,6 +19,17 @@ export const preScreenReportSchema = z.object({
   companies_mentioned: z.array(z.string()),
   roles_mentioned: z.array(z.string()),
   job_awareness_category: awarenessCategorySchema,
+  job_research_category: researchCategorySchema.nullable().optional(),
+  job_research_breakdown: z
+    .object({
+      skills_research: researchSignalSchema,
+      tools_and_role_clarity: researchSignalSchema,
+      salary_clarity: researchSignalSchema,
+      jd_awareness: researchSignalSchema,
+      company_clarity: researchSignalSchema,
+    })
+    .nullable()
+    .optional(),
 });
 
 export type PreScreenPromptContext = {
@@ -87,7 +100,15 @@ Use exactly this shape:
   "reasoning": "string or null",
   "companies_mentioned": ["string"],
   "roles_mentioned": ["string"],
-  "job_awareness_category": "Unclear | Clear | Strong"
+  "job_awareness_category": "Unclear | Clear | Strong",
+  "job_research_category": "Not Enough | Good | Strong",
+  "job_research_breakdown": {
+    "skills_research": "Good | Some gaps | Rough idea | Not yet | Clear",
+    "tools_and_role_clarity": "Good | Some gaps | Rough idea | Not yet | Clear",
+    "salary_clarity": "Good | Some gaps | Rough idea | Not yet | Clear",
+    "jd_awareness": "Good | Some gaps | Rough idea | Not yet | Clear",
+    "company_clarity": "Good | Some gaps | Rough idea | Not yet | Clear"
+  }
 }`;
 }
 

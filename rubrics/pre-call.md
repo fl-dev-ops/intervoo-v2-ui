@@ -34,3 +34,27 @@ Category definitions:
 - `Unclear`: The student is vague and lacks specifics. They may say `any job`, mention broad fields without preference like `IT or core`, have no target companies, or seem passive and unsure.
 - `Clear`: The student has a specific, realistic goal. They can name a target role, for example `Data Analyst`, and may mention target companies. They have moved beyond `any job`, but may still lack a long-term or backup plan.
 - `Strong`: The student demonstrates strategic, multi-layered thinking. They have a differentiated plan, often including a dream aspiration, a realistic target, and a backup plan. They understand different company types and provide strategic reasoning for their choices.
+
+Part 3: Job research evaluation
+
+- `job_research_category`: Classify the student's job research readiness as one of `Not Enough`, `Good`, or `Strong`.
+- `job_research_breakdown`: Score each of the following based only on what the student explicitly said:
+  - `skills_research`: how clearly they understand the skills they need.
+  - `tools_and_role_clarity`: how clearly they understand the tools, workflow, or day-to-day expectations of the role.
+  - `salary_clarity`: how clearly they understand salary expectations.
+  - `jd_awareness`: how clearly they understand job descriptions, hiring expectations, or qualification requirements.
+  - `company_clarity`: how clearly they understand which companies they want to target.
+
+Allowed values for each breakdown field:
+
+- `Good`: clear and specific understanding.
+- `Some gaps`: partial understanding with noticeable gaps.
+- `Rough idea`: broad awareness, but still vague.
+- `Not yet`: no meaningful awareness shown.
+- `Clear`: use only for company clarity when the student clearly named target companies.
+
+Overall job research category definitions:
+
+- `Not Enough`: the student shows little evidence of role or market research.
+- `Good`: the student has done meaningful research, but some parts are still incomplete.
+- `Strong`: the student demonstrates broad, specific, and well-connected research across role, skills, salary, JD, and companies.

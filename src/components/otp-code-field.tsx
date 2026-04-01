@@ -65,7 +65,7 @@ export function OtpCodeField({ value, onChange, length = 6, disabled = false }: 
   }
 
   return (
-    <div className="otp-grid" onPaste={handlePaste}>
+    <div className="grid grid-cols-6 gap-2" onPaste={handlePaste}>
       {slots.map((_, index) => (
         <input
           key={index}
@@ -73,7 +73,7 @@ export function OtpCodeField({ value, onChange, length = 6, disabled = false }: 
             refs.current[index] = node;
           }}
           aria-label={`OTP digit ${index + 1}`}
-          className="otp-slot"
+          className="h-12 w-full rounded-xl border border-slate-700 bg-slate-900 text-center text-lg font-semibold text-slate-100 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-300/30 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={disabled}
           inputMode="numeric"
           maxLength={1}

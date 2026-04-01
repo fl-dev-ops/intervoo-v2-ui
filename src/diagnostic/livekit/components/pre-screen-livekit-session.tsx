@@ -7,7 +7,9 @@ import {
   useTranscriptions,
 } from "@livekit/components-react";
 import { DisconnectReason } from "livekit-client";
-import { LoaderCircle, Mic, PhoneOff } from "lucide-react";
+import { LoaderCircle, Mic, PhoneOff, SendHorizontal } from "lucide-react";
+import type { PreScreenTranscriptMessage } from "#/diagnostic/pre-screening-types";
+import { cn } from "#/lib/utils";
 import type { PreScreeningConnectionDetails } from "../types";
 import { getPushToTalkButtonLabel, getControlBarLabel, usePushToTalk } from "../push-to-talk";
 import { normalizePreScreenTranscriptMessages } from "../utils/transcript";
@@ -18,7 +20,10 @@ interface PreScreenLiveKitSessionProps {
   pending: boolean;
   studentName?: string | null;
   onExit: () => void;
-  onSessionEnded: () => void;
+  onFinalizeSession: (input: {
+    sessionId: string;
+    messages: PreScreenTranscriptMessage[];
+  }) => Promise<boolean>;
   onRetry: () => Promise<void>;
 }
 
@@ -41,24 +46,56 @@ export function PreScreenLiveKitSession({
   pending,
   studentName,
   onExit,
-  onSessionEnded,
+  onFinalizeSession,
   onRetry,
 }: PreScreenLiveKitSessionProps) {
   const [roomError, setRoomError] = useState<string | null>(null);
   const [wasDisconnected, setWasDisconnected] = useState(false);
+  const [isFinalizingSession, setIsFinalizingSession] = useState(false);
+  const hasFinalizeStartedRef = useRef(false);
+  const latestMessagesRef = useRef<PreScreenTranscriptMessage[]>([]);
+
+  async function handleFinalizeSession() {
+    if (hasFinalizeStartedRef.current) {
+      return;
+    }
+
+    hasFinalizeStartedRef.current = true;
+    setRoomError(null);
+    setIsFinalizingSession(true);
+
+    try {
+      const succeeded = await onFinalizeSession({
+        sessionId: connection.sessionId,
+        messages: latestMessagesRef.current,
+      });
+
+      if (!succeeded) {
+        hasFinalizeStartedRef.current = false;
+      }
+    } finally {
+      setIsFinalizingSession(false);
+    }
+  }
 
   if (wasDisconnected) {
     return (
-      <div className="pre-screen-session-shell">
-        <div className="pre-screen-session-error-card">
-          <h3>The interview session ended</h3>
-          <p>Your session disconnected before the pre-screen finished.</p>
-          <div className="pre-screen-session-error-actions">
-            <button className="secondary-button" type="button" onClick={onExit}>
+      <div className="grid min-h-[55dvh] place-items-center">
+        <div className="w-full rounded-3xl border border-slate-700/90 bg-slate-950/85 p-6 shadow-[0_28px_60px_rgba(2,6,23,0.55)]">
+          <h3 className="text-lg font-semibold text-slate-50">The interview session ended</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Your session disconnected before the pre-screen finished.
+          </p>
+          <div className="mt-5 grid gap-3">
+            <button
+              className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 px-4 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-800"
+              type="button"
+              onClick={onExit}
+            >
               Back to preview
             </button>
             <button
-              className="primary-button primary-button--pill"
+              className="inline-flex h-12 w-full items-center justify-center rounded-full border border-amber-300/50 bg-amber-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={pending}
               type="button"
               onClick={() => void onRetry()}
@@ -72,8 +109,12 @@ export function PreScreenLiveKitSession({
   }
 
   return (
-    <div className="pre-screen-session-shell">
-      {roomError ? <div className="pre-screen-session-banner">{roomError}</div> : null}
+    <div className="flex min-h-0 flex-1 flex-col">
+      {roomError ? (
+        <div className="mb-3 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          {roomError}
+        </div>
+      ) : null}
 
       <MicrophonePermissionGate>
         <LiveKitRoom
@@ -83,20 +124,29 @@ export function PreScreenLiveKitSession({
           audio={false}
           onError={(error) => setRoomError(error.message)}
           onDisconnected={(reason) => {
+            if (hasFinalizeStartedRef.current) {
+              return;
+            }
+
             if (isIntentionalServerEnd(reason)) {
-              onSessionEnded();
+              void handleFinalizeSession();
               return;
             }
 
             setWasDisconnected(true);
           }}
-          className="pre-screen-livekit-room"
+          className="flex min-h-0 flex-1"
         >
           <RoomAudioRenderer />
           <PreScreenLiveKitSessionContent
-            pending={pending}
+            pending={pending || isFinalizingSession}
             studentName={studentName}
-            onEndSession={onSessionEnded}
+            onTranscriptMessagesChange={(messages) => {
+              latestMessagesRef.current = messages;
+            }}
+            onEndSession={async () => {
+              await handleFinalizeSession();
+            }}
           />
         </LiveKitRoom>
       </MicrophonePermissionGate>
@@ -107,11 +157,13 @@ export function PreScreenLiveKitSession({
 function PreScreenLiveKitSessionContent({
   pending,
   studentName,
+  onTranscriptMessagesChange,
   onEndSession,
 }: {
   pending: boolean;
   studentName?: string | null;
-  onEndSession: () => void;
+  onTranscriptMessagesChange: (messages: PreScreenTranscriptMessage[]) => void;
+  onEndSession: () => Promise<void>;
 }) {
   const { localParticipant } = useLocalParticipant();
   const transcriptions = useTranscriptions();
@@ -229,71 +281,86 @@ function PreScreenLiveKitSessionContent({
   const showAgentLoader =
     visibleMessages.length > 0 && isAwaitingAgentResponse && lastVisibleMessage?.role !== "agent";
 
+  useEffect(() => {
+    onTranscriptMessagesChange(messages);
+  }, [messages, onTranscriptMessagesChange]);
+
   return (
-    <div className="pre-screen-session-card">
-      <header className="pre-screen-session-header">
-        <div className="pre-screen-session-agent">
-          <div className="pre-screen-session-agent-avatar">🤖</div>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-700/90 bg-slate-950/90 shadow-[0_28px_60px_rgba(2,6,23,0.55)]">
+      <header className="flex items-center justify-between gap-3 border-b border-slate-700/80 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-full border border-amber-300/30 bg-amber-400/10 text-lg">
+            🤖
+          </div>
           <div>
-            <div className="pre-screen-session-agent-name">Sana · AI Guide</div>
-            <div className="pre-screen-session-agent-subtitle">
+            <div className="text-sm font-semibold text-slate-100">Sana · AI Guide</div>
+            <div className="text-xs text-slate-400">
               {studentName?.trim() || "Pre-screening diagnostic"}
             </div>
           </div>
         </div>
 
-        <button className="pre-screen-session-end-button" type="button" onClick={onEndSession}>
+        <button
+          className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={pending}
+          type="button"
+          onClick={() => void onEndSession()}
+        >
           <PhoneOff className="h-4 w-4" />
           End
         </button>
       </header>
 
-      <div className="pre-screen-session-progress">
-        <div className="pre-screen-session-progress-block is-active">
-          <div className="pre-screen-session-progress-label">🎯 Job Plans</div>
-          <div className="pre-screen-session-progress-bar">
-            <span style={{ width: messages.length > 2 ? "55%" : "28%" }} />
-          </div>
-        </div>
-        <div
-          className={`pre-screen-session-progress-block${messages.length > 5 ? " is-active" : ""}`}
-        >
-          <div className="pre-screen-session-progress-label">🔍 Job Research</div>
-          <div className="pre-screen-session-progress-bar">
-            <span style={{ width: messages.length > 5 ? "38%" : "0%" }} />
-          </div>
-        </div>
-      </div>
-
-      <div className="pre-screen-session-body">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {visibleMessages.length === 0 ? (
-          <div className="pre-screen-empty-state">
-            <div className="pre-screen-empty-state-label">Preparing the conversation</div>
+          <div className="grid h-full min-h-[180px] place-items-center">
+            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Preparing the conversation
+            </div>
           </div>
         ) : (
-          <div className="pre-screen-message-list">
+          <div className="space-y-3">
             {visibleMessages.map((message) => (
               <article
                 key={message.id}
-                className={`pre-screen-message${message.role === "agent" ? " is-agent" : " is-user"}`}
+                className={cn(
+                  "flex items-start gap-2",
+                  message.role === "user" ? "justify-end" : "justify-start",
+                )}
               >
-                <div className="pre-screen-message-avatar">
-                  {message.role === "agent" ? "🤖" : "👤"}
-                </div>
-                <div className="pre-screen-message-bubble">
+                {message.role === "agent" ? (
+                  <div className="flex size-8 items-center justify-center rounded-full bg-slate-800 text-sm">
+                    🤖
+                  </div>
+                ) : null}
+                <div
+                  className={cn(
+                    "max-w-[82%] rounded-2xl border px-3 py-2 text-sm leading-6",
+                    message.role === "agent"
+                      ? "border-slate-700 bg-slate-900 text-slate-100"
+                      : "border-amber-300/30 bg-amber-400/10 text-amber-100",
+                  )}
+                >
                   <p>{message.text}</p>
                 </div>
+                {message.role === "user" ? (
+                  <div className="flex size-8 items-center justify-center rounded-full bg-slate-800 text-sm">
+                    👤
+                  </div>
+                ) : null}
               </article>
             ))}
 
             {showAgentLoader ? (
-              <article className="pre-screen-message is-agent">
-                <div className="pre-screen-message-avatar">🤖</div>
-                <div className="pre-screen-message-bubble pre-screen-message-bubble--loader">
-                  <div className="pre-screen-loader-dots" aria-hidden="true">
-                    <span />
-                    <span />
-                    <span />
+              <article className="flex items-start gap-2">
+                <div className="flex size-8 items-center justify-center rounded-full bg-slate-800 text-sm">
+                  🤖
+                </div>
+                <div className="max-w-[82%] flex rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100">
+                  <div className="mb-1 flex items-center gap-1" aria-hidden="true">
+                    <span className="size-1.5 animate-pulse rounded-full bg-slate-300 [animation-delay:0ms]" />
+                    <span className="size-1.5 animate-pulse rounded-full bg-slate-300 [animation-delay:120ms]" />
+                    <span className="size-1.5 animate-pulse rounded-full bg-slate-300 [animation-delay:240ms]" />
                   </div>
                   <p>Thinking...</p>
                 </div>
@@ -303,29 +370,43 @@ function PreScreenLiveKitSessionContent({
         )}
       </div>
 
-      <footer className="pre-screen-session-footer">
-        <div className="pre-screen-session-footer-label">{controlBarLabel}</div>
+      <footer className="shrink-0 border-t border-slate-700/80 bg-slate-950 px-4 py-3">
+        <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+          {controlBarLabel}
+        </div>
 
         {inProgressUserTranscript ? (
-          <div className="pre-screen-session-live-transcript">{inProgressUserTranscript}</div>
+          <div className="mt-2 rounded-xl border border-amber-300/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+            {inProgressUserTranscript}
+          </div>
         ) : null}
 
-        <div className="pre-screen-session-control-row">
-          <div className="pre-screen-session-input-shell">
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-300">
             <span
-              className={`pre-screen-session-input-dot${pttState === "recording" ? " is-live" : ""}`}
+              className={cn(
+                "size-2 rounded-full bg-slate-500",
+                pttState === "recording"
+                  ? "bg-red-400 shadow-[0_0_0_6px_rgba(248,113,113,0.2)]"
+                  : "",
+              )}
             />
             <span>{micStateLabel}</span>
           </div>
 
           <button
-            className={`pre-screen-session-mic-button${pttState === "recording" ? " is-recording" : ""}`}
+            className={cn(
+              "inline-flex size-14 items-center justify-center rounded-full border border-amber-300/40 bg-amber-400 text-slate-950 shadow-[0_14px_26px_rgba(245,158,11,0.26)] transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60",
+              pttState === "recording" ? "ring-8 ring-amber-300/20" : "",
+            )}
             disabled={!canRecord || pending}
             type="button"
             onClick={() => void toggleRecording()}
           >
             {pending ? (
               <LoaderCircle className="h-7 w-7 animate-spin" />
+            ) : pttState === "recording" ? (
+              <SendHorizontal className="h-7 w-7" />
             ) : (
               <Mic className="h-7 w-7" />
             )}
@@ -334,9 +415,10 @@ function PreScreenLiveKitSessionContent({
         </div>
 
         {devices.length > 1 ? (
-          <label className="pre-screen-session-device-picker">
+          <label className="mt-3 flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-300">
             <span>Mic</span>
             <select
+              className="w-full bg-transparent text-xs text-slate-100 outline-none"
               value={activeDeviceId || devices[0]?.deviceId || ""}
               onChange={(event) => {
                 void setActiveMediaDevice(event.target.value);
@@ -352,7 +434,9 @@ function PreScreenLiveKitSessionContent({
         ) : null}
 
         {clientError || error ? (
-          <div className="pre-screen-session-banner">{clientError || error}</div>
+          <div className="mt-3 rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            {clientError || error}
+          </div>
         ) : null}
       </footer>
     </div>

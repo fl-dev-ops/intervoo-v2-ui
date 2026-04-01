@@ -1,12 +1,5 @@
 import type { TextStreamData } from "@livekit/components-react";
-
-export interface PreScreenTranscriptMessage {
-  id: string;
-  participantIdentity: string;
-  role: "agent" | "user";
-  text: string;
-  timestamp: string;
-}
+import type { PreScreenTranscriptMessage } from "#/diagnostic/pre-screening-types";
 
 export function normalizePreScreenTranscriptMessages(
   transcriptions: TextStreamData[],

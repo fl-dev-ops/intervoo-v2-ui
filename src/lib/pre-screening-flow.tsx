@@ -36,20 +36,8 @@ const PRE_SCREENING_STEPS: PreScreeningStep[] = [
   "evaluationFailed",
 ];
 
-function getInitialStep(setup: PreScreeningSetup): PreScreeningStep {
-  if (!setup.nativeLanguage) {
-    return "nativeLanguage";
-  }
-
-  if (!setup.englishLevel) {
-    return "englishLevel";
-  }
-
-  if (!setup.speakingSpeed) {
-    return "speakingSpeed";
-  }
-
-  return "intro";
+function getInitialStep(): PreScreeningStep {
+  return "nativeLanguage";
 }
 
 function getStepFromUrl(): PreScreeningStep | null {
@@ -69,7 +57,7 @@ function getStepFromUrl(): PreScreeningStep | null {
 }
 
 function resolveStepFromUrl(setup: PreScreeningSetup): PreScreeningStep {
-  const fallbackStep = getInitialStep(setup);
+  const fallbackStep = getInitialStep();
   const urlStep = getStepFromUrl();
 
   if (!urlStep) {

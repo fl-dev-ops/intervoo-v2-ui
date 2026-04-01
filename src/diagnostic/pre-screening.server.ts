@@ -31,28 +31,9 @@ type StartPreScreeningUser = {
   } | null;
 };
 
-function buildPreScreenSessionMetadata(input: {
-  user: StartPreScreeningUser;
-  setup: PreScreeningSetup;
-  roomName: string;
-  participantIdentity: string;
-  participantName: string;
-  roomMetadata: Record<string, unknown>;
-}) {
+function buildPreScreenSessionMetadata(input: { user: StartPreScreeningUser }) {
   return {
     studentId: input.user.id,
-    studentName: input.user.name,
-    profile: input.user.profile ?? null,
-    setup: input.setup,
-    prompt: {
-      path: "prompts/pre-call.md",
-    },
-    livekit: {
-      roomName: input.roomName,
-      participantIdentity: input.participantIdentity,
-      participantName: input.participantName,
-      roomMetadata: input.roomMetadata,
-    },
   };
 }
 
@@ -68,6 +49,7 @@ export async function startPreScreeningSession(input: {
     setup: input.setup,
     profile: input.user.profile,
   });
+  console.log({ roomMetadata });
 
   const draft = await prisma.preScreenQuestionnaireDraft.create({
     data: {
@@ -84,11 +66,6 @@ export async function startPreScreeningSession(input: {
 
   const sessionMetadata = buildPreScreenSessionMetadata({
     user: input.user,
-    setup: input.setup,
-    roomName,
-    participantIdentity,
-    participantName,
-    roomMetadata,
   });
 
   const session = await prisma.preScreenSession.create({
@@ -105,7 +82,7 @@ export async function startPreScreeningSession(input: {
     await createPreScreeningLiveKitRoom({
       roomName,
       metadata: {
-        // ...roomMetadata,
+        ...roomMetadata,
         session_id: session.id,
         draft_id: draft.id,
       },
@@ -133,14 +110,6 @@ export async function startPreScreeningSession(input: {
       where: { id: session.id },
       data: {
         egressId: recording.egressId,
-        sessionMetadata: toJsonValue({
-          ...sessionMetadata,
-          livekit: {
-            ...sessionMetadata.livekit,
-            egressEnabled: true,
-            egressId: recording.egressId,
-          },
-        }),
       },
     });
   } catch (error) {

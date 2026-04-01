@@ -24,6 +24,15 @@ export const Route = createFileRoute("/register")({
   component: RegisterPage,
 });
 
+const shellClassName =
+  "mx-auto flex min-h-screen w-full max-w-[420px] flex-col gap-4 px-4 py-6 sm:px-0";
+const cardClassName =
+  "rounded-3xl border border-slate-800/90 bg-slate-950/85 p-5 text-slate-100 shadow-[0_28px_60px_rgba(2,6,23,0.55)]";
+const primaryButtonClassName =
+  "inline-flex h-12 w-full items-center justify-center rounded-2xl border border-amber-300/50 bg-amber-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60";
+const ghostButtonClassName =
+  "inline-flex h-12 w-full items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 px-4 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60";
+
 function RegisterPage() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
@@ -134,43 +143,53 @@ function RegisterPage() {
   }
 
   return (
-    <main className="app-screen">
-      <div className="mobile-shell">
-        <div className="status-row">
-          <span className="status-time">9:41</span>
-          <span className="status-meta">New account</span>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.18),transparent_32%),radial-gradient(circle_at_left_bottom,rgba(56,189,248,0.16),transparent_24%),linear-gradient(180deg,#020617,#0f172a)] px-3 font-['Sora',sans-serif] text-slate-100">
+      <div className={shellClassName}>
+        <div className="flex items-center justify-between px-1 text-xs font-semibold text-slate-400">
+          <span className="font-mono text-slate-200">9:41</span>
+          <span>New account</span>
         </div>
 
-        <section className="content-card" style={{ marginTop: "16px" }}>
-          <div className="journey-pill">Step {step === "phone" ? "1" : "2"} of 2</div>
-          <h2 className="section-title">
+        <section className={cardClassName}>
+          <div className="inline-flex rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-300">
+            Step {step === "phone" ? "1" : "2"} of 2
+          </div>
+          <h2 className="mt-3 text-lg font-semibold text-slate-50">
             {step === "phone" ? (
               <>
-                Enter your <em>mobile number</em>
+                Enter your <em className="not-italic text-amber-300">mobile number</em>
               </>
             ) : (
               <>
-                Verify your <em>OTP</em>
+                Verify your <em className="not-italic text-amber-300">OTP</em>
               </>
             )}
           </h2>
-          <p className="section-copy">
+          <p className="mt-2 text-sm leading-6 text-slate-300">
             {step === "phone"
               ? "We will send a one-time code to verify your number."
               : `We sent a 6-digit code to ${formatPhoneNumberForDisplay(phone)}.`}
           </p>
 
-          <div className="content-stack">
-            {error ? <div className="alert alert-danger">{error}</div> : null}
+          <div className="mt-5 space-y-4">
+            {error ? (
+              <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                {error}
+              </div>
+            ) : null}
 
             {step === "phone" ? (
-              <form className="page-form" onSubmit={handlePhoneSubmit}>
-                <label className="field-stack">
-                  <span className="field-label">WhatsApp number</span>
-                  <div className="input-prefix-shell">
-                    <span className="input-prefix-label">{FIXED_COUNTRY_CODE}</span>
+              <form className="space-y-4" onSubmit={handlePhoneSubmit}>
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    WhatsApp number
+                  </span>
+                  <div className="flex h-12 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 focus-within:border-amber-300 focus-within:ring-2 focus-within:ring-amber-300/30">
+                    <span className="inline-flex items-center border-r border-slate-700 px-3 text-sm font-medium text-slate-300">
+                      {FIXED_COUNTRY_CODE}
+                    </span>
                     <input
-                      className="text-input"
+                      className="h-full w-full bg-transparent px-3 text-sm text-slate-100 outline-none"
                       id="phone"
                       inputMode="numeric"
                       maxLength={10}
@@ -181,34 +200,36 @@ function RegisterPage() {
                       onChange={(event) => setPhone(normalizeLocalPhoneNumber(event.target.value))}
                     />
                   </div>
-                  <span className="helper-copy">
+                  <span className="text-xs text-slate-400">
                     {FIXED_COUNTRY_CODE} is fixed and will be added automatically.
                   </span>
                 </label>
 
-                <div className="button-row">
-                  <button className="primary-button" disabled={loading} type="submit">
+                <div>
+                  <button className={primaryButtonClassName} disabled={loading} type="submit">
                     {loading ? "Sending OTP..." : "Continue"}
                   </button>
                 </div>
               </form>
             ) : (
-              <form className="page-form" onSubmit={handleOtpSubmit}>
-                <label className="field-stack">
-                  <span className="field-label">Verification code</span>
+              <form className="space-y-4" onSubmit={handleOtpSubmit}>
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    Verification code
+                  </span>
                   <OtpCodeField disabled={loading} value={otp} onChange={setOtp} />
                 </label>
 
-                <div className="button-row">
+                <div className="space-y-3">
                   <button
-                    className="primary-button"
+                    className={primaryButtonClassName}
                     disabled={loading || otp.length !== 6}
                     type="submit"
                   >
                     {loading ? "Verifying..." : "Verify & continue"}
                   </button>
                   <button
-                    className="ghost-button"
+                    className={ghostButtonClassName}
                     disabled={loading}
                     type="button"
                     onClick={() => {
@@ -222,13 +243,13 @@ function RegisterPage() {
                 </div>
 
                 {resendCooldown > 0 ? (
-                  <p className="countdown-copy">
+                  <p className="text-center text-xs font-medium text-slate-400">
                     Resend available in {formatCountdown(resendCooldown)}
                   </p>
                 ) : (
-                  <div className="support-actions">
+                  <div className="flex justify-center">
                     <button
-                      className="text-link-button"
+                      className="text-sm font-medium text-amber-300 underline-offset-2 hover:underline"
                       disabled={loading}
                       type="button"
                       onClick={handleResend}
@@ -240,13 +261,14 @@ function RegisterPage() {
               </form>
             )}
 
-            <div className="support-actions">
-              <p className="muted-copy">
-                Already have an account?{" "}
-                <a className="support-link" href="/login">
-                  Sign in
-                </a>
-              </p>
+            <div className="pt-1 text-center text-sm text-slate-400">
+              Already have an account?{" "}
+              <a
+                className="font-medium text-amber-300 underline-offset-2 hover:underline"
+                href="/login"
+              >
+                Sign in
+              </a>
             </div>
           </div>
         </section>

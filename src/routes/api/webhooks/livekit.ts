@@ -7,6 +7,8 @@ import {
 export async function postHandler({ request }: { request: Request }) {
   try {
     const event = await parseLiveKitWebhookEvent(request);
+    console.log("event received from Livekit", event.event);
+
     return await handleLiveKitWebhookEvent(event);
   } catch (error) {
     console.error("[livekit webhook] processing failed", error);

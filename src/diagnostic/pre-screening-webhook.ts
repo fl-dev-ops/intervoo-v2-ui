@@ -5,7 +5,10 @@ import {
   buildPreScreenPrompt,
   parsePreScreenReportResponse,
 } from "#/diagnostic/pre-screening-report";
-import { getPreScreenRecordingDownloadUrl } from "#/diagnostic/s3";
+import {
+  buildPreScreenTranscriptPromptText,
+  getPreScreenSessionTranscriptMessages,
+} from "#/diagnostic/pre-screening-transcript";
 import {
   getPreScreenWebhookReceiver,
   shouldAllowUnverifiedLiveKitWebhook,
@@ -38,76 +41,27 @@ function isAgentParticipant(event: LiveKitWebhookEvent) {
   return identity.includes("agent") || name.includes("agent");
 }
 
-export function getMimeTypeFromUrl(url: string) {
-  const normalized = url.toLowerCase();
+async function updateSessionFromEgressEvent(roomName: string, event: LiveKitWebhookEvent) {
+  const session = await prisma.preScreenSession.findUnique({
+    where: { roomName },
+  });
 
-  if (normalized.includes(".mp3")) {
-    return "audio/mpeg";
-  }
-
-  if (normalized.includes(".wav")) {
-    return "audio/wav";
-  }
-
-  if (normalized.includes(".webm")) {
-    return "audio/webm";
-  }
-
-  if (normalized.includes(".ogg")) {
-    return "audio/ogg";
-  }
-
-  return "video/mp4";
-}
-
-async function downloadAudioAsBlob(url: string) {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to download audio from egress: ${response.status}`);
-  }
-
-  const mimeType = response.headers.get("content-type") || getMimeTypeFromUrl(url);
-
-  return {
-    blob: new Blob([await response.arrayBuffer()], {
-      type: mimeType,
-    }),
-    mimeType,
-  };
-}
-
-async function getPreScreenAudioDownloadUrl(input: { sessionId: string; audioUrl: string }) {
-  try {
-    return await getPreScreenRecordingDownloadUrl(input.sessionId);
-  } catch {
-    return input.audioUrl;
-  }
-}
-
-async function waitForGeminiFileActive(ai: GoogleGenAI, fileName?: string | null) {
-  if (!fileName) {
+  if (!session) {
     return;
   }
 
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const currentFile = await ai.files.get({ name: fileName });
-    const state = currentFile.state?.toString();
+  const audioUrl = getAudioUrlFromEvent(event);
+  const egressId = event.egressInfo?.egressId ?? session.egressId ?? null;
 
-    if (!state || state === "ACTIVE") {
-      return currentFile;
-    }
-
-    if (state === "FAILED") {
-      throw new Error(
-        `Gemini file processing failed for ${currentFile.name ?? "uploaded file"} (${currentFile.mimeType ?? "unknown mime"})`,
-      );
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-
-  throw new Error("Timed out waiting for Gemini file processing");
+  await prisma.preScreenSession.update({
+    where: { id: session.id },
+    data: {
+      audioUrl: audioUrl ?? session.audioUrl,
+      egressId,
+      endedAt: session.endedAt ?? new Date(),
+      status: session.status === "REPORT_READY" ? "REPORT_READY" : "COMPLETED",
+    },
+  });
 }
 
 async function markSessionCompleted(roomName: string) {
@@ -200,64 +154,31 @@ async function acquireSessionReportForEvaluation(sessionId: string, options?: { 
 
 function buildGeminiMetadata(input: {
   existing: unknown;
-  fileUri?: string | null;
   model?: string;
-  mimeType?: string;
-  uploadState?: string;
   evaluationState?: string;
   promptVersion?: string;
+  transcriptMessageCount?: number;
+  transcriptCharacterCount?: number;
   error?: string | null;
 }) {
   return mergeJsonObject(input.existing, {
-    fileUri: input.fileUri ?? null,
-    mimeType: input.mimeType ?? null,
     model: input.model ?? null,
-    uploadState: input.uploadState ?? null,
     evaluationState: input.evaluationState ?? null,
     promptVersion: input.promptVersion ?? null,
+    transcriptMessageCount: input.transcriptMessageCount ?? null,
+    transcriptCharacterCount: input.transcriptCharacterCount ?? null,
     error: input.error ?? null,
   });
 }
 
-async function evaluatePreScreenSession(
-  roomName: string,
-  event: LiveKitWebhookEvent,
-  options?: { force?: boolean },
-) {
+async function evaluatePreScreenSession(sessionId: string, options?: { force?: boolean }) {
   const session = await prisma.preScreenSession.findUnique({
-    where: { roomName },
-    include: { report: true },
+    where: { id: sessionId },
+    include: { report: true, draft: true },
   });
 
   if (!session) {
-    return;
-  }
-
-  const audioUrl = getAudioUrlFromEvent(event);
-  const egressId = event.egressInfo?.egressId ?? null;
-  const existingSessionMetadata = asJsonObject(session.sessionMetadata);
-  const livekitMetadata = asJsonObject(existingSessionMetadata.livekit);
-
-  await prisma.preScreenSession.update({
-    where: { id: session.id },
-    data: {
-      audioUrl,
-      egressId,
-      endedAt: session.endedAt ?? new Date(),
-      status: session.status === "REPORT_READY" ? "REPORT_READY" : "COMPLETED",
-      sessionMetadata: toJsonValue({
-        ...existingSessionMetadata,
-        livekit: {
-          ...livekitMetadata,
-          egressId,
-        },
-        egress: event.egressInfo ?? null,
-      }),
-    },
-  });
-
-  if (!audioUrl) {
-    return;
+    throw new Error("Pre-screen session not found");
   }
 
   const claimed = await acquireSessionReportForEvaluation(session.id, {
@@ -286,37 +207,22 @@ async function evaluatePreScreenSession(
   }
 
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const mimeType = getMimeTypeFromUrl(audioUrl);
-  const audioDownloadUrl = await getPreScreenAudioDownloadUrl({
-    sessionId: session.id,
-    audioUrl,
-  });
-  const studentProfile = asJsonObject(existingSessionMetadata.profile);
+  const transcriptMessages = getPreScreenSessionTranscriptMessages(session.transcript);
+  const transcriptPromptText = buildPreScreenTranscriptPromptText(transcriptMessages);
+  const draftContext = asJsonObject(session.draft.latestAgentContext);
+  const draftProfile = asJsonObject(draftContext.profile);
   const { prompt, promptVersion } = await buildPreScreenPrompt({
-    name:
-      typeof existingSessionMetadata.studentName === "string"
-        ? existingSessionMetadata.studentName
-        : null,
-    college: typeof studentProfile.institution === "string" ? studentProfile.institution : null,
-    degree: typeof studentProfile.degree === "string" ? studentProfile.degree : null,
-    stream: typeof studentProfile.stream === "string" ? studentProfile.stream : null,
-    year: typeof studentProfile.yearOfStudy === "string" ? studentProfile.yearOfStudy : null,
+    name: typeof draftContext.studentName === "string" ? draftContext.studentName : null,
+    college: typeof draftProfile.institution === "string" ? draftProfile.institution : null,
+    degree: typeof draftProfile.degree === "string" ? draftProfile.degree : null,
+    stream: typeof draftProfile.stream === "string" ? draftProfile.stream : null,
+    year: typeof draftProfile.yearOfStudy === "string" ? draftProfile.yearOfStudy : null,
   });
-
-  const downloadedAudio = await downloadAudioAsBlob(audioDownloadUrl);
 
   try {
-    const uploadedFile = await ai.files.upload({
-      file: downloadedAudio.blob,
-      config: {
-        mimeType: downloadedAudio.mimeType || mimeType,
-      },
-    });
-
-    if (!uploadedFile.uri) {
-      throw new Error("Gemini file upload did not return a file URI");
+    if (!transcriptMessages.length || !transcriptPromptText) {
+      throw new Error("No transcript is available for this session yet");
     }
-    await waitForGeminiFileActive(ai, uploadedFile.name);
 
     const result = await ai.models.generateContent({
       model: PRE_SCREEN_REPORT_MODEL,
@@ -328,13 +234,10 @@ async function evaluatePreScreenSession(
           role: "user",
           parts: [
             {
-              text: prompt,
-            },
-            {
-              fileData: {
-                fileUri: uploadedFile.uri,
-                mimeType: uploadedFile.mimeType ?? downloadedAudio.mimeType ?? mimeType,
-              },
+              text: `${prompt}
+
+Conversation transcript (ordered, includes student and agent):
+${transcriptPromptText}`,
             },
           ],
         },
@@ -345,12 +248,11 @@ async function evaluatePreScreenSession(
     const reportJson = parsePreScreenReportResponse(rawResponse);
     const reportMetadata = buildGeminiMetadata({
       existing: claimed.report.metadata,
-      fileUri: uploadedFile.uri,
-      mimeType: uploadedFile.mimeType ?? downloadedAudio.mimeType ?? mimeType,
       model: PRE_SCREEN_REPORT_MODEL,
-      uploadState: "UPLOADED",
       evaluationState: "READY",
       promptVersion,
+      transcriptMessageCount: transcriptMessages.length,
+      transcriptCharacterCount: transcriptPromptText.length,
       error: null,
     });
 
@@ -359,7 +261,7 @@ async function evaluatePreScreenSession(
       data: {
         status: "READY",
         promptVersion,
-        fileUri: uploadedFile.uri,
+        fileUri: null,
         reportJson: toJsonValue(reportJson),
         errorMessage: null,
         metadata: toJsonValue({
@@ -373,16 +275,6 @@ async function evaluatePreScreenSession(
       where: { id: session.id },
       data: {
         status: "REPORT_READY",
-        transcriptSummary: toJsonValue(reportJson),
-        sessionMetadata: toJsonValue({
-          ...existingSessionMetadata,
-          livekit: {
-            ...livekitMetadata,
-            egressId,
-          },
-          egress: event.egressInfo ?? null,
-          gemini: reportMetadata,
-        }),
       },
     });
   } catch (error) {
@@ -391,10 +283,10 @@ async function evaluatePreScreenSession(
     const failedMetadata = buildGeminiMetadata({
       existing: claimed.report.metadata,
       model: PRE_SCREEN_REPORT_MODEL,
-      mimeType: downloadedAudio.mimeType ?? mimeType,
-      uploadState: "FAILED",
       evaluationState: "FAILED",
       promptVersion,
+      transcriptMessageCount: transcriptMessages.length,
+      transcriptCharacterCount: transcriptPromptText.length,
       error: message,
     });
 
@@ -412,45 +304,23 @@ async function evaluatePreScreenSession(
       where: { id: session.id },
       data: {
         status: "COMPLETED",
-        sessionMetadata: toJsonValue({
-          ...existingSessionMetadata,
-          livekit: {
-            ...livekitMetadata,
-            egressId,
-          },
-          egress: event.egressInfo ?? null,
-          gemini: failedMetadata,
-        }),
       },
     });
   }
 }
 
-export async function retryPreScreenSessionEvaluation(sessionId: string) {
-  const session = await prisma.preScreenSession.findUnique({
-    where: { id: sessionId },
-  });
+export async function retryPreScreenSessionEvaluation(
+  sessionId: string,
+  options?: { force?: boolean },
+) {
+  await evaluatePreScreenSession(sessionId, { force: options?.force ?? true });
+}
 
-  if (!session?.roomName) {
-    throw new Error("Pre-screen session not found");
-  }
-
-  if (!session.audioUrl) {
-    throw new Error("Recording is not ready yet");
-  }
-
-  await evaluatePreScreenSession(
-    session.roomName,
-    {
-      event: "egress_ended",
-      egressInfo: {
-        egressId: session.egressId,
-        roomName: session.roomName,
-        fileResults: [{ location: session.audioUrl }],
-      },
-    },
-    { force: true },
-  );
+export async function triggerPreScreenSessionEvaluation(
+  sessionId: string,
+  options?: { force?: boolean },
+) {
+  await evaluatePreScreenSession(sessionId, { force: options?.force ?? false });
 }
 
 export async function handleLiveKitWebhookEvent(event: LiveKitWebhookEvent) {
@@ -464,7 +334,7 @@ export async function handleLiveKitWebhookEvent(event: LiveKitWebhookEvent) {
   }
 
   if (event.event === "egress_ended") {
-    await evaluatePreScreenSession(roomName, event);
+    await updateSessionFromEgressEvent(roomName, event);
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

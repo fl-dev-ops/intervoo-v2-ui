@@ -87,9 +87,9 @@ export function MicrophonePermissionGate({ children }: { children: ReactNode }) 
   }
 
   return (
-    <div className="pre-screen-permission-gate">
-      <div className="pre-screen-permission-card">
-        <div className="pre-screen-permission-icon">
+    <div className="grid min-h-[55dvh] place-items-center">
+      <div className="w-full rounded-3xl border border-slate-700/90 bg-slate-950/85 p-6 text-center shadow-[0_28px_60px_rgba(2,6,23,0.55)]">
+        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-100">
           {permissionState === "checking" ? (
             <LoaderCircle className="h-8 w-8 animate-spin" />
           ) : hasRequestedPermission ? (
@@ -99,7 +99,7 @@ export function MicrophonePermissionGate({ children }: { children: ReactNode }) 
           )}
         </div>
 
-        <h3>
+        <h3 className="text-lg font-semibold text-slate-50">
           {permissionState === "checking"
             ? "Checking microphone access"
             : hasRequestedPermission
@@ -107,7 +107,7 @@ export function MicrophonePermissionGate({ children }: { children: ReactNode }) 
               : "Microphone access is required"}
         </h3>
 
-        <p>
+        <p className="mt-3 text-sm leading-6 text-slate-300">
           {permissionState === "checking"
             ? "Please wait while we check your browser permissions."
             : hasRequestedPermission
@@ -117,7 +117,7 @@ export function MicrophonePermissionGate({ children }: { children: ReactNode }) 
 
         {permissionState !== "checking" ? (
           <button
-            className="primary-button primary-button--pill"
+            className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-full border border-amber-300/50 bg-amber-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-amber-300"
             type="button"
             onClick={() => void requestPermission()}
           >
