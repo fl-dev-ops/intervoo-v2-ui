@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { getSession } from "#/lib/auth.functions";
-import { PreScreeningFlowProvider } from "#/lib/pre-screening-flow";
+import { PreScreeningFlowProvider } from "#/pre-screening/flow";
 
 export const Route = createFileRoute("/pre-screening")({
   beforeLoad: async () => {

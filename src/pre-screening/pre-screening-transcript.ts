@@ -1,8 +1,8 @@
-import { asJsonObject } from "#/diagnostic/pre-screening-metadata";
+import { asJsonObject } from "#/pre-screening/pre-screening-metadata";
 import type {
   PreScreenSessionTranscript,
   PreScreenTranscriptMessage,
-} from "#/diagnostic/pre-screening-types";
+} from "#/pre-screening/pre-screening-types";
 
 const TRANSCRIPT_SOURCE = "livekit_client_transcriptions";
 

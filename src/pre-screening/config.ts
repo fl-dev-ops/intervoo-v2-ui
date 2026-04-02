@@ -1,4 +1,5 @@
-import type { PreScreeningSetup } from "#/lib/pre-screening-setup";
+import type { PreScreeningSetup } from "#/pre-screening/setup";
+import { buildParticipantName } from "#/common/user/participant-name";
 
 export const PRE_SCREENING_AGENT_TYPE = "pre_screen_agent" as const;
 
@@ -121,8 +122,7 @@ function joinNonEmpty(parts: Array<string | null | undefined>) {
 }
 
 export function buildPreScreeningParticipantName(name?: string | null) {
-  const trimmed = name?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : "Student";
+  return buildParticipantName(name);
 }
 
 export function buildPreScreeningProfileLine(profile?: PreScreeningProfileSummary | null) {

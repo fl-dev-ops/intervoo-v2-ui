@@ -1,18 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "#/db.server";
-import { asJsonObject, mergeJsonObject, toJsonValue } from "#/diagnostic/pre-screening-metadata";
+import { asJsonObject, mergeJsonObject, toJsonValue } from "#/pre-screening/pre-screening-metadata";
 import {
   buildPreScreenPrompt,
   parsePreScreenReportResponse,
-} from "#/diagnostic/pre-screening-report";
+} from "#/pre-screening/pre-screening-report";
 import {
   buildPreScreenTranscriptPromptText,
   getPreScreenSessionTranscriptMessages,
-} from "#/diagnostic/pre-screening-transcript";
+} from "#/pre-screening/pre-screening-transcript";
 import {
   getPreScreenWebhookReceiver,
   shouldAllowUnverifiedLiveKitWebhook,
-} from "#/diagnostic/livekit";
+} from "#/pre-screening/livekit.server";
 
 const PRE_SCREEN_REPORT_MODEL = "gemini-2.5-flash";
 

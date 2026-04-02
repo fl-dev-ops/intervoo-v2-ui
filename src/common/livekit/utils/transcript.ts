@@ -1,11 +1,11 @@
 import type { TextStreamData } from "@livekit/components-react";
-import type { PreScreenTranscriptMessage } from "#/diagnostic/pre-screening-types";
+import type { LiveKitTranscriptMessage } from "#/common/livekit/types";
 
-export function normalizePreScreenTranscriptMessages(
+export function normalizeLiveKitTranscriptMessages(
   transcriptions: TextStreamData[],
   localIdentity?: string,
 ) {
-  const latestByStreamId = new Map<string, PreScreenTranscriptMessage>();
+  const latestByStreamId = new Map<string, LiveKitTranscriptMessage>();
 
   transcriptions.forEach((transcription, index) => {
     const text = transcription.text.trim();

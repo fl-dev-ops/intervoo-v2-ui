@@ -3,7 +3,7 @@ import type {
   PreScreenResearchBreakdown,
   PreScreenResearchCategory,
   PreScreenResearchSignal,
-} from "#/diagnostic/pre-screening-types";
+} from "#/pre-screening/pre-screening-types";
 import { CheckCircle2, ClipboardList, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +62,13 @@ function splitPlanValue(value: string | null) {
   );
 }
 
+function toTitleCase(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1));
+}
+
 function getAwarenessTone(level: AwarenessLevel) {
   if (level === "Strong") {
     return "strong";
@@ -101,16 +108,16 @@ function getSignalTone(value: PreScreenResearchSignal) {
 function getPrimaryTargetRole(report: PreScreenReport) {
   const aimingRoles = splitPlanValue(report.aiming_for);
   if (aimingRoles.length > 0) {
-    return aimingRoles[0];
+    return toTitleCase(aimingRoles[0]);
   }
 
   if (report.roles_mentioned.length > 0) {
-    return report.roles_mentioned[0];
+    return toTitleCase(report.roles_mentioned[0]);
   }
 
   const dreamRoles = splitPlanValue(report.dream_job);
   if (dreamRoles.length > 0) {
-    return dreamRoles[0];
+    return toTitleCase(dreamRoles[0]);
   }
 
   return "your target";
@@ -311,7 +318,7 @@ function JobPlanBubble(props: {
   positionClassName: string;
   salary?: string | null;
 }) {
-  const lines = splitPlanValue(props.value);
+  const lines = splitPlanValue(props.value).map(toTitleCase);
   const toneClasses = getToneClasses(props.tone);
 
   return (
@@ -366,7 +373,7 @@ function ReadyToScheduleCard(props: { report: PreScreenReport }) {
 
           <div className="space-y-2">
             <h3 className="text-[14px] leading-6 font-semibold text-blue-300">
-              Your Diagnostic Interview is ready to schedule
+              Your Diagnostic Interview is ready now
             </h3>
 
             <p className="text-[13px] leading-6 text-slate-300">
@@ -389,7 +396,11 @@ function ReadyToScheduleCard(props: { report: PreScreenReport }) {
   );
 }
 
-function ReportReadyView(props: { report: PreScreenReport; onReset: () => void }) {
+function ReportReadyView(props: {
+  report: PreScreenReport;
+  onReset: () => void;
+  onOpenDiagnostic?: () => void;
+}) {
   const awarenessTone = getAwarenessTone(props.report.job_awareness_category);
   const researchBreakdown = deriveResearchBreakdown(props.report);
   const researchCategory =
@@ -493,6 +504,16 @@ function ReportReadyView(props: { report: PreScreenReport; onReset: () => void }
         </section>
         <ReadyToScheduleCard report={props.report} />
 
+        {props.onOpenDiagnostic ? (
+          <button
+            className="inline-flex h-12 w-full items-center justify-center rounded-full border border-amber-300/50 bg-amber-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-amber-300"
+            type="button"
+            onClick={props.onOpenDiagnostic}
+          >
+            See my diagnostic interview slot
+          </button>
+        ) : null}
+
         {/* <Card className="rounded-[28px] border-orange-400/30 bg-slate-950/78">
           <CardHeader className="pb-3">
             <CardTitle className="text-[14px] font-semibold uppercase tracking-[0.14em] text-slate-400">
@@ -559,11 +580,16 @@ export function PreScreenReportPanel(props: {
   isRetrying?: boolean;
   onRetry?: () => void;
   onReset: () => void;
+  onOpenDiagnostic?: () => void;
 }) {
   return (
     <div className="space-y-5">
       {props.status === "ready" && props.report ? (
-        <ReportReadyView report={props.report} onReset={props.onReset} />
+        <ReportReadyView
+          report={props.report}
+          onReset={props.onReset}
+          onOpenDiagnostic={props.onOpenDiagnostic}
+        />
       ) : props.status === "waiting" ? (
         <WaitingReportView />
       ) : (

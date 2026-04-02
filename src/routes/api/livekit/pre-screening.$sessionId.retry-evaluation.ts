@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { prisma } from "#/db.server";
-import { asJsonObject } from "#/diagnostic/pre-screening-metadata";
-import { retryPreScreenSessionEvaluation } from "#/diagnostic/pre-screening-webhook";
+import { asJsonObject } from "#/pre-screening/pre-screening-metadata";
+import { retryPreScreenSessionEvaluation } from "#/pre-screening/pre-screening-webhook";
 import { auth } from "#/lib/auth.server";
 
 export async function postHandler({

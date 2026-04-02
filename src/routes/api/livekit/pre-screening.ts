@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { prisma } from "#/db.server";
 import { auth } from "#/lib/auth.server";
-import { startPreScreeningSession } from "#/diagnostic/pre-screening.server";
-import type { PreScreeningSetup } from "#/lib/pre-screening-setup";
+import { startPreScreeningSession } from "#/pre-screening/pre-screening.server";
+import type { PreScreeningSetup } from "#/pre-screening/setup";
 
 export async function postHandler({ request }: { request: Request }) {
   const session = await auth.api.getSession({ headers: request.headers });

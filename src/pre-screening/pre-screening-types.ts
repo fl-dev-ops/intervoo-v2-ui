@@ -1,14 +1,9 @@
+import type { LiveKitTranscriptMessage, LiveKitTranscriptRole } from "#/common/livekit/types";
+
 export type PreScreenResearchCategory = "Not Enough" | "Good" | "Strong";
 
-export type PreScreenTranscriptRole = "agent" | "user";
-
-export type PreScreenTranscriptMessage = {
-  id: string;
-  participantIdentity: string;
-  role: PreScreenTranscriptRole;
-  text: string;
-  timestamp: string;
-};
+export type PreScreenTranscriptRole = LiveKitTranscriptRole;
+export type PreScreenTranscriptMessage = LiveKitTranscriptMessage;
 
 export type PreScreenSessionTranscript = {
   source: string;

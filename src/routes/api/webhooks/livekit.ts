@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   handleLiveKitWebhookEvent,
   parseLiveKitWebhookEvent,
-} from "#/diagnostic/pre-screening-webhook";
+} from "#/pre-screening/pre-screening-webhook";
 
 export async function postHandler({ request }: { request: Request }) {
   try {

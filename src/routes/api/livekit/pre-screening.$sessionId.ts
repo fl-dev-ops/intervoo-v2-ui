@@ -3,10 +3,10 @@ import { prisma } from "#/db.server";
 import {
   buildPreScreenSessionTranscript,
   sanitizePreScreenTranscriptMessages,
-} from "#/diagnostic/pre-screening-transcript";
-import { asJsonObject, toJsonValue } from "#/diagnostic/pre-screening-metadata";
-import { triggerPreScreenSessionEvaluation } from "#/diagnostic/pre-screening-webhook";
-import { getPreScreeningSessionStatus } from "#/diagnostic/pre-screening.server";
+} from "#/pre-screening/pre-screening-transcript";
+import { asJsonObject, toJsonValue } from "#/pre-screening/pre-screening-metadata";
+import { triggerPreScreenSessionEvaluation } from "#/pre-screening/pre-screening-webhook";
+import { getPreScreeningSessionStatus } from "#/pre-screening/pre-screening.server";
 import { auth } from "#/lib/auth.server";
 
 export async function getHandler({

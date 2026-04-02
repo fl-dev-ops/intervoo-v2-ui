@@ -1,24 +1,23 @@
 import { prisma } from "#/db.server";
-import { PRE_SCREENING_AGENT_TYPE } from "#/diagnostic/config";
+import { PRE_SCREENING_AGENT_TYPE } from "#/pre-screening/config";
 import {
   buildPreScreeningParticipantName,
   buildPreScreeningRoomMetadata,
-} from "#/diagnostic/config";
+} from "#/pre-screening/config";
 import {
   buildPreScreeningParticipantIdentity,
   buildPreScreeningRoomName,
   createPreScreeningLiveKitRoom,
   createPreScreeningLiveKitToken,
   getPreScreeningLiveKitServerUrl,
-  startPreScreeningRoomRecording,
-} from "#/diagnostic/livekit";
-import { asJsonObject, toJsonValue } from "#/diagnostic/pre-screening-metadata";
-import type { PreScreeningConnectionDetails } from "#/diagnostic/livekit/types";
+} from "#/pre-screening/livekit.server";
+import { asJsonObject, toJsonValue } from "#/pre-screening/pre-screening-metadata";
+import type { PreScreeningConnectionDetails } from "#/pre-screening/types";
 import type {
   PreScreenReport,
   PreScreeningSessionStatusResponse,
-} from "#/diagnostic/pre-screening-types";
-import type { PreScreeningSetup } from "#/lib/pre-screening-setup";
+} from "#/pre-screening/pre-screening-types";
+import type { PreScreeningSetup } from "#/pre-screening/setup";
 
 type StartPreScreeningUser = {
   id: string;
@@ -94,31 +93,6 @@ export async function startPreScreeningSession(input: {
         sessionMetadata: toJsonValue({
           ...sessionMetadata,
           roomCreateError: error instanceof Error ? error.message : "Failed to create room",
-        }),
-      },
-    });
-    throw error;
-  }
-
-  try {
-    const recording = await startPreScreeningRoomRecording({
-      roomName,
-      sessionId: session.id,
-    });
-
-    await prisma.preScreenSession.update({
-      where: { id: session.id },
-      data: {
-        egressId: recording.egressId,
-      },
-    });
-  } catch (error) {
-    await prisma.preScreenSession.update({
-      where: { id: session.id },
-      data: {
-        sessionMetadata: toJsonValue({
-          ...sessionMetadata,
-          egressStartError: error instanceof Error ? error.message : "Failed to start egress",
         }),
       },
     });

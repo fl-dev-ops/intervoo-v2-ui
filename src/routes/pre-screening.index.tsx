@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { PRE_SCREENING_SECTION_CARDS } from "#/diagnostic/config";
-import { PreScreenReportPanel } from "#/diagnostic/livekit/components/pre-screen-report-panel";
-import { PreScreenLiveKitSession } from "#/diagnostic/livekit/components/pre-screen-livekit-session";
-import type { PreScreeningConnectionDetails } from "#/diagnostic/livekit/types";
+import { PRE_SCREENING_SECTION_CARDS } from "#/pre-screening/config";
+import { PreScreenReportPanel } from "#/pre-screening/components/pre-screen-report-panel";
+import { InterviewLiveKitSession } from "#/common/livekit/components/interview-livekit-session";
+import type { PreScreeningConnectionDetails } from "#/pre-screening/types";
 import type {
   PreScreenTranscriptMessage,
   PreScreeningSessionStatusResponse,
-} from "#/diagnostic/pre-screening-types";
+} from "#/pre-screening/pre-screening-types";
 import {
   clearLegacyPreScreeningReportSession,
+  DEFAULT_NATIVE_LANGUAGE,
   savePreScreeningSetup,
-} from "#/lib/pre-screening-setup";
-import { usePreScreeningFlow } from "#/lib/pre-screening-flow";
+} from "#/pre-screening/setup";
+import { usePreScreeningFlow } from "#/pre-screening/flow";
 import { cn } from "#/lib/utils";
 
 const languageOptions = [
@@ -113,7 +114,7 @@ function PreScreeningPage() {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const hasAutoStartedSessionRef = useRef(false);
 
-  const nativeLanguage = setup.nativeLanguage ?? "bengali";
+  const nativeLanguage = setup.nativeLanguage ?? DEFAULT_NATIVE_LANGUAGE;
   const englishLevel = setup.englishLevel ?? "intermediate";
   const speakingSpeed = setup.speakingSpeed ?? "normal";
 
@@ -744,7 +745,7 @@ function PreScreeningPage() {
         ) : null}
 
         {step === "session" && connection ? (
-          <PreScreenLiveKitSession
+          <InterviewLiveKitSession
             key={connection.sessionId}
             connection={connection}
             pending={isConnecting || isFinalizingSession}
@@ -774,6 +775,9 @@ function PreScreeningPage() {
             isRetrying={isRetryingEvaluation}
             onRetry={handleRetryEvaluation}
             onReset={handleBack}
+            onOpenDiagnostic={() => {
+              window.location.href = "/diagnostic";
+            }}
           />
         ) : null}
       </div>

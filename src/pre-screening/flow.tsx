@@ -4,7 +4,7 @@ import {
   hasCompletedPreScreeningSetup,
   savePreScreeningSetup,
   type PreScreeningSetup,
-} from "#/lib/pre-screening-setup";
+} from "#/pre-screening/setup";
 
 export type PreScreeningStep =
   | "nativeLanguage"

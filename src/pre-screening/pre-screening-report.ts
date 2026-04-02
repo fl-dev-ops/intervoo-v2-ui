@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { createBundledTemplateLoader } from "#/diagnostic/bundled-template";
-import type { PreScreenReport } from "#/diagnostic/pre-screening-types";
+import { createBundledTemplateLoader } from "#/pre-screening/bundled-template";
+import type { PreScreenReport } from "#/pre-screening/pre-screening-types";
 import preScreenPromptTemplateRaw from "../../rubrics/pre-call.md?raw";
 
 const awarenessCategorySchema = z.enum(["Unclear", "Clear", "Strong"]);

@@ -14,11 +14,13 @@ import { Route as ProfileCreatedRouteImport } from './routes/profile-created'
 import { Route as PreScreeningRouteImport } from './routes/pre-screening'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as DiagnosticRouteImport } from './routes/diagnostic'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PreScreeningIndexRouteImport } from './routes/pre-screening.index'
 import { Route as ApiWebhooksLivekitRouteImport } from './routes/api/webhooks/livekit'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
 import { Route as ApiLivekitPreScreeningRouteImport } from './routes/api/livekit/pre-screening'
+import { Route as ApiLivekitDiagnosticRouteImport } from './routes/api/livekit/diagnostic'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiLivekitPreScreeningSessionIdRouteImport } from './routes/api/livekit/pre-screening.$sessionId'
 import { Route as ApiLivekitPreScreeningSessionIdRetryEvaluationRouteImport } from './routes/api/livekit/pre-screening.$sessionId.retry-evaluation'
@@ -48,6 +50,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiagnosticRoute = DiagnosticRouteImport.update({
+  id: '/diagnostic',
+  path: '/diagnostic',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -73,6 +80,11 @@ const ApiLivekitPreScreeningRoute = ApiLivekitPreScreeningRouteImport.update({
   path: '/api/livekit/pre-screening',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLivekitDiagnosticRoute = ApiLivekitDiagnosticRouteImport.update({
+  id: '/api/livekit/diagnostic',
+  path: '/api/livekit/diagnostic',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -93,6 +105,7 @@ const ApiLivekitPreScreeningSessionIdRetryEvaluationRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/diagnostic': typeof DiagnosticRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pre-screening': typeof PreScreeningRouteWithChildren
@@ -100,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/pre-screening/': typeof PreScreeningIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/livekit/diagnostic': typeof ApiLivekitDiagnosticRoute
   '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/webhooks/livekit': typeof ApiWebhooksLivekitRoute
@@ -108,12 +122,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/diagnostic': typeof DiagnosticRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/profile-created': typeof ProfileCreatedRoute
   '/register': typeof RegisterRoute
   '/pre-screening': typeof PreScreeningIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/livekit/diagnostic': typeof ApiLivekitDiagnosticRoute
   '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/webhooks/livekit': typeof ApiWebhooksLivekitRoute
@@ -123,6 +139,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/diagnostic': typeof DiagnosticRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pre-screening': typeof PreScreeningRouteWithChildren
@@ -130,6 +147,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/pre-screening/': typeof PreScreeningIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/livekit/diagnostic': typeof ApiLivekitDiagnosticRoute
   '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/webhooks/livekit': typeof ApiWebhooksLivekitRoute
@@ -140,6 +158,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/diagnostic'
     | '/login'
     | '/onboarding'
     | '/pre-screening'
@@ -147,6 +166,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/pre-screening/'
     | '/api/auth/$'
+    | '/api/livekit/diagnostic'
     | '/api/livekit/pre-screening'
     | '/api/trpc/$'
     | '/api/webhooks/livekit'
@@ -155,12 +175,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/diagnostic'
     | '/login'
     | '/onboarding'
     | '/profile-created'
     | '/register'
     | '/pre-screening'
     | '/api/auth/$'
+    | '/api/livekit/diagnostic'
     | '/api/livekit/pre-screening'
     | '/api/trpc/$'
     | '/api/webhooks/livekit'
@@ -169,6 +191,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/diagnostic'
     | '/login'
     | '/onboarding'
     | '/pre-screening'
@@ -176,6 +199,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/pre-screening/'
     | '/api/auth/$'
+    | '/api/livekit/diagnostic'
     | '/api/livekit/pre-screening'
     | '/api/trpc/$'
     | '/api/webhooks/livekit'
@@ -185,12 +209,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DiagnosticRoute: typeof DiagnosticRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   PreScreeningRoute: typeof PreScreeningRouteWithChildren
   ProfileCreatedRoute: typeof ProfileCreatedRoute
   RegisterRoute: typeof RegisterRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiLivekitDiagnosticRoute: typeof ApiLivekitDiagnosticRoute
   ApiLivekitPreScreeningRoute: typeof ApiLivekitPreScreeningRouteWithChildren
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
   ApiWebhooksLivekitRoute: typeof ApiWebhooksLivekitRoute
@@ -233,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/diagnostic': {
+      id: '/diagnostic'
+      path: '/diagnostic'
+      fullPath: '/diagnostic'
+      preLoaderRoute: typeof DiagnosticRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -266,6 +299,13 @@ declare module '@tanstack/react-router' {
       path: '/api/livekit/pre-screening'
       fullPath: '/api/livekit/pre-screening'
       preLoaderRoute: typeof ApiLivekitPreScreeningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/livekit/diagnostic': {
+      id: '/api/livekit/diagnostic'
+      path: '/api/livekit/diagnostic'
+      fullPath: '/api/livekit/diagnostic'
+      preLoaderRoute: typeof ApiLivekitDiagnosticRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -336,12 +376,14 @@ const ApiLivekitPreScreeningRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DiagnosticRoute: DiagnosticRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   PreScreeningRoute: PreScreeningRouteWithChildren,
   ProfileCreatedRoute: ProfileCreatedRoute,
   RegisterRoute: RegisterRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiLivekitDiagnosticRoute: ApiLivekitDiagnosticRoute,
   ApiLivekitPreScreeningRoute: ApiLivekitPreScreeningRouteWithChildren,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
   ApiWebhooksLivekitRoute: ApiWebhooksLivekitRoute,
