@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { z } from "zod";
+import { createBundledTemplateLoader } from "#/diagnostic/bundled-template";
 import type { PreScreenReport } from "#/diagnostic/pre-screening-types";
-
-const PRE_SCREEN_PROMPT_PATH = path.resolve(process.cwd(), "rubrics/pre-call.md");
+import preScreenPromptTemplateRaw from "../../rubrics/pre-call.md?raw";
 
 const awarenessCategorySchema = z.enum(["Unclear", "Clear", "Strong"]);
 const researchCategorySchema = z.enum(["Not Enough", "Good", "Strong"]);
@@ -112,9 +110,13 @@ Use exactly this shape:
 }`;
 }
 
+const loadBundledPreScreenPromptTemplate = createBundledTemplateLoader(
+  preScreenPromptTemplateRaw,
+  normalizePreScreenPromptTemplate,
+);
+
 export async function loadPreScreenPromptTemplate() {
-  const template = await readFile(PRE_SCREEN_PROMPT_PATH, "utf8");
-  return normalizePreScreenPromptTemplate(template);
+  return loadBundledPreScreenPromptTemplate();
 }
 
 export async function buildPreScreenPrompt(context: PreScreenPromptContext) {

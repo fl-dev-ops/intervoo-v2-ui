@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -184,6 +184,33 @@ function PreScreenLiveKitSessionContent({
   const activeTurnStartedAtRef = useRef<number | null>(null);
   const [isAwaitingAgentResponse, setIsAwaitingAgentResponse] = useState(false);
   const pendingAgentBaselineIdRef = useRef<string | null>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement | null>(null);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
+  const latestUserMessageSignatureRef = useRef<string | null>(null);
+
+  const scrollTranscriptToBottom = useCallback(() => {
+    if (scrollAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(scrollAnimationFrameRef.current);
+    }
+
+    scrollAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      const transcriptContainer = transcriptContainerRef.current;
+
+      if (!transcriptContainer) {
+        return;
+      }
+
+      transcriptContainer.scrollTop = transcriptContainer.scrollHeight;
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scrollAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollAnimationFrameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (pttState === "recording" && activeTurnStartedAtRef.current === null) {
@@ -251,6 +278,11 @@ function PreScreenLiveKitSessionContent({
   const lastVisibleMessage = visibleMessages[visibleMessages.length - 1];
   const lastAgentMessage =
     [...visibleMessages].reverse().find((message) => message.role === "agent") ?? null;
+  const latestUserMessage =
+    [...visibleMessages].reverse().find((message) => message.role === "user") ?? null;
+  const latestUserMessageSignature = latestUserMessage
+    ? `${latestUserMessage.id}:${latestUserMessage.timestamp}:${latestUserMessage.text}`
+    : null;
 
   useEffect(() => {
     if (pttState === "processing" || pttState === "agent_speaking") {
@@ -285,6 +317,27 @@ function PreScreenLiveKitSessionContent({
     onTranscriptMessagesChange(messages);
   }, [messages, onTranscriptMessagesChange]);
 
+  useEffect(() => {
+    if (pttState !== "agent_speaking") {
+      return;
+    }
+
+    scrollTranscriptToBottom();
+  }, [pttState, scrollTranscriptToBottom, showAgentLoader, visibleMessages]);
+
+  useEffect(() => {
+    if (!latestUserMessageSignature) {
+      return;
+    }
+
+    if (latestUserMessageSignatureRef.current === latestUserMessageSignature) {
+      return;
+    }
+
+    latestUserMessageSignatureRef.current = latestUserMessageSignature;
+    scrollTranscriptToBottom();
+  }, [latestUserMessageSignature, scrollTranscriptToBottom]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-700/90 bg-slate-950/90 shadow-[0_28px_60px_rgba(2,6,23,0.55)]">
       <header className="flex items-center justify-between gap-3 border-b border-slate-700/80 px-4 py-3">
@@ -311,7 +364,7 @@ function PreScreenLiveKitSessionContent({
         </button>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div ref={transcriptContainerRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {visibleMessages.length === 0 ? (
           <div className="grid h-full min-h-[180px] place-items-center">
             <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
@@ -356,7 +409,7 @@ function PreScreenLiveKitSessionContent({
                 <div className="flex size-8 items-center justify-center rounded-full bg-slate-800 text-sm">
                   🤖
                 </div>
-                <div className="max-w-[82%] flex rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100">
+                <div className="max-w-[82%] gap-1 flex rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100">
                   <div className="mb-1 flex items-center gap-1" aria-hidden="true">
                     <span className="size-1.5 animate-pulse rounded-full bg-slate-300 [animation-delay:0ms]" />
                     <span className="size-1.5 animate-pulse rounded-full bg-slate-300 [animation-delay:120ms]" />
