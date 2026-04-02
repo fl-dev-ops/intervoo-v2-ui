@@ -10,10 +10,9 @@ const DIAGNOSTIC_PROMPT_FILE_NAME = "diagnostic-report.ts";
 
 export const diagnosticReportGenerationSchema = z.object({
   cefr_level: cefrLevelSchema,
-  cefr_label: z.string().min(1).max(120).optional(),
-  thinking_score: z.number().min(0).max(100),
-  confidence_score: z.number().min(0).max(100),
-  language_score: z.number().min(0).max(100),
+  thinking_score: z.coerce.number().min(0).max(100),
+  confidence_score: z.coerce.number().min(0).max(100),
+  language_score: z.coerce.number().min(0).max(100),
 });
 
 const CEFR_LABEL_BY_LEVEL: Record<DiagnosticCefrLevel, string> = {
@@ -53,11 +52,6 @@ function getOverallRangeLabel(overallBand: DiagnosticScoreBand) {
   return "Foundational improvement needed";
 }
 
-function toNonEmpty(value: string, fallback: string) {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : fallback;
-}
-
 export function buildDiagnosticPrompt() {
   const prompt = `You are evaluating a student interview using transcript + video evidence.
 
@@ -73,15 +67,15 @@ Strict rules:
 - If a signal is weak, score lower.
 - Return JSON only matching the schema.
 - No markdown or extra keys.
+- Scores must be JSON numbers (not strings).
 
-Output JSON shape:
-	{
-	  "cefr_level": "A1 | A2 | B1 | B2 | C1 | C2",
-	  "cefr_label": "string",
-	  "thinking_score": 0,
-	  "confidence_score": 0,
-	  "language_score": 0
-	}`;
+	Output JSON shape:
+		{
+		  "cefr_level": "A1 | A2 | B1 | B2 | C1 | C2",
+		  "thinking_score": 0,
+		  "confidence_score": 0,
+		  "language_score": 0
+		}`;
 
   const promptVersion = DIAGNOSTIC_PROMPT_FILE_NAME;
 
@@ -106,7 +100,7 @@ export function normalizeDiagnosticReport(
     overallScore,
     overallBand,
     cefrLevel,
-    cefrLabel: toNonEmpty(raw.cefr_label ?? defaultCefrLabel, defaultCefrLabel),
+    cefrLabel: defaultCefrLabel,
     rangeLabel: getOverallRangeLabel(overallBand),
     thinking: {
       score: thinkingScore,

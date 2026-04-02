@@ -1,3 +1,4 @@
+import { NoObjectGeneratedError } from "ai";
 import { prisma } from "#/db.server";
 import {
   buildRemoteFilePart,
@@ -321,8 +322,17 @@ The diagnostic session video is attached as a file part. Use both transcript and
       },
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to evaluate diagnostic session";
+    let message = error instanceof Error ? error.message : "Failed to evaluate diagnostic session";
+
+    if (NoObjectGeneratedError.isInstance(error)) {
+      const preview = error.text?.trim();
+      const previewSuffix =
+        preview && preview.length > 0
+          ? ` Model output: ${preview.slice(0, 280)}${preview.length > 280 ? "..." : ""}`
+          : "";
+      message = `Diagnostic report parsing failed. Retry once.${previewSuffix}`;
+    }
+
     const failedMetadata = buildDiagnosticEvaluationMetadata({
       existing: claimed.report.metadata,
       model: EVALUATION_MODEL_ID,
@@ -357,7 +367,9 @@ export async function triggerDiagnosticSessionEvaluation(
   sessionId: string,
   options?: { force?: boolean },
 ) {
-  await evaluateDiagnosticSession(sessionId, { force: options?.force ?? false });
+  await evaluateDiagnosticSession(sessionId, {
+    force: options?.force ?? false,
+  });
 }
 
 export async function retryDiagnosticSessionEvaluation(
