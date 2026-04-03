@@ -7,6 +7,8 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
 
+const isVitest = Boolean(process.env.VITEST);
+
 const config = defineConfig({
   server: {
     cors: true,
@@ -16,15 +18,16 @@ const config = defineConfig({
     },
   },
   staged: {
-    "*": "vp check --fix",
+    "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts,json,css,scss,md,mdx,html,yml,yaml}": "vp fmt --write",
+    "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}": "vp lint --fix",
   },
-  lint: { options: { typeAware: true, typeCheck: true } },
   resolve: {
     tsconfigPaths: true,
   },
+  server: { allowedHosts: ["mendy-undelectable-dinah.ngrok-free.dev"] },
   plugins: [
     devtools(),
-    nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+    !isVitest && nitro({ rollupConfig: { external: [/^@sentry\//] } }),
     tailwindcss(),
     tanstackStart({
       spa: {
