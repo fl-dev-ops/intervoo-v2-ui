@@ -10,13 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
-import { Route as ProfileCreatedRouteImport } from './routes/profile-created'
-import { Route as PreScreeningRouteImport } from './routes/pre-screening'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as DiagnosticRouteImport } from './routes/diagnostic'
+import { Route as AssessmentRouteImport } from './routes/assessment'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PreScreeningIndexRouteImport } from './routes/pre-screening.index'
+import { Route as AssessmentSessionRouteImport } from './routes/assessment.session'
+import { Route as AssessmentReportRouteImport } from './routes/assessment.report'
 import { Route as ApiWebhooksLivekitRouteImport } from './routes/api/webhooks/livekit'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
 import { Route as ApiLivekitPreScreeningRouteImport } from './routes/api/livekit/pre-screening'
@@ -32,29 +30,14 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfileCreatedRoute = ProfileCreatedRouteImport.update({
-  id: '/profile-created',
-  path: '/profile-created',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PreScreeningRoute = PreScreeningRouteImport.update({
-  id: '/pre-screening',
-  path: '/pre-screening',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiagnosticRoute = DiagnosticRouteImport.update({
-  id: '/diagnostic',
-  path: '/diagnostic',
+const AssessmentRoute = AssessmentRouteImport.update({
+  id: '/assessment',
+  path: '/assessment',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -62,10 +45,15 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PreScreeningIndexRoute = PreScreeningIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PreScreeningRoute,
+const AssessmentSessionRoute = AssessmentSessionRouteImport.update({
+  id: '/session',
+  path: '/session',
+  getParentRoute: () => AssessmentRoute,
+} as any)
+const AssessmentReportRoute = AssessmentReportRouteImport.update({
+  id: '/report',
+  path: '/report',
+  getParentRoute: () => AssessmentRoute,
 } as any)
 const ApiWebhooksLivekitRoute = ApiWebhooksLivekitRouteImport.update({
   id: '/api/webhooks/livekit',
@@ -119,13 +107,11 @@ const ApiLivekitDiagnosticSessionIdRetryEvaluationRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/diagnostic': typeof DiagnosticRoute
-  '/login': typeof LoginRoute
+  '/assessment': typeof AssessmentRouteWithChildren
   '/onboarding': typeof OnboardingRoute
-  '/pre-screening': typeof PreScreeningRouteWithChildren
-  '/profile-created': typeof ProfileCreatedRoute
   '/register': typeof RegisterRoute
-  '/pre-screening/': typeof PreScreeningIndexRoute
+  '/assessment/report': typeof AssessmentReportRoute
+  '/assessment/session': typeof AssessmentSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/livekit/diagnostic': typeof ApiLivekitDiagnosticRouteWithChildren
   '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
@@ -138,12 +124,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/diagnostic': typeof DiagnosticRoute
-  '/login': typeof LoginRoute
+  '/assessment': typeof AssessmentRouteWithChildren
   '/onboarding': typeof OnboardingRoute
-  '/profile-created': typeof ProfileCreatedRoute
   '/register': typeof RegisterRoute
-  '/pre-screening': typeof PreScreeningIndexRoute
+  '/assessment/report': typeof AssessmentReportRoute
+  '/assessment/session': typeof AssessmentSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/livekit/diagnostic': typeof ApiLivekitDiagnosticRouteWithChildren
   '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
@@ -157,13 +142,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/diagnostic': typeof DiagnosticRoute
-  '/login': typeof LoginRoute
+  '/assessment': typeof AssessmentRouteWithChildren
   '/onboarding': typeof OnboardingRoute
-  '/pre-screening': typeof PreScreeningRouteWithChildren
-  '/profile-created': typeof ProfileCreatedRoute
   '/register': typeof RegisterRoute
-  '/pre-screening/': typeof PreScreeningIndexRoute
+  '/assessment/report': typeof AssessmentReportRoute
+  '/assessment/session': typeof AssessmentSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/livekit/diagnostic': typeof ApiLivekitDiagnosticRouteWithChildren
   '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
@@ -178,13 +161,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/diagnostic'
-    | '/login'
+    | '/assessment'
     | '/onboarding'
-    | '/pre-screening'
-    | '/profile-created'
     | '/register'
-    | '/pre-screening/'
+    | '/assessment/report'
+    | '/assessment/session'
     | '/api/auth/$'
     | '/api/livekit/diagnostic'
     | '/api/livekit/pre-screening'
@@ -197,12 +178,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/diagnostic'
-    | '/login'
+    | '/assessment'
     | '/onboarding'
-    | '/profile-created'
     | '/register'
-    | '/pre-screening'
+    | '/assessment/report'
+    | '/assessment/session'
     | '/api/auth/$'
     | '/api/livekit/diagnostic'
     | '/api/livekit/pre-screening'
@@ -215,13 +195,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/diagnostic'
-    | '/login'
+    | '/assessment'
     | '/onboarding'
-    | '/pre-screening'
-    | '/profile-created'
     | '/register'
-    | '/pre-screening/'
+    | '/assessment/report'
+    | '/assessment/session'
     | '/api/auth/$'
     | '/api/livekit/diagnostic'
     | '/api/livekit/pre-screening'
@@ -235,11 +213,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DiagnosticRoute: typeof DiagnosticRoute
-  LoginRoute: typeof LoginRoute
+  AssessmentRoute: typeof AssessmentRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
-  PreScreeningRoute: typeof PreScreeningRouteWithChildren
-  ProfileCreatedRoute: typeof ProfileCreatedRoute
   RegisterRoute: typeof RegisterRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiLivekitDiagnosticRoute: typeof ApiLivekitDiagnosticRouteWithChildren
@@ -257,20 +232,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/profile-created': {
-      id: '/profile-created'
-      path: '/profile-created'
-      fullPath: '/profile-created'
-      preLoaderRoute: typeof ProfileCreatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pre-screening': {
-      id: '/pre-screening'
-      path: '/pre-screening'
-      fullPath: '/pre-screening'
-      preLoaderRoute: typeof PreScreeningRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -278,18 +239,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/diagnostic': {
-      id: '/diagnostic'
-      path: '/diagnostic'
-      fullPath: '/diagnostic'
-      preLoaderRoute: typeof DiagnosticRouteImport
+    '/assessment': {
+      id: '/assessment'
+      path: '/assessment'
+      fullPath: '/assessment'
+      preLoaderRoute: typeof AssessmentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -299,12 +253,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pre-screening/': {
-      id: '/pre-screening/'
-      path: '/'
-      fullPath: '/pre-screening/'
-      preLoaderRoute: typeof PreScreeningIndexRouteImport
-      parentRoute: typeof PreScreeningRoute
+    '/assessment/session': {
+      id: '/assessment/session'
+      path: '/session'
+      fullPath: '/assessment/session'
+      preLoaderRoute: typeof AssessmentSessionRouteImport
+      parentRoute: typeof AssessmentRoute
+    }
+    '/assessment/report': {
+      id: '/assessment/report'
+      path: '/report'
+      fullPath: '/assessment/report'
+      preLoaderRoute: typeof AssessmentReportRouteImport
+      parentRoute: typeof AssessmentRoute
     }
     '/api/webhooks/livekit': {
       id: '/api/webhooks/livekit'
@@ -372,16 +333,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface PreScreeningRouteChildren {
-  PreScreeningIndexRoute: typeof PreScreeningIndexRoute
+interface AssessmentRouteChildren {
+  AssessmentReportRoute: typeof AssessmentReportRoute
+  AssessmentSessionRoute: typeof AssessmentSessionRoute
 }
 
-const PreScreeningRouteChildren: PreScreeningRouteChildren = {
-  PreScreeningIndexRoute: PreScreeningIndexRoute,
+const AssessmentRouteChildren: AssessmentRouteChildren = {
+  AssessmentReportRoute: AssessmentReportRoute,
+  AssessmentSessionRoute: AssessmentSessionRoute,
 }
 
-const PreScreeningRouteWithChildren = PreScreeningRoute._addFileChildren(
-  PreScreeningRouteChildren,
+const AssessmentRouteWithChildren = AssessmentRoute._addFileChildren(
+  AssessmentRouteChildren,
 )
 
 interface ApiLivekitDiagnosticSessionIdRouteChildren {
@@ -443,11 +406,8 @@ const ApiLivekitPreScreeningRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DiagnosticRoute: DiagnosticRoute,
-  LoginRoute: LoginRoute,
+  AssessmentRoute: AssessmentRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
-  PreScreeningRoute: PreScreeningRouteWithChildren,
-  ProfileCreatedRoute: ProfileCreatedRoute,
   RegisterRoute: RegisterRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiLivekitDiagnosticRoute: ApiLivekitDiagnosticRouteWithChildren,
