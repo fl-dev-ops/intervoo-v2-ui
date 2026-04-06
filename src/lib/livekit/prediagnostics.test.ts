@@ -4,13 +4,12 @@ import {
   buildPrediagnosticsParticipantIdentity,
   buildPrediagnosticsRoomName,
   createPrediagnosticsConnectionDetails,
-} from "#/prediagnostics/server";
+} from "#/lib/livekit/prediagnostics";
 
 vi.mock("livekit-server-sdk", () => {
   class MockAccessToken {
     public static created: MockAccessToken[] = [];
     public grants: Record<string, unknown>[] = [];
-    public roomConfig: unknown;
 
     constructor(
       public apiKey: string,
@@ -67,7 +66,7 @@ vi.mock("livekit-server-sdk", () => {
   };
 });
 
-describe("prediagnostics LiveKit server helpers", () => {
+describe("prediagnostics LiveKit helpers", () => {
   const originalEnv = {
     apiKey: process.env.LIVEKIT_API_KEY,
     apiSecret: process.env.LIVEKIT_API_SECRET,
@@ -88,15 +87,15 @@ describe("prediagnostics LiveKit server helpers", () => {
     };
   }
 
-  function mockedAccessToken() {
-    return AccessToken as unknown as typeof AccessToken & {
-      created: Array<Record<string, unknown>>;
-    };
-  }
-
   function mockedAgentDispatchClient() {
     return AgentDispatchClient as unknown as typeof AgentDispatchClient & {
       createDispatchMock: ReturnType<typeof vi.fn>;
+    };
+  }
+
+  function mockedAccessToken() {
+    return AccessToken as unknown as typeof AccessToken & {
+      created: Array<Record<string, unknown>>;
     };
   }
 
@@ -154,7 +153,6 @@ describe("prediagnostics LiveKit server helpers", () => {
       canPublishData: true,
       canSubscribe: true,
     });
-    expect(tokenInstance.roomConfig).toBeUndefined();
     expect(details).toEqual({
       serverUrl: "wss://example.livekit.cloud",
       roomName: "prediag_room",

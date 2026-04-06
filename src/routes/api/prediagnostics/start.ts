@@ -6,7 +6,7 @@ import {
   buildPrediagnosticsParticipantName,
   buildPrediagnosticsRoomName,
   createPrediagnosticsConnectionDetails,
-} from "#/prediagnostics/server";
+} from "#/lib/livekit/prediagnostics";
 
 export async function postHandler({ request }: { request: Request }) {
   const session = await auth.api.getSession({ headers: request.headers });

@@ -1,10 +1,9 @@
-import { AccessToken, AgentDispatchClient, RoomServiceClient } from "livekit-server-sdk";
-
-type LiveKitServerConfig = {
-  apiKey: string | undefined;
-  apiSecret: string | undefined;
-  serverUrl: string | undefined;
-};
+import { AccessToken } from "livekit-server-sdk";
+import {
+  createLiveKitAgentDispatchClient,
+  createLiveKitRoomServiceClient,
+  getLiveKitServerConfig,
+} from "#/lib/livekit/server";
 
 export type PrediagnosticsConnectionDetails = {
   serverUrl: string;
@@ -12,24 +11,6 @@ export type PrediagnosticsConnectionDetails = {
   participantName: string;
   participantToken: string;
 };
-
-function getPrediagnosticsLiveKitConfig(): LiveKitServerConfig {
-  return {
-    apiKey: process.env.LIVEKIT_API_KEY,
-    apiSecret: process.env.LIVEKIT_API_SECRET,
-    serverUrl: process.env.LIVEKIT_URL,
-  };
-}
-
-export function getPrediagnosticsLiveKitServerUrl(): string {
-  const { serverUrl } = getPrediagnosticsLiveKitConfig();
-
-  if (!serverUrl) {
-    throw new Error("LIVEKIT_URL is not configured");
-  }
-
-  return serverUrl;
-}
 
 export function buildPrediagnosticsRoomName(seed: string): string {
   const normalizedSeed = seed.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
@@ -55,14 +36,9 @@ export async function createPrediagnosticsConnectionDetails(input: {
   agentName: string;
   agentMetadata: string;
 }): Promise<PrediagnosticsConnectionDetails> {
-  const config = getPrediagnosticsLiveKitConfig();
-
-  if (!config.apiKey || !config.apiSecret || !config.serverUrl) {
-    throw new Error("LiveKit credentials are not configured");
-  }
-
-  const roomClient = new RoomServiceClient(config.serverUrl, config.apiKey, config.apiSecret);
-  const dispatchClient = new AgentDispatchClient(config.serverUrl, config.apiKey, config.apiSecret);
+  const roomClient = createLiveKitRoomServiceClient();
+  const dispatchClient = createLiveKitAgentDispatchClient();
+  const config = getLiveKitServerConfig();
 
   await roomClient.createRoom({
     name: input.roomName,

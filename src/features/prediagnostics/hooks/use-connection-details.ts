@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { PrediagnosticsConnectionDetails } from "#/prediagnostics/server";
+import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
 
 async function fetchConnectionDetails(): Promise<PrediagnosticsConnectionDetails> {
   const response = await fetch("/api/prediagnostics/start", {
@@ -10,13 +10,19 @@ async function fetchConnectionDetails(): Promise<PrediagnosticsConnectionDetails
   });
 
   if (!response.ok) {
-    const errorData = (await response.json().catch(() => ({ error: "Unknown error" }))) as {
-      error?: string;
-    };
-    throw new Error(errorData.error ?? "Failed to create LiveKit connection details");
+    const payload = await response.json().catch(() => null);
+    const errorMessage =
+      payload &&
+      typeof payload === "object" &&
+      "error" in payload &&
+      typeof payload.error === "string"
+        ? payload.error
+        : "Failed to create LiveKit connection details";
+
+    throw new Error(errorMessage);
   }
 
-  return response.json() as Promise<PrediagnosticsConnectionDetails>;
+  return (await response.json()) as PrediagnosticsConnectionDetails;
 }
 
 export function usePrediagnosticsConnectionDetails() {
