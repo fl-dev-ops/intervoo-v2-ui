@@ -1,4 +1,4 @@
-import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
+import { AccessToken, AgentDispatchClient, RoomServiceClient } from "livekit-server-sdk";
 
 type LiveKitServerConfig = {
   apiKey: string | undefined;
@@ -62,12 +62,17 @@ export async function createPrediagnosticsConnectionDetails(input: {
   }
 
   const roomClient = new RoomServiceClient(config.serverUrl, config.apiKey, config.apiSecret);
+  const dispatchClient = new AgentDispatchClient(config.serverUrl, config.apiKey, config.apiSecret);
 
   await roomClient.createRoom({
     name: input.roomName,
     metadata: input.roomMetadata,
     emptyTimeout: 60 * 10,
     maxParticipants: 10,
+  });
+
+  await dispatchClient.createDispatch(input.roomName, input.agentName, {
+    metadata: input.agentMetadata,
   });
 
   const token = new AccessToken(config.apiKey, config.apiSecret, {
@@ -84,15 +89,6 @@ export async function createPrediagnosticsConnectionDetails(input: {
     canPublishData: true,
     canSubscribe: true,
   });
-
-  token.roomConfig = {
-    agents: [
-      {
-        agentName: input.agentName,
-        metadata: input.agentMetadata,
-      },
-    ],
-  } as NonNullable<AccessToken["roomConfig"]>;
 
   return {
     serverUrl: config.serverUrl,

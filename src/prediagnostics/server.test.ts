@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
+import { AccessToken, AgentDispatchClient, RoomServiceClient } from "livekit-server-sdk";
 import {
   buildPrediagnosticsParticipantIdentity,
   buildPrediagnosticsRoomName,
@@ -43,8 +43,26 @@ vi.mock("livekit-server-sdk", () => {
     }
   }
 
+  class MockAgentDispatchClient {
+    public static createDispatchMock =
+      vi.fn<
+        (roomName: string, agentName: string, options: Record<string, unknown>) => Promise<void>
+      >();
+
+    constructor(
+      public serverUrl: string,
+      public apiKey: string,
+      public apiSecret: string,
+    ) {}
+
+    async createDispatch(roomName: string, agentName: string, options: Record<string, unknown>) {
+      return MockAgentDispatchClient.createDispatchMock(roomName, agentName, options);
+    }
+  }
+
   return {
     AccessToken: MockAccessToken,
+    AgentDispatchClient: MockAgentDispatchClient,
     RoomServiceClient: MockRoomServiceClient,
   };
 });
@@ -76,6 +94,12 @@ describe("prediagnostics LiveKit server helpers", () => {
     };
   }
 
+  function mockedAgentDispatchClient() {
+    return AgentDispatchClient as unknown as typeof AgentDispatchClient & {
+      createDispatchMock: ReturnType<typeof vi.fn>;
+    };
+  }
+
   it("builds unique participant identities with a stable prefix", () => {
     const identity = buildPrediagnosticsParticipantIdentity("User-123");
     expect(identity).toMatch(/^prediag_user_user123_/);
@@ -86,7 +110,7 @@ describe("prediagnostics LiveKit server helpers", () => {
     expect(roomName).toMatch(/^prediag_user123_/);
   });
 
-  it("creates a room and dispatch-ready token details", async () => {
+  it("creates a room, dispatches the agent, and returns token details", async () => {
     process.env.LIVEKIT_API_KEY = "test-key";
     process.env.LIVEKIT_API_SECRET = "test-secret";
     process.env.LIVEKIT_URL = "wss://example.livekit.cloud";
@@ -107,6 +131,13 @@ describe("prediagnostics LiveKit server helpers", () => {
       emptyTimeout: 600,
       maxParticipants: 10,
     });
+    expect(mockedAgentDispatchClient().createDispatchMock).toHaveBeenCalledWith(
+      "prediag_room",
+      "local-diagnostics",
+      {
+        metadata: JSON.stringify({ studentId: "user-1" }),
+      },
+    );
 
     const tokenInstance = mockedAccessToken().created[0];
 
@@ -123,14 +154,7 @@ describe("prediagnostics LiveKit server helpers", () => {
       canPublishData: true,
       canSubscribe: true,
     });
-    expect(tokenInstance.roomConfig).toMatchObject({
-      agents: [
-        {
-          agentName: "local-diagnostics",
-          metadata: JSON.stringify({ studentId: "user-1" }),
-        },
-      ],
-    });
+    expect(tokenInstance.roomConfig).toBeUndefined();
     expect(details).toEqual({
       serverUrl: "wss://example.livekit.cloud",
       roomName: "prediag_room",
