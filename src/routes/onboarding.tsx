@@ -22,10 +22,14 @@ function OnboardingPage() {
       initialProfile={buildInitialProfile({
         name: session.user.name,
         email: session.user.email,
+        preferredName: session.user.profile?.preferredName,
         institution: session.user.profile?.institution,
         degree: session.user.profile?.degree,
         stream: session.user.profile?.stream,
         yearOfStudy: session.user.profile?.yearOfStudy,
+        placementPreparation: session.user.profile?.placementPreparation,
+        academySelection: session.user.profile?.academySelection,
+        academyName: session.user.profile?.academyName,
       })}
     />
   );

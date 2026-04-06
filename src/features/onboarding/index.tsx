@@ -29,18 +29,26 @@ function isPlaceholderName(value: string) {
 export function buildInitialProfile(input: {
   name: string;
   email: string;
+  preferredName?: string | null;
   institution?: string | null;
   degree?: string | null;
   stream?: string | null;
   yearOfStudy?: string | null;
+  placementPreparation?: string | null;
+  academySelection?: string | null;
+  academyName?: string | null;
 }): ProfileFormValue {
   return {
     name: isPlaceholderName(input.name) ? "" : input.name,
     email: isPlaceholderEmail(input.email) ? "" : input.email,
+    preferredName: input.preferredName ?? "",
     institution: input.institution ?? "",
     degree: input.degree ?? "",
     stream: input.stream ?? "",
     yearOfStudy: input.yearOfStudy ?? "",
+    placementPreparation: input.placementPreparation ?? "",
+    academySelection: input.academySelection ?? "",
+    academyName: input.academyName ?? "",
   };
 }
 

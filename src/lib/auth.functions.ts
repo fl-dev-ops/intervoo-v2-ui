@@ -6,10 +6,14 @@ import { auth } from "#/lib/auth.server";
 type OnboardingInput = {
   name: string;
   email: string;
+  preferredName: string;
   institution: string;
   degree: string;
   stream: string;
   yearOfStudy: string;
+  placementPreparation: string;
+  academySelection: string;
+  academyName: string;
 };
 
 export const getSession = createServerFn({ method: "GET" }).handler(async () => {
@@ -56,16 +60,24 @@ export const completeOnboarding = createServerFn({ method: "POST" })
         profile: {
           upsert: {
             create: {
+              preferredName: data.preferredName.trim(),
               institution: data.institution.trim(),
-              degree: data.degree,
+              degree: data.degree.trim(),
               stream: data.stream.trim(),
               yearOfStudy: data.yearOfStudy,
+              placementPreparation: data.placementPreparation,
+              academySelection: data.academySelection,
+              academyName: data.academyName.trim(),
             },
             update: {
+              preferredName: data.preferredName.trim(),
               institution: data.institution.trim(),
-              degree: data.degree,
+              degree: data.degree.trim(),
               stream: data.stream.trim(),
               yearOfStudy: data.yearOfStudy,
+              placementPreparation: data.placementPreparation,
+              academySelection: data.academySelection,
+              academyName: data.academyName.trim(),
             },
           },
         },
