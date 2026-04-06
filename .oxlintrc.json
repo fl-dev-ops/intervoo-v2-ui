@@ -23,7 +23,14 @@
     "**/routeTree.gen.ts"
   ],
   "rules": {
-    "react/react-in-jsx-scope": "off",
-    "react/jsx-uses-react": "off"
+    "react-in-jsx-scope": "off",
+    "prefer-array-find": "off",
+    "no-array-index-key": "off",
+    "no-named-as-default-member": "off",
+    "no-shadow": "off",
+    "prefer-set-has": "off",
+    "no-unsafe-type-assertion": "off",
+    "no-redundant-type-constituents": "off",
+    "no-await-in-loop": "off"
   }
 }

@@ -46,13 +46,10 @@ export function buildInitialProfile(input: {
 
 export function OnboardingFlow(props: OnboardingFlowProps) {
   const [step, setStep] = useState<OnboardingStep>("profile");
-  const [profile, setProfile] = useState<ProfileFormValue>(
-    props.initialProfile,
-  );
+  const [profile, setProfile] = useState<ProfileFormValue>(props.initialProfile);
   const [coach, setCoach] = useState<CoachOption>("sara");
   const [nativeLanguage, setNativeLanguage] = useState<NativeLanguage>("hindi");
-  const [englishLevel, setEnglishLevel] =
-    useState<EnglishLevel>("intermediate");
+  const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("intermediate");
   const [speakingSpeed, setSpeakingSpeed] = useState<SpeakingSpeed>("normal");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,7 +66,7 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
         englishLevel,
         speakingSpeed,
       });
-      window.location.href = "/assessment";
+      window.location.href = "/prediagnostics";
     } catch {
       setError("Something went wrong while saving your profile.");
     } finally {

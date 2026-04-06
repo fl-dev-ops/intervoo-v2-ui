@@ -30,6 +30,7 @@
     "@google/genai": "^1.47.0",
     "@hiseb/confetti": "^2.1.0",
     "@livekit/components-react": "^2.9.15",
+    "@livekit/protocol": "^1.45.1",
     "@neondatabase/serverless": "^1.0.2",
     "@openrouter/ai-sdk-provider": "^2.3.3",
     "@prisma/adapter-better-sqlite3": "^7.4.2",

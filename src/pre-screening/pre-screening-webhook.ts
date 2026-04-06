@@ -65,12 +65,16 @@ export async function parseLiveKitWebhookEvent(request: Request): Promise<LiveKi
   if (authHeader) {
     const receivers = [getPreScreenWebhookReceiver, getDiagnosticWebhookReceiver];
 
-    for (const getReceiver of receivers) {
-      try {
-        const receiver = getReceiver();
-        return (await receiver.receive(body, authHeader)) as LiveKitWebhookEvent;
-      } catch {
-        continue;
+    const attempts = receivers.map(async (getReceiver) => {
+      const receiver = getReceiver();
+      return receiver.receive(body, authHeader) as Promise<LiveKitWebhookEvent>;
+    });
+
+    const results = await Promise.allSettled(attempts);
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        return result.value;
       }
     }
 

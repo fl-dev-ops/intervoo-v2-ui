@@ -27,6 +27,9 @@ importers:
       '@livekit/components-react':
         specifier: ^2.9.15
         version: 2.9.20(livekit-client@2.18.1(@types/dom-mediacapture-record@1.0.22))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(tslib@2.8.1)
+      '@livekit/protocol':
+        specifier: ^1.45.1
+        version: 1.45.1
       '@neondatabase/serverless':
         specifier: ^1.0.2
         version: 1.0.2

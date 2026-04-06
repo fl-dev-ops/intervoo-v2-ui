@@ -12,6 +12,7 @@ const isVitest = Boolean(process.env.VITEST);
 const config = defineConfig({
   server: {
     cors: true,
+    allowedHosts: ["mendy-undelectable-dinah.ngrok-free.dev"],
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",
       "Cross-Origin-Embedder-Policy": "require-corp",
@@ -24,7 +25,6 @@ const config = defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  server: { allowedHosts: ["mendy-undelectable-dinah.ngrok-free.dev"] },
   plugins: [
     devtools(),
     !isVitest && nitro({ rollupConfig: { external: [/^@sentry\//] } }),

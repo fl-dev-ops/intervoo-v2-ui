@@ -53,7 +53,7 @@ export function sanitizePreScreenTranscriptMessages(
     });
   });
 
-  return Array.from(latestById.values()).sort((left, right) =>
+  return Array.from(latestById.values()).toSorted((left, right) =>
     left.timestamp.localeCompare(right.timestamp),
   );
 }
