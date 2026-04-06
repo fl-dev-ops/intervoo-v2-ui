@@ -1,12 +1,18 @@
 import { useCallback, useState } from "react";
-import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
+import type {
+  PrediagnosticsConnectionDetails,
+  PrediagnosticsInteractionMode,
+} from "#/lib/livekit/prediagnostics";
 
-async function fetchConnectionDetails(): Promise<PrediagnosticsConnectionDetails> {
+async function fetchConnectionDetails(
+  interactionMode: PrediagnosticsInteractionMode,
+): Promise<PrediagnosticsConnectionDetails> {
   const response = await fetch("/api/prediagnostics/start", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({ interactionMode }),
   });
 
   if (!response.ok) {
@@ -31,23 +37,26 @@ export function usePrediagnosticsConnectionDetails() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const refreshConnectionDetails = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const refreshConnectionDetails = useCallback(
+    async (interactionMode: PrediagnosticsInteractionMode) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const nextConnectionDetails = await fetchConnectionDetails();
-      setConnectionDetails(nextConnectionDetails);
-      return nextConnectionDetails;
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create LiveKit connection details";
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      try {
+        const nextConnectionDetails = await fetchConnectionDetails(interactionMode);
+        setConnectionDetails(nextConnectionDetails);
+        return nextConnectionDetails;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to create LiveKit connection details";
+        setError(message);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   return {
     connectionDetails,

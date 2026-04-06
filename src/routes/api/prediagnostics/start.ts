@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { prisma } from "#/db.server";
 import { auth } from "#/lib/auth.server";
 import {
+  DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE,
+  type PrediagnosticsInteractionMode,
   buildPrediagnosticsParticipantIdentity,
   buildPrediagnosticsParticipantName,
   buildPrediagnosticsRoomName,
@@ -25,6 +27,13 @@ export async function postHandler({ request }: { request: Request }) {
   }
 
   try {
+    const requestBody = (await request.json().catch(() => ({}))) as {
+      interactionMode?: unknown;
+    };
+    const interactionMode: PrediagnosticsInteractionMode =
+      requestBody.interactionMode === "auto" || requestBody.interactionMode === "ptt"
+        ? requestBody.interactionMode
+        : DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE;
     const participantName = buildPrediagnosticsParticipantName(user.name);
     const connectionDetails = await createPrediagnosticsConnectionDetails({
       roomName: buildPrediagnosticsRoomName(user.id),
@@ -34,19 +43,23 @@ export async function postHandler({ request }: { request: Request }) {
         userId: user.id,
         email: user.email,
         feature: "prediagnostics",
+        interaction_mode: interactionMode,
       }),
       roomMetadata: JSON.stringify({
         feature: "prediagnostics",
         userId: user.id,
         studentName: participantName,
         studentEmail: user.email,
+        interaction_mode: interactionMode,
       }),
-      agentName: "local-diagnostics",
+      agentName: "local-diagnostics2",
       agentMetadata: JSON.stringify({
         studentId: user.id,
         studentName: participantName,
         studentEmail: user.email,
+        interaction_mode: interactionMode,
       }),
+      interactionMode,
     });
 
     return Response.json(connectionDetails, { status: 200 });

@@ -5,11 +5,16 @@ import {
   getLiveKitServerConfig,
 } from "#/lib/livekit/server";
 
+export type PrediagnosticsInteractionMode = "auto" | "ptt";
+
+export const DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE: PrediagnosticsInteractionMode = "ptt";
+
 export type PrediagnosticsConnectionDetails = {
   serverUrl: string;
   roomName: string;
   participantName: string;
   participantToken: string;
+  interactionMode: PrediagnosticsInteractionMode;
 };
 
 export function buildPrediagnosticsRoomName(seed: string): string {
@@ -35,6 +40,7 @@ export async function createPrediagnosticsConnectionDetails(input: {
   roomMetadata: string;
   agentName: string;
   agentMetadata: string;
+  interactionMode: PrediagnosticsInteractionMode;
 }): Promise<PrediagnosticsConnectionDetails> {
   const roomClient = createLiveKitRoomServiceClient();
   const dispatchClient = createLiveKitAgentDispatchClient();
@@ -71,5 +77,6 @@ export async function createPrediagnosticsConnectionDetails(input: {
     roomName: input.roomName,
     participantName: input.participantName,
     participantToken: await token.toJwt(),
+    interactionMode: input.interactionMode,
   };
 }

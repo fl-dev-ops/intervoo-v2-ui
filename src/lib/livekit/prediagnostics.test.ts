@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AccessToken, AgentDispatchClient, RoomServiceClient } from "livekit-server-sdk";
 import {
+  DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE,
   buildPrediagnosticsParticipantIdentity,
   buildPrediagnosticsRoomName,
   createPrediagnosticsConnectionDetails,
@@ -109,6 +110,10 @@ describe("prediagnostics LiveKit helpers", () => {
     expect(roomName).toMatch(/^prediag_user123_/);
   });
 
+  it("defaults prediagnostics interaction mode to push to talk", () => {
+    expect(DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE).toBe("ptt");
+  });
+
   it("creates a room, dispatches the agent, and returns token details", async () => {
     process.env.LIVEKIT_API_KEY = "test-key";
     process.env.LIVEKIT_API_SECRET = "test-secret";
@@ -120,8 +125,9 @@ describe("prediagnostics LiveKit helpers", () => {
       participantName: "Student One",
       participantMetadata: JSON.stringify({ userId: "user-1" }),
       roomMetadata: JSON.stringify({ feature: "prediagnostics" }),
-      agentName: "local-diagnostics",
+      agentName: "local-diagnostics2",
       agentMetadata: JSON.stringify({ studentId: "user-1" }),
+      interactionMode: "ptt",
     });
 
     expect(mockedRoomServiceClient().createRoomMock).toHaveBeenCalledWith({
@@ -132,7 +138,7 @@ describe("prediagnostics LiveKit helpers", () => {
     });
     expect(mockedAgentDispatchClient().createDispatchMock).toHaveBeenCalledWith(
       "prediag_room",
-      "local-diagnostics",
+      "local-diagnostics2",
       {
         metadata: JSON.stringify({ studentId: "user-1" }),
       },
@@ -158,6 +164,7 @@ describe("prediagnostics LiveKit helpers", () => {
       roomName: "prediag_room",
       participantName: "Student One",
       participantToken: "mock-jwt-token",
+      interactionMode: "ptt",
     });
   });
 });

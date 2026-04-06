@@ -4,24 +4,41 @@ import {
   SessionProvider,
   StartAudio,
   useAgent,
+  useChat,
+  useLocalParticipant,
   useSession,
   useSessionContext,
-  useSessionMessages,
   type UseSessionReturn,
 } from "@livekit/components-react";
 import { TokenSource } from "livekit-client";
 import { LoaderCircle, Mic, SendHorizontal } from "lucide-react";
-import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
+import { IconKeyboard, IconMicrophone } from "@tabler/icons-react";
+
+import { LiveWaveform } from "#/components/ui/live-waveform";
+import {
+  DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE,
+  type PrediagnosticsConnectionDetails,
+  type PrediagnosticsInteractionMode,
+} from "#/lib/livekit/prediagnostics";
 import { usePrediagnosticsConnectionDetails } from "#/features/prediagnostics/hooks/use-connection-details";
+import {
+  type PrediagnosticsMessage,
+  usePrediagnosticsMessages,
+} from "#/features/prediagnostics/hooks/use-prediagnostics-messages";
 import { usePrediagnosticsPushToTalk } from "#/features/prediagnostics/hooks/use-push-to-talk";
 
+function getPrediagnosticsInteractionMode(): PrediagnosticsInteractionMode {
+  return DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE;
+}
+
 export function PrediagnosticsSessionPage() {
+  const interactionMode = getPrediagnosticsInteractionMode();
   const { connectionDetails, error, isLoading, refreshConnectionDetails } =
     usePrediagnosticsConnectionDetails();
 
   useEffect(() => {
-    void refreshConnectionDetails().catch(() => {});
-  }, [refreshConnectionDetails]);
+    void refreshConnectionDetails(interactionMode).catch(() => {});
+  }, [interactionMode, refreshConnectionDetails]);
 
   if (error) {
     return (
@@ -69,25 +86,37 @@ function VoiceSession({
     });
   }, [connectionDetails]);
 
-  return <LiveKitSession tokenSource={tokenSource} />;
+  return <LiveKitSession connectionDetails={connectionDetails} tokenSource={tokenSource} />;
 }
 
-function LiveKitSession({ tokenSource }: { tokenSource: ReturnType<typeof TokenSource.literal> }) {
+function LiveKitSession({
+  connectionDetails,
+  tokenSource,
+}: {
+  connectionDetails: PrediagnosticsConnectionDetails;
+  tokenSource: ReturnType<typeof TokenSource.literal>;
+}) {
   const session = useSession(tokenSource);
 
   return (
     <SessionProvider session={session}>
-      <LiveKitSessionContent session={session} />
+      <LiveKitSessionContent connectionDetails={connectionDetails} session={session} />
       <StartAudio label="Enable audio" />
       <RoomAudioRenderer />
     </SessionProvider>
   );
 }
 
-function LiveKitSessionContent({ session }: { session: UseSessionReturn }) {
+function LiveKitSessionContent({
+  connectionDetails,
+  session,
+}: {
+  connectionDetails: PrediagnosticsConnectionDetails;
+  session: UseSessionReturn;
+}) {
   const { isConnected, start, end } = useSessionContext();
   const agent = useAgent(session);
-  const { messages, send } = useSessionMessages(session);
+  const messages = usePrediagnosticsMessages(session);
   const [started, setStarted] = useState(false);
   const [hasSeenActiveSession, setHasSeenActiveSession] = useState(false);
 
@@ -97,12 +126,12 @@ function LiveKitSessionContent({ session }: { session: UseSessionReturn }) {
       start({
         tracks: {
           microphone: {
-            enabled: false,
+            enabled: connectionDetails.interactionMode === "auto",
           },
         },
       }).catch(console.error);
     }
-  }, [isConnected, start, started]);
+  }, [connectionDetails.interactionMode, isConnected, start, started]);
 
   const handleSessionEnd = useCallback(async () => {
     await end();
@@ -132,7 +161,7 @@ function LiveKitSessionContent({ session }: { session: UseSessionReturn }) {
     <div className="flex h-screen flex-col bg-[#F5F3F7]">
       <SessionHeader agentState={agent.state} onEnd={() => void handleSessionEnd()} />
       <ChatTranscript messages={messages} />
-      <PushToTalkControls send={send} />
+      <SessionFooter interactionMode={connectionDetails.interactionMode} />
     </div>
   );
 }
@@ -177,14 +206,7 @@ function getAgentStateLabel(state: string | undefined): string {
   }
 }
 
-function ChatTranscript({
-  messages,
-}: {
-  messages: Array<{
-    type?: string;
-    message?: string;
-  }>;
-}) {
+function ChatTranscript({ messages }: { messages: PrediagnosticsMessage[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -205,11 +227,9 @@ function ChatTranscript({
     <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
       <div className="space-y-3">
         {messages.map((message, index) => {
-          const isUser = message.type === "userTranscript" || message.type === "chat";
-          const text = message.message ?? "";
-          const messageKey = text
-            ? `${message.type ?? "message"}-${text}-${index}`
-            : `${message.type ?? "message"}-${index}`;
+          const isUser = message.role === "user";
+          const text = message.text;
+          const messageKey = `${message.id}-${index}`;
 
           return (
             <div key={messageKey} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
@@ -228,9 +248,20 @@ function ChatTranscript({
   );
 }
 
-function PushToTalkControls({ send }: { send: (text: string) => Promise<unknown> }) {
-  const ptt = usePrediagnosticsPushToTalk();
+function SessionFooter({ interactionMode }: { interactionMode: PrediagnosticsInteractionMode }) {
+  if (interactionMode === "auto") {
+    return <AutoSessionFooter />;
+  }
+
+  return <PttSessionFooter />;
+}
+
+function AutoSessionFooter() {
+  const { send } = useChat();
+  const { localParticipant } = useLocalParticipant();
   const [chatMessage, setChatMessage] = useState("");
+  const [mode, setMode] = useState<"voice" | "text">("voice");
+  const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(true);
 
   const handleSendMessage = useCallback(() => {
     const nextMessage = chatMessage.trim();
@@ -243,41 +274,37 @@ function PushToTalkControls({ send }: { send: (text: string) => Promise<unknown>
     setChatMessage("");
   }, [chatMessage, send]);
 
-  return (
-    <div className="border-t border-[#e5e0ed] bg-white px-5 py-4">
-      <div className="flex items-center gap-3">
-        <button
-          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-medium transition ${
-            ptt.isRecording
-              ? "bg-[#5a42cc] text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)]"
-              : "border border-[#e5e0ed] text-[#5a42cc] hover:bg-[#f5f3f7]"
-          } ${ptt.isAgentSpeaking || !ptt.isAvailable ? "cursor-not-allowed opacity-50" : ""}`}
-          disabled={ptt.isAgentSpeaking || !ptt.isAvailable || ptt.isProcessing}
-          type="button"
-          onMouseDown={() => void ptt.startTurn()}
-          onMouseUp={() => void ptt.endTurn()}
-          onMouseLeave={() => {
-            if (ptt.isRecording) {
-              void ptt.endTurn();
-            }
-          }}
-          onTouchStart={() => void ptt.startTurn()}
-          onTouchEnd={() => void ptt.endTurn()}
-        >
-          <Mic className="h-4 w-4" />
-          {ptt.isRecording
-            ? "Release to send"
-            : ptt.isProcessing
-              ? "Processing..."
-              : ptt.isAvailable
-                ? "Hold to speak"
-                : "Waiting for agent"}
-        </button>
+  const toggleMicrophone = useCallback(() => {
+    if (!localParticipant) {
+      return;
+    }
 
-        <div className="flex items-center gap-2">
+    const nextEnabled = !isMicrophoneEnabled;
+    void localParticipant.setMicrophoneEnabled(nextEnabled);
+    setIsMicrophoneEnabled(nextEnabled);
+  }, [isMicrophoneEnabled, localParticipant]);
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl items-center gap-3 border border-[#e4deee] bg-white p-3 shadow-[0_-6px_32px_rgba(74,57,143,0.08)]">
+      <button
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0ECF6] text-[#6D6780] transition hover:bg-[#ebe4f6]"
+        type="button"
+        onClick={() => {
+          setMode((current) => (current === "voice" ? "text" : "voice"));
+        }}
+      >
+        {mode === "voice" ? (
+          <IconKeyboard className="h-6 w-6" />
+        ) : (
+          <IconMicrophone className="h-6 w-6" />
+        )}
+      </button>
+
+      {mode === "text" ? (
+        <>
           <input
-            className="h-12 flex-1 rounded-full border border-[#e5e0ed] px-4 text-sm text-[#2b2233] placeholder-[#b0a8c0] outline-none focus:border-[#5a42cc]"
-            placeholder="Type a message..."
+            className="h-12 flex-1 rounded-full border border-[#dcd4e7] bg-white px-5 text-sm text-[#2b2233] placeholder-[#9b92ad] outline-none focus:border-[#5a42cc]"
+            placeholder="Type your response..."
             type="text"
             value={chatMessage}
             onChange={(event) => setChatMessage(event.target.value)}
@@ -289,17 +316,136 @@ function PushToTalkControls({ send }: { send: (text: string) => Promise<unknown>
             }}
           />
           <button
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!chatMessage.trim()}
             type="button"
             onClick={handleSendMessage}
           >
             <SendHorizontal className="h-4 w-4" />
           </button>
-        </div>
-      </div>
+        </>
+      ) : (
+        <button
+          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 ${
+            isMicrophoneEnabled
+              ? "bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)]"
+              : "bg-[#b4abc5]"
+          }`}
+          type="button"
+          onClick={toggleMicrophone}
+        >
+          <Mic className="h-4 w-4" />
+          {isMicrophoneEnabled ? "Microphone on" : "Microphone off"}
+        </button>
+      )}
+    </div>
+  );
+}
 
-      {ptt.error ? <p className="mt-3 text-sm text-red-500">{ptt.error}</p> : null}
+function PttSessionFooter() {
+  const { send } = useChat();
+  const ptt = usePrediagnosticsPushToTalk();
+  const [chatMessage, setChatMessage] = useState("");
+  const [mode, setMode] = useState<"voice" | "text">("voice");
+
+  const handleSendMessage = useCallback(() => {
+    const nextMessage = chatMessage.trim();
+
+    if (!nextMessage) {
+      return;
+    }
+
+    void send(nextMessage);
+    setChatMessage("");
+  }, [chatMessage, send]);
+
+  const showUserWaveform = ptt.isRecording;
+  const isVoiceDisabled = !ptt.isAvailable || ptt.isProcessing || ptt.isAgentSpeaking;
+
+  const handleVoiceToggle = useCallback(() => {
+    if (isVoiceDisabled) {
+      return;
+    }
+
+    if (ptt.isRecording) {
+      void ptt.endTurn();
+      return;
+    }
+
+    void ptt.startTurn();
+  }, [isVoiceDisabled, ptt]);
+
+  useEffect(() => {
+    if (showUserWaveform) {
+      setMode("voice");
+    }
+  }, [showUserWaveform]);
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl items-center gap-3 border border-[#e4deee] bg-white p-3 shadow-[0_-6px_32px_rgba(74,57,143,0.08)]">
+      <button
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0ECF6] text-[#6D6780] transition hover:bg-[#ebe4f6]"
+        type="button"
+        onClick={() => {
+          setMode((current) => (current === "voice" ? "text" : "voice"));
+        }}
+      >
+        {mode === "voice" ? (
+          <IconKeyboard className="h-6 w-6" />
+        ) : (
+          <IconMicrophone className="h-6 w-6" />
+        )}
+      </button>
+
+      {mode === "text" && !showUserWaveform ? (
+        <>
+          <input
+            className="h-12 flex-1 rounded-full border border-[#dcd4e7] bg-white px-5 text-sm text-[#2b2233] placeholder-[#9b92ad] outline-none focus:border-[#5a42cc]"
+            placeholder="Type your response..."
+            type="text"
+            value={chatMessage}
+            onChange={(event) => setChatMessage(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                handleSendMessage();
+              }
+            }}
+          />
+          <button
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!chatMessage.trim()}
+            type="button"
+            onClick={handleSendMessage}
+          >
+            <SendHorizontal className="h-4 w-4" />
+          </button>
+        </>
+      ) : showUserWaveform ? (
+        <button
+          className="flex h-12 flex-1 items-center rounded-full border border-[#dcd4e7] bg-white px-5 text-left"
+          type="button"
+          onClick={handleVoiceToggle}
+        >
+          <LiveWaveform active={ptt.isRecording} bars={26} className="flex-1" processing={false} />
+        </button>
+      ) : (
+        <button
+          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 ${
+            isVoiceDisabled ? "cursor-not-allowed opacity-50" : ""
+          }`}
+          disabled={isVoiceDisabled}
+          type="button"
+          onClick={handleVoiceToggle}
+        >
+          <Mic className="h-4 w-4" />
+          {ptt.isProcessing
+            ? "Processing..."
+            : ptt.isAvailable
+              ? "Tap to speak"
+              : "Waiting for agent"}
+        </button>
+      )}
     </div>
   );
 }
