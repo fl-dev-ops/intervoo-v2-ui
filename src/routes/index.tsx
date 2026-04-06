@@ -1,15 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { getSession } from "#/lib/auth.functions";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
-    const session = await getSession();
-
-    if (!session?.user) {
-      throw redirect({ to: "/register" });
-    }
-
-    throw redirect({ to: session.user.hasCompletedOnboarding ? "/assessment" : "/onboarding" });
+    throw redirect({ to: "/register" });
   },
   component: () => null,
 });

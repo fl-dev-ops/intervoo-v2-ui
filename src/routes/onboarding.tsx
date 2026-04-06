@@ -10,10 +10,6 @@ export const Route = createFileRoute("/onboarding")({
       throw redirect({ to: "/register" });
     }
 
-    // if (session.user.hasCompletedOnboarding) {
-    //   throw redirect({ to: "/assessment" });
-    // }
-
     return { session };
   },
   component: OnboardingPage,

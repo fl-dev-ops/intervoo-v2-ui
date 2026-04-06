@@ -11,19 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as AssessmentRouteImport } from './routes/assessment'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AssessmentSessionRouteImport } from './routes/assessment.session'
-import { Route as AssessmentReportRouteImport } from './routes/assessment.report'
-import { Route as ApiWebhooksLivekitRouteImport } from './routes/api/webhooks/livekit'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
-import { Route as ApiLivekitPreScreeningRouteImport } from './routes/api/livekit/pre-screening'
-import { Route as ApiLivekitDiagnosticRouteImport } from './routes/api/livekit/diagnostic'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ApiLivekitPreScreeningSessionIdRouteImport } from './routes/api/livekit/pre-screening.$sessionId'
-import { Route as ApiLivekitDiagnosticSessionIdRouteImport } from './routes/api/livekit/diagnostic.$sessionId'
-import { Route as ApiLivekitPreScreeningSessionIdRetryEvaluationRouteImport } from './routes/api/livekit/pre-screening.$sessionId.retry-evaluation'
-import { Route as ApiLivekitDiagnosticSessionIdRetryEvaluationRouteImport } from './routes/api/livekit/diagnostic.$sessionId.retry-evaluation'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -35,29 +25,9 @@ const OnboardingRoute = OnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AssessmentRoute = AssessmentRouteImport.update({
-  id: '/assessment',
-  path: '/assessment',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AssessmentSessionRoute = AssessmentSessionRouteImport.update({
-  id: '/session',
-  path: '/session',
-  getParentRoute: () => AssessmentRoute,
-} as any)
-const AssessmentReportRoute = AssessmentReportRouteImport.update({
-  id: '/report',
-  path: '/report',
-  getParentRoute: () => AssessmentRoute,
-} as any)
-const ApiWebhooksLivekitRoute = ApiWebhooksLivekitRouteImport.update({
-  id: '/api/webhooks/livekit',
-  path: '/api/webhooks/livekit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
@@ -65,162 +35,54 @@ const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   path: '/api/trpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiLivekitPreScreeningRoute = ApiLivekitPreScreeningRouteImport.update({
-  id: '/api/livekit/pre-screening',
-  path: '/api/livekit/pre-screening',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiLivekitDiagnosticRoute = ApiLivekitDiagnosticRouteImport.update({
-  id: '/api/livekit/diagnostic',
-  path: '/api/livekit/diagnostic',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiLivekitPreScreeningSessionIdRoute =
-  ApiLivekitPreScreeningSessionIdRouteImport.update({
-    id: '/$sessionId',
-    path: '/$sessionId',
-    getParentRoute: () => ApiLivekitPreScreeningRoute,
-  } as any)
-const ApiLivekitDiagnosticSessionIdRoute =
-  ApiLivekitDiagnosticSessionIdRouteImport.update({
-    id: '/$sessionId',
-    path: '/$sessionId',
-    getParentRoute: () => ApiLivekitDiagnosticRoute,
-  } as any)
-const ApiLivekitPreScreeningSessionIdRetryEvaluationRoute =
-  ApiLivekitPreScreeningSessionIdRetryEvaluationRouteImport.update({
-    id: '/retry-evaluation',
-    path: '/retry-evaluation',
-    getParentRoute: () => ApiLivekitPreScreeningSessionIdRoute,
-  } as any)
-const ApiLivekitDiagnosticSessionIdRetryEvaluationRoute =
-  ApiLivekitDiagnosticSessionIdRetryEvaluationRouteImport.update({
-    id: '/retry-evaluation',
-    path: '/retry-evaluation',
-    getParentRoute: () => ApiLivekitDiagnosticSessionIdRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/assessment': typeof AssessmentRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
-  '/assessment/report': typeof AssessmentReportRoute
-  '/assessment/session': typeof AssessmentSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/livekit/diagnostic': typeof ApiLivekitDiagnosticRouteWithChildren
-  '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
-  '/api/webhooks/livekit': typeof ApiWebhooksLivekitRoute
-  '/api/livekit/diagnostic/$sessionId': typeof ApiLivekitDiagnosticSessionIdRouteWithChildren
-  '/api/livekit/pre-screening/$sessionId': typeof ApiLivekitPreScreeningSessionIdRouteWithChildren
-  '/api/livekit/diagnostic/$sessionId/retry-evaluation': typeof ApiLivekitDiagnosticSessionIdRetryEvaluationRoute
-  '/api/livekit/pre-screening/$sessionId/retry-evaluation': typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/assessment': typeof AssessmentRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
-  '/assessment/report': typeof AssessmentReportRoute
-  '/assessment/session': typeof AssessmentSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/livekit/diagnostic': typeof ApiLivekitDiagnosticRouteWithChildren
-  '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
-  '/api/webhooks/livekit': typeof ApiWebhooksLivekitRoute
-  '/api/livekit/diagnostic/$sessionId': typeof ApiLivekitDiagnosticSessionIdRouteWithChildren
-  '/api/livekit/pre-screening/$sessionId': typeof ApiLivekitPreScreeningSessionIdRouteWithChildren
-  '/api/livekit/diagnostic/$sessionId/retry-evaluation': typeof ApiLivekitDiagnosticSessionIdRetryEvaluationRoute
-  '/api/livekit/pre-screening/$sessionId/retry-evaluation': typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/assessment': typeof AssessmentRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
-  '/assessment/report': typeof AssessmentReportRoute
-  '/assessment/session': typeof AssessmentSessionRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/livekit/diagnostic': typeof ApiLivekitDiagnosticRouteWithChildren
-  '/api/livekit/pre-screening': typeof ApiLivekitPreScreeningRouteWithChildren
   '/api/trpc/$': typeof ApiTrpcSplatRoute
-  '/api/webhooks/livekit': typeof ApiWebhooksLivekitRoute
-  '/api/livekit/diagnostic/$sessionId': typeof ApiLivekitDiagnosticSessionIdRouteWithChildren
-  '/api/livekit/pre-screening/$sessionId': typeof ApiLivekitPreScreeningSessionIdRouteWithChildren
-  '/api/livekit/diagnostic/$sessionId/retry-evaluation': typeof ApiLivekitDiagnosticSessionIdRetryEvaluationRoute
-  '/api/livekit/pre-screening/$sessionId/retry-evaluation': typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/assessment'
-    | '/onboarding'
-    | '/register'
-    | '/assessment/report'
-    | '/assessment/session'
-    | '/api/auth/$'
-    | '/api/livekit/diagnostic'
-    | '/api/livekit/pre-screening'
-    | '/api/trpc/$'
-    | '/api/webhooks/livekit'
-    | '/api/livekit/diagnostic/$sessionId'
-    | '/api/livekit/pre-screening/$sessionId'
-    | '/api/livekit/diagnostic/$sessionId/retry-evaluation'
-    | '/api/livekit/pre-screening/$sessionId/retry-evaluation'
+  fullPaths: '/' | '/onboarding' | '/register' | '/api/auth/$' | '/api/trpc/$'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/assessment'
-    | '/onboarding'
-    | '/register'
-    | '/assessment/report'
-    | '/assessment/session'
-    | '/api/auth/$'
-    | '/api/livekit/diagnostic'
-    | '/api/livekit/pre-screening'
-    | '/api/trpc/$'
-    | '/api/webhooks/livekit'
-    | '/api/livekit/diagnostic/$sessionId'
-    | '/api/livekit/pre-screening/$sessionId'
-    | '/api/livekit/diagnostic/$sessionId/retry-evaluation'
-    | '/api/livekit/pre-screening/$sessionId/retry-evaluation'
+  to: '/' | '/onboarding' | '/register' | '/api/auth/$' | '/api/trpc/$'
   id:
     | '__root__'
     | '/'
-    | '/assessment'
     | '/onboarding'
     | '/register'
-    | '/assessment/report'
-    | '/assessment/session'
     | '/api/auth/$'
-    | '/api/livekit/diagnostic'
-    | '/api/livekit/pre-screening'
     | '/api/trpc/$'
-    | '/api/webhooks/livekit'
-    | '/api/livekit/diagnostic/$sessionId'
-    | '/api/livekit/pre-screening/$sessionId'
-    | '/api/livekit/diagnostic/$sessionId/retry-evaluation'
-    | '/api/livekit/pre-screening/$sessionId/retry-evaluation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AssessmentRoute: typeof AssessmentRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   RegisterRoute: typeof RegisterRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiLivekitDiagnosticRoute: typeof ApiLivekitDiagnosticRouteWithChildren
-  ApiLivekitPreScreeningRoute: typeof ApiLivekitPreScreeningRouteWithChildren
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
-  ApiWebhooksLivekitRoute: typeof ApiWebhooksLivekitRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -239,39 +101,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/assessment': {
-      id: '/assessment'
-      path: '/assessment'
-      fullPath: '/assessment'
-      preLoaderRoute: typeof AssessmentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/assessment/session': {
-      id: '/assessment/session'
-      path: '/session'
-      fullPath: '/assessment/session'
-      preLoaderRoute: typeof AssessmentSessionRouteImport
-      parentRoute: typeof AssessmentRoute
-    }
-    '/assessment/report': {
-      id: '/assessment/report'
-      path: '/report'
-      fullPath: '/assessment/report'
-      preLoaderRoute: typeof AssessmentReportRouteImport
-      parentRoute: typeof AssessmentRoute
-    }
-    '/api/webhooks/livekit': {
-      id: '/api/webhooks/livekit'
-      path: '/api/webhooks/livekit'
-      fullPath: '/api/webhooks/livekit'
-      preLoaderRoute: typeof ApiWebhooksLivekitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/trpc/$': {
@@ -281,20 +115,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/livekit/pre-screening': {
-      id: '/api/livekit/pre-screening'
-      path: '/api/livekit/pre-screening'
-      fullPath: '/api/livekit/pre-screening'
-      preLoaderRoute: typeof ApiLivekitPreScreeningRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/livekit/diagnostic': {
-      id: '/api/livekit/diagnostic'
-      path: '/api/livekit/diagnostic'
-      fullPath: '/api/livekit/diagnostic'
-      preLoaderRoute: typeof ApiLivekitDiagnosticRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -302,118 +122,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/livekit/pre-screening/$sessionId': {
-      id: '/api/livekit/pre-screening/$sessionId'
-      path: '/$sessionId'
-      fullPath: '/api/livekit/pre-screening/$sessionId'
-      preLoaderRoute: typeof ApiLivekitPreScreeningSessionIdRouteImport
-      parentRoute: typeof ApiLivekitPreScreeningRoute
-    }
-    '/api/livekit/diagnostic/$sessionId': {
-      id: '/api/livekit/diagnostic/$sessionId'
-      path: '/$sessionId'
-      fullPath: '/api/livekit/diagnostic/$sessionId'
-      preLoaderRoute: typeof ApiLivekitDiagnosticSessionIdRouteImport
-      parentRoute: typeof ApiLivekitDiagnosticRoute
-    }
-    '/api/livekit/pre-screening/$sessionId/retry-evaluation': {
-      id: '/api/livekit/pre-screening/$sessionId/retry-evaluation'
-      path: '/retry-evaluation'
-      fullPath: '/api/livekit/pre-screening/$sessionId/retry-evaluation'
-      preLoaderRoute: typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRouteImport
-      parentRoute: typeof ApiLivekitPreScreeningSessionIdRoute
-    }
-    '/api/livekit/diagnostic/$sessionId/retry-evaluation': {
-      id: '/api/livekit/diagnostic/$sessionId/retry-evaluation'
-      path: '/retry-evaluation'
-      fullPath: '/api/livekit/diagnostic/$sessionId/retry-evaluation'
-      preLoaderRoute: typeof ApiLivekitDiagnosticSessionIdRetryEvaluationRouteImport
-      parentRoute: typeof ApiLivekitDiagnosticSessionIdRoute
-    }
   }
 }
-
-interface AssessmentRouteChildren {
-  AssessmentReportRoute: typeof AssessmentReportRoute
-  AssessmentSessionRoute: typeof AssessmentSessionRoute
-}
-
-const AssessmentRouteChildren: AssessmentRouteChildren = {
-  AssessmentReportRoute: AssessmentReportRoute,
-  AssessmentSessionRoute: AssessmentSessionRoute,
-}
-
-const AssessmentRouteWithChildren = AssessmentRoute._addFileChildren(
-  AssessmentRouteChildren,
-)
-
-interface ApiLivekitDiagnosticSessionIdRouteChildren {
-  ApiLivekitDiagnosticSessionIdRetryEvaluationRoute: typeof ApiLivekitDiagnosticSessionIdRetryEvaluationRoute
-}
-
-const ApiLivekitDiagnosticSessionIdRouteChildren: ApiLivekitDiagnosticSessionIdRouteChildren =
-  {
-    ApiLivekitDiagnosticSessionIdRetryEvaluationRoute:
-      ApiLivekitDiagnosticSessionIdRetryEvaluationRoute,
-  }
-
-const ApiLivekitDiagnosticSessionIdRouteWithChildren =
-  ApiLivekitDiagnosticSessionIdRoute._addFileChildren(
-    ApiLivekitDiagnosticSessionIdRouteChildren,
-  )
-
-interface ApiLivekitDiagnosticRouteChildren {
-  ApiLivekitDiagnosticSessionIdRoute: typeof ApiLivekitDiagnosticSessionIdRouteWithChildren
-}
-
-const ApiLivekitDiagnosticRouteChildren: ApiLivekitDiagnosticRouteChildren = {
-  ApiLivekitDiagnosticSessionIdRoute:
-    ApiLivekitDiagnosticSessionIdRouteWithChildren,
-}
-
-const ApiLivekitDiagnosticRouteWithChildren =
-  ApiLivekitDiagnosticRoute._addFileChildren(ApiLivekitDiagnosticRouteChildren)
-
-interface ApiLivekitPreScreeningSessionIdRouteChildren {
-  ApiLivekitPreScreeningSessionIdRetryEvaluationRoute: typeof ApiLivekitPreScreeningSessionIdRetryEvaluationRoute
-}
-
-const ApiLivekitPreScreeningSessionIdRouteChildren: ApiLivekitPreScreeningSessionIdRouteChildren =
-  {
-    ApiLivekitPreScreeningSessionIdRetryEvaluationRoute:
-      ApiLivekitPreScreeningSessionIdRetryEvaluationRoute,
-  }
-
-const ApiLivekitPreScreeningSessionIdRouteWithChildren =
-  ApiLivekitPreScreeningSessionIdRoute._addFileChildren(
-    ApiLivekitPreScreeningSessionIdRouteChildren,
-  )
-
-interface ApiLivekitPreScreeningRouteChildren {
-  ApiLivekitPreScreeningSessionIdRoute: typeof ApiLivekitPreScreeningSessionIdRouteWithChildren
-}
-
-const ApiLivekitPreScreeningRouteChildren: ApiLivekitPreScreeningRouteChildren =
-  {
-    ApiLivekitPreScreeningSessionIdRoute:
-      ApiLivekitPreScreeningSessionIdRouteWithChildren,
-  }
-
-const ApiLivekitPreScreeningRouteWithChildren =
-  ApiLivekitPreScreeningRoute._addFileChildren(
-    ApiLivekitPreScreeningRouteChildren,
-  )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AssessmentRoute: AssessmentRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiLivekitDiagnosticRoute: ApiLivekitDiagnosticRouteWithChildren,
-  ApiLivekitPreScreeningRoute: ApiLivekitPreScreeningRouteWithChildren,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
-  ApiWebhooksLivekitRoute: ApiWebhooksLivekitRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

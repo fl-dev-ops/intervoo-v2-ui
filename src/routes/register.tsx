@@ -8,7 +8,7 @@ export const Route = createFileRoute("/register")({
 
     if (session?.user) {
       throw redirect({
-        to: session.user.hasCompletedOnboarding ? "/assessment" : "/onboarding",
+        to: session.user.hasCompletedOnboarding ? "/onboarding" : "/onboarding",
       });
     }
   },
