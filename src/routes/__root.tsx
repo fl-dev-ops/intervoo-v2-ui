@@ -1,9 +1,4 @@
-import {
-  Outlet,
-  HeadContent,
-  Scripts,
-  createRootRouteWithContext,
-} from "@tanstack/react-router";
+import { Outlet, HeadContent, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
 

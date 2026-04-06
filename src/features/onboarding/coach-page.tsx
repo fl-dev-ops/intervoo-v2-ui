@@ -75,9 +75,7 @@ export function CoachPage(props: CoachPageProps) {
               key={coach.value}
               className={cn(
                 "overflow-hidden rounded-3xl border bg-white text-left shadow-[0_12px_28px_rgba(23,18,36,0.08)] transition",
-                value === coach.value
-                  ? "border-[#5a42cc] border-2"
-                  : "border-transparent",
+                value === coach.value ? "border-[#5a42cc] border-2" : "border-transparent",
               )}
               type="button"
               onClick={() => setValue(coach.value)}
@@ -90,9 +88,7 @@ export function CoachPage(props: CoachPageProps) {
                 />
               </div>
               <div className="flex flex-col items-center gap-3 p-4 py-3">
-                <div className="text-[1.05rem] font-medium text-[#1b1624]">
-                  {coach.title}
-                </div>
+                <div className="text-[1.05rem] font-medium text-[#1b1624]">{coach.title}</div>
               </div>
             </button>
           ))}
@@ -106,9 +102,7 @@ export function CoachPage(props: CoachPageProps) {
                 key={option.value}
                 className={cn(
                   "flex w-full items-center justify-between rounded-xl border bg-white p-4 py-3 text-left shadow-[0_12px_28px_rgba(23,18,36,0.04)] transition",
-                  speed === option.value
-                    ? "border-[#5a42cc]"
-                    : "border-[#ddd4e8]",
+                  speed === option.value ? "border-[#5a42cc]" : "border-[#ddd4e8]",
                 )}
                 type="button"
                 onClick={() => setSpeed(option.value)}
@@ -117,23 +111,17 @@ export function CoachPage(props: CoachPageProps) {
                   <div
                     className={cn(
                       "flex h-5 w-5 items-center justify-center rounded-full border-2 transition",
-                      speed === option.value
-                        ? "border-[#5a42cc]"
-                        : "border-[#d8d0e1]",
+                      speed === option.value ? "border-[#5a42cc]" : "border-[#d8d0e1]",
                     )}
                   >
                     <div
                       className={cn(
                         "h-3 w-3 rounded-full transition",
-                        speed === option.value
-                          ? "bg-[#5a42cc]"
-                          : "bg-transparent",
+                        speed === option.value ? "bg-[#5a42cc]" : "bg-transparent",
                       )}
                     />
                   </div>
-                  <span className="text-[1rem] font-medium text-[#111018]">
-                    {option.label}
-                  </span>
+                  <span className="text-[1rem] font-medium text-[#111018]">{option.label}</span>
                 </div>
 
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full px-3 text-[0.95rem] font-medium text-[#66606f]">

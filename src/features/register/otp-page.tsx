@@ -31,14 +31,8 @@ export function OtpPage(props: OtpPageProps) {
           >
             ←
           </button>
-          <img
-            alt="Intervoo"
-            className="h-10 mb-6"
-            src="/intervoo-logo-light.svg"
-          />
-          <div className="mt-4 text-[18px] font-medium text-white font-figtree">
-            Intervoo.ai
-          </div>
+          <img alt="Intervoo" className="h-10 mb-6" src="/intervoo-logo-light.svg" />
+          <div className="mt-4 text-[18px] font-medium text-white font-figtree">Intervoo.ai</div>
           <p className="mt-3 text-[14px] leading-5.5 text-white/45">
             Speak better. Interview better. With
             <br />
@@ -47,9 +41,7 @@ export function OtpPage(props: OtpPageProps) {
         </div>
 
         <div className="flex-0 flex flex-col items-center rounded-t-4xl bg-[#faf9fc] px-8 pt-8 pb-10 text-center">
-          <h2 className="text-[20px] font-bold text-[#17131f]">
-            Verify your number
-          </h2>
+          <h2 className="text-[20px] font-bold text-[#17131f]">Verify your number</h2>
           <p className="mt-2 text-[12px] font-light text-[#8f89a0]">
             Enter the OTP sent to {formatPhoneNumberForDisplay(props.phone)}
           </p>
@@ -60,10 +52,7 @@ export function OtpPage(props: OtpPageProps) {
             </div>
           ) : null}
 
-          <form
-            className="mt-6 flex w-full flex-col gap-5"
-            onSubmit={props.onSubmit}
-          >
+          <form className="mt-6 flex w-full flex-col gap-5" onSubmit={props.onSubmit}>
             <label>
               <OtpCodeField
                 className="grid grid-cols-6 gap-[0.55rem]"
@@ -77,8 +66,7 @@ export function OtpPage(props: OtpPageProps) {
 
             {props.resendCooldown > 0 ? (
               <p className="text-[0.88rem] font-medium text-gray-500 flex items-center justify-center gap-x-1">
-                <IconReload className="h-4 w-4" /> Resend in{" "}
-                {formatCountdown(props.resendCooldown)}
+                <IconReload className="h-4 w-4" /> Resend in {formatCountdown(props.resendCooldown)}
               </p>
             ) : (
               <div className="flex justify-center">
@@ -103,12 +91,9 @@ export function OtpPage(props: OtpPageProps) {
           </form>
 
           <div className="mt-auto flex flex-col gap-1 pt-6 text-center">
-            <strong className="text-[0.96rem] text-[#242031]">
-              Didn&apos;t receive the OTP?
-            </strong>
+            <strong className="text-[0.96rem] text-[#242031]">Didn&apos;t receive the OTP?</strong>
             <span className="text-[0.8rem] leading-[1.55] text-[#9993a8]">
-              Ensure your number is active on WhatsApp and connected to the
-              internet.
+              Ensure your number is active on WhatsApp and connected to the internet.
             </span>
           </div>
         </div>

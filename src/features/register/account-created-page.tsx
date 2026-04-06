@@ -28,9 +28,7 @@ export function AccountCreatedPage(props: AccountCreatedPageProps) {
             <IconCheck className="h-12 w-12" />
           </div>
           <h2 className="mt-7 text-3xl font-semibold ">Congratulations!</h2>
-          <p className="mt-2 text-sm font-normal">
-            Your Intervoo account is ready.
-          </p>
+          <p className="mt-2 text-sm font-normal">Your Intervoo account is ready.</p>
           <button
             className="mx-auto mt-8 w-fit px-14 py-4 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-base font-medium tracking-wide text-white shadow-[0_12px_24px_rgba(93,72,220,0.28)] transition"
             type="button"

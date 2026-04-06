@@ -11,10 +11,7 @@ type ReadyPageProps = {
   onContinue: () => void;
 };
 
-const coachMeta: Record<
-  CoachOption,
-  { title: string; imageSrc: string; heroTint: string }
-> = {
+const coachMeta: Record<CoachOption, { title: string; imageSrc: string; heroTint: string }> = {
   sara: {
     title: "Sara",
     imageSrc: "/sara.png",
@@ -34,10 +31,7 @@ export function ReadyPage(props: ReadyPageProps) {
   return (
     <section className="min-h-screen">
       <div className="mx-auto flex min-h-screen flex-col">
-        <div
-          className="rounded-b-[48px] shadow-lg"
-          style={{ backgroundColor: coach.heroTint }}
-        >
+        <div className="rounded-b-[48px] shadow-lg" style={{ backgroundColor: coach.heroTint }}>
           <div className="text-center m-4 mb-0 flex flex-row items-center">
             <div className="flex-1">
               <button
@@ -57,11 +51,7 @@ export function ReadyPage(props: ReadyPageProps) {
           </div>
 
           <div className="relative mt-2 flex justify-center">
-            <img
-              alt={coach.title}
-              className="object-fill"
-              src={coach.imageSrc}
-            />
+            <img alt={coach.title} className="object-fill" src={coach.imageSrc} />
 
             <div className="absolute bottom-6 left-0 flex w-full justify-between px-4">
               <div className="p-2 px-3 rounded-2xl bg-[rgba(102,98,42,0.38)]  text-white backdrop-blur-sm flex gap-1">
@@ -86,9 +76,8 @@ export function ReadyPage(props: ReadyPageProps) {
               Hi {firstName}, I&apos;m {coach.title}, your interview partner.
             </MessageCard>
             <MessageCard>
-              Let&apos;s have a quick chat about the jobs you&apos;re targeting.
-              I&apos;ll use this to create your personalized diagnostic
-              interview.
+              Let&apos;s have a quick chat about the jobs you&apos;re targeting. I&apos;ll use this
+              to create your personalized diagnostic interview.
             </MessageCard>
             <MessageCard>
               You can speak in your native language. Takes less than 7 minutes.
@@ -117,8 +106,6 @@ export function ReadyPage(props: ReadyPageProps) {
 
 function MessageCard(props: { children: ReactNode }) {
   return (
-    <div className="rounded-tl-sm rounded-4xl bg-white px-6 py-5 shadow-xs">
-      {props.children}
-    </div>
+    <div className="rounded-tl-sm rounded-4xl bg-white px-6 py-5 shadow-xs">{props.children}</div>
   );
 }

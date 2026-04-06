@@ -41,9 +41,7 @@ export function OnboardingShell(props: OnboardingShellProps) {
                 key={index}
                 className={cn(
                   "h-2 rounded-full transition",
-                  index === props.step
-                    ? "w-5 bg-[#5a42cc]"
-                    : "w-5 bg-[#cdc4dc]",
+                  index === props.step ? "w-5 bg-[#5a42cc]" : "w-5 bg-[#cdc4dc]",
                 )}
               />
             ))}
@@ -56,9 +54,7 @@ export function OnboardingShell(props: OnboardingShellProps) {
           ) : null}
 
           {props.subtitle ? (
-            <p className="mt-3 text-[0.92rem] leading-6 text-[#797186]">
-              {props.subtitle}
-            </p>
+            <p className="mt-3 text-[0.92rem] leading-6 text-[#797186]">{props.subtitle}</p>
           ) : null}
         </div>
 

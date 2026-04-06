@@ -29,10 +29,7 @@ type ProfilePageProps = {
 
 export function ProfilePage(props: ProfilePageProps) {
   const [value, setValue] = useState(props.initialValue);
-  const [firstName, ...restName] = value.name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const [firstName, ...restName] = value.name.trim().split(/\s+/).filter(Boolean);
   const lastName = restName.join(" ");
 
   return (
@@ -71,9 +68,7 @@ export function ProfilePage(props: ProfilePageProps) {
               onChange={(event) =>
                 setValue((current) => ({
                   ...current,
-                  name: [event.target.value, lastName]
-                    .filter(Boolean)
-                    .join(" "),
+                  name: [event.target.value, lastName].filter(Boolean).join(" "),
                 }))
               }
             />
@@ -86,9 +81,7 @@ export function ProfilePage(props: ProfilePageProps) {
               onChange={(event) =>
                 setValue((current) => ({
                   ...current,
-                  name: [firstName ?? "", event.target.value]
-                    .filter(Boolean)
-                    .join(" "),
+                  name: [firstName ?? "", event.target.value].filter(Boolean).join(" "),
                 }))
               }
             />
@@ -101,9 +94,7 @@ export function ProfilePage(props: ProfilePageProps) {
             required
             type="text"
             value={value.email}
-            onChange={(event) =>
-              setValue((current) => ({ ...current, email: event.target.value }))
-            }
+            onChange={(event) => setValue((current) => ({ ...current, email: event.target.value }))}
           />
         </Field>
 
@@ -165,9 +156,7 @@ export function ProfilePage(props: ProfilePageProps) {
         </Field>
 
         <div className="flex flex-col gap-3">
-          <span className="text-[14px] font-medium text-[#6e667b]">
-            Which year are you in?
-          </span>
+          <span className="text-[14px] font-medium text-[#6e667b]">Which year are you in?</span>
           <div className="grid grid-cols-4 gap-2">
             {yearOptions.map((option) => (
               <button
@@ -206,9 +195,7 @@ export function ProfilePage(props: ProfilePageProps) {
 function Field(props: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-2">
-      <span className="text-[14px] font-medium text-[#6e667b]">
-        {props.label}
-      </span>
+      <span className="text-[14px] font-medium text-[#6e667b]">{props.label}</span>
       {props.children}
     </label>
   );

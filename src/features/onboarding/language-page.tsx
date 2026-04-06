@@ -71,9 +71,7 @@ export function LanguagePage(props: LanguagePageProps) {
               <div
                 className={cn(
                   "flex h-5 w-5 items-center justify-center rounded-full border-2 transition",
-                  value === option.value
-                    ? "border-[#5a42cc]"
-                    : "border-[#d8d0e1]",
+                  value === option.value ? "border-[#5a42cc]" : "border-[#d8d0e1]",
                 )}
               >
                 <div
@@ -83,13 +81,9 @@ export function LanguagePage(props: LanguagePageProps) {
                   )}
                 />
               </div>
-              <span className="text-[1rem] font-medium text-[#111018]">
-                {option.label}
-              </span>
+              <span className="text-[1rem] font-medium text-[#111018]">{option.label}</span>
             </div>
-            <span className="text-[1rem] font-medium text-[#9a98a0]">
-              {option.nativeLabel}
-            </span>
+            <span className="text-[1rem] font-medium text-[#9a98a0]">{option.nativeLabel}</span>
           </button>
         ))}
       </div>

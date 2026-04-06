@@ -84,9 +84,7 @@ export function EnglishLevelPage(props: EnglishLevelPageProps) {
             <div
               className={cn(
                 "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition",
-                value === option.value
-                  ? "border-[#5a42cc]"
-                  : "border-[#d8d0e1]",
+                value === option.value ? "border-[#5a42cc]" : "border-[#d8d0e1]",
               )}
             >
               <div
