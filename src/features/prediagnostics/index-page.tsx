@@ -1,12 +1,60 @@
-import { useCallback, useEffect, useState } from "react";
-import { LoaderCircle, Mic, MicOff } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useMediaDevices,
+  usePersistentUserChoices,
+  usePreviewTracks,
+  type LocalUserChoices,
+} from "@livekit/components-react";
+import { Track } from "livekit-client";
+import { LoaderCircle, Mic, RefreshCcw } from "lucide-react";
 
 type MicPermissionState = "checking" | "prompt" | "granted" | "denied";
+
+const DEFAULT_USER_CHOICES: Partial<LocalUserChoices> = {
+  audioEnabled: true,
+  audioDeviceId: "default",
+  videoEnabled: false,
+  videoDeviceId: "default",
+  username: "",
+};
 
 export function PrediagnosticsIndexPage() {
   const [permissionState, setPermissionState] = useState<MicPermissionState>("checking");
   const [hasRequestedPermission, setHasRequestedPermission] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+
+  const { userChoices, saveAudioInputDeviceId, saveAudioInputEnabled } = usePersistentUserChoices({
+    defaults: DEFAULT_USER_CHOICES,
+  });
+
+  const audioDevices = useMediaDevices({ kind: "audioinput" });
+
+  const selectedDeviceId = userChoices.audioDeviceId || "default";
+  const audioEnabled = userChoices.audioEnabled ?? true;
+
+  const previewTracks = usePreviewTracks(
+    {
+      audio:
+        permissionState === "granted" && audioEnabled
+          ? selectedDeviceId === "default"
+            ? true
+            : { deviceId: selectedDeviceId }
+          : false,
+      video: false,
+    },
+    (error) => {
+      setDeviceError(error.message);
+    },
+  );
+
+  const previewAudioTrack = useMemo(() => {
+    return previewTracks?.find((track) => track.kind === Track.Kind.Audio);
+  }, [previewTracks]);
+
+  const selectedDeviceAvailable = audioDevices.some(
+    (device) => device.deviceId === selectedDeviceId,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -19,7 +67,9 @@ export function PrediagnosticsIndexPage() {
               name: "microphone" as PermissionName,
             });
 
-            if (cancelled) return;
+            if (cancelled) {
+              return;
+            }
 
             if (result.state === "granted") {
               setPermissionState("granted");
@@ -34,28 +84,16 @@ export function PrediagnosticsIndexPage() {
             setPermissionState("prompt");
             return;
           } catch {
-            // permissions.query not supported, fall through
+            // Some browsers don't support permission querying for microphones.
           }
         }
 
-        if (cancelled) return;
-
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-          });
-          stream.getTracks().forEach((track) => track.stop());
-          if (!cancelled) {
-            setPermissionState("granted");
-          }
-        } catch {
-          if (!cancelled) {
-            setPermissionState("denied");
-          }
+        if (!cancelled) {
+          setPermissionState("prompt");
         }
       } catch {
         if (!cancelled) {
-          setPermissionState("denied");
+          setPermissionState("prompt");
         }
       }
     }
@@ -67,32 +105,78 @@ export function PrediagnosticsIndexPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!audioDevices.length) {
+      return;
+    }
+
+    if (selectedDeviceId !== "default" && selectedDeviceAvailable) {
+      return;
+    }
+
+    const defaultNamedDevice = audioDevices.find((device) => device.deviceId === "default");
+    const nextDevice = defaultNamedDevice ?? audioDevices[0];
+
+    if (!nextDevice) {
+      return;
+    }
+
+    saveAudioInputDeviceId(nextDevice.deviceId);
+  }, [audioDevices, saveAudioInputDeviceId, selectedDeviceAvailable, selectedDeviceId]);
+
   const requestPermission = useCallback(async () => {
     setHasRequestedPermission(true);
+    setDeviceError(null);
 
     try {
+      const deviceIdConstraint =
+        selectedDeviceId !== "default" ? { exact: selectedDeviceId } : undefined;
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
+        audio: deviceIdConstraint ? { deviceId: deviceIdConstraint } : true,
       });
       stream.getTracks().forEach((track) => track.stop());
+      saveAudioInputEnabled(true);
       setPermissionState("granted");
-    } catch {
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "We couldn't access your microphone.";
+      setDeviceError(message);
       setPermissionState("denied");
     }
-  }, []);
+  }, [saveAudioInputEnabled, selectedDeviceId]);
 
-  const handleStartSession = async () => {
-    setIsStarting(true);
+  const handleDeviceChange = useCallback(
+    async (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const nextDeviceId = event.target.value;
+      saveAudioInputDeviceId(nextDeviceId);
+      setDeviceError(null);
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
-      window.location.href = "/prediagnostics/session";
-    } catch {
-      setPermissionState("denied");
-      setIsStarting(false);
+      if (permissionState !== "granted") {
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: nextDeviceId === "default" ? true : { deviceId: { exact: nextDeviceId } },
+        });
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "We couldn't switch to that microphone.";
+        setDeviceError(message);
+      }
+    },
+    [permissionState, saveAudioInputDeviceId],
+  );
+
+  const handleJoin = useCallback(async () => {
+    if (permissionState !== "granted") {
+      return;
     }
-  };
+
+    setIsJoining(true);
+    window.location.href = "/prediagnostics/session";
+  }, [permissionState]);
 
   if (permissionState === "checking") {
     return (
@@ -105,71 +189,116 @@ export function PrediagnosticsIndexPage() {
     );
   }
 
-  if (permissionState !== "granted") {
-    return (
-      <div className="grid min-h-screen place-items-center bg-[#F5F3F7]">
-        <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-[0_20px_40px_rgba(112,88,186,0.12)]">
-          <div className="mx-auto flex flex-col items-center gap-3">
-            {permissionState === "denied" && hasRequestedPermission ? (
-              <MicOff className="h-10 w-10 text-[#7f768f]" />
-            ) : (
-              <Mic className="h-10 w-10 text-[#5a42cc]" />
-            )}
+  return (
+    <div className="min-h-screen">
+      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-4xl items-center justify-center">
+        <div className="grid w-full gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+          <section className="rounded-4xl  p-6 sm:p-8">
+            <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-[#2b2233]">
+              Get ready to join the session
+            </h1>
 
-            <h3 className="text-lg font-semibold text-[#2b2233]">
-              {permissionState === "denied" && hasRequestedPermission
-                ? "Microphone access is blocked"
-                : "Microphone access is required"}
-            </h3>
-
-            <p className="text-sm leading-6 text-[#7f768f]">
-              {permissionState === "denied" && hasRequestedPermission
-                ? "Please allow microphone access in your browser settings and try again."
-                : "Sana needs your microphone so you can answer by voice."}
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#7f768f] sm:text-base">
+              Check your microphone, choose the input device you want to use, and join when
+              you&apos;re ready.
             </p>
 
-            <button
-              className="mt-2 w-full rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-8 py-4 text-sm font-medium text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isStarting}
-              type="button"
-              onClick={() => void requestPermission()}
-            >
-              {hasRequestedPermission ? "Try again" : "Enable microphone"}
-            </button>
-          </div>
+            <div className="mt-8">
+              <div className="mt-5 space-y-4">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <label
+                      className="mb-2 block text-sm font-medium text-[#2b2233]"
+                      htmlFor="prediagnostics-audio-device"
+                    >
+                      Device
+                    </label>
+                    <PermissionBadge permissionState={permissionState} />
+                  </div>
+                  <select
+                    className="h-12 w-full rounded-2xl border border-[#dcd4e7] bg-white px-4 text-sm text-[#2b2233] outline-none transition focus:border-[#5a42cc] disabled:cursor-not-allowed disabled:bg-[#f6f3fa] disabled:text-[#9b92ad]"
+                    disabled={permissionState !== "granted" || audioDevices.length === 0}
+                    id="prediagnostics-audio-device"
+                    value={
+                      selectedDeviceAvailable
+                        ? selectedDeviceId
+                        : (audioDevices[0]?.deviceId ?? "default")
+                    }
+                    onChange={handleDeviceChange}
+                  >
+                    {audioDevices.map((device, index) => (
+                      <option
+                        key={device.deviceId || `${device.label}-${index}`}
+                        value={device.deviceId}
+                      >
+                        {device.label || `Microphone ${index + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {deviceError ? (
+                  <div className="rounded-2xl border border-[#f1d1d5] bg-[#fff7f8] px-4 py-3 text-sm text-[#a03d4d]">
+                    {deviceError}
+                  </div>
+                ) : null}
+
+                <div className="mt-6 space-y-3">
+                  {permissionState === "granted" ? (
+                    <button
+                      className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-6 text-sm font-medium text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isJoining || !previewAudioTrack}
+                      type="button"
+                      onClick={() => void handleJoin()}
+                    >
+                      {isJoining ? (
+                        <LoaderCircle className="h-5 w-5 animate-spin" />
+                      ) : (
+                        "Join session"
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-6 text-sm font-medium text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] transition hover:opacity-95"
+                      type="button"
+                      onClick={() => void requestPermission()}
+                    >
+                      {hasRequestedPermission ? (
+                        <RefreshCcw className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                      {hasRequestedPermission ? "Try microphone again" : "Enable microphone"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+function PermissionBadge({ permissionState }: { permissionState: MicPermissionState }) {
+  const copy =
+    permissionState === "granted"
+      ? "Ready"
+      : permissionState === "denied"
+        ? "Blocked"
+        : "Needs access";
+
+  const className =
+    permissionState === "granted"
+      ? "bg-[#eaf7ee] text-[#237a44]"
+      : permissionState === "denied"
+        ? "bg-[#fff1f3] text-[#b24152]"
+        : "bg-[#f3eefb] text-[#5a42cc]";
 
   return (
-    <div className="grid min-h-screen place-items-center bg-[#F5F3F7]">
-      <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-[0_20px_40px_rgba(112,88,186,0.12)]">
-        <div className="mx-auto flex flex-col items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)]">
-            <Mic className="h-8 w-8 text-white" />
-          </div>
-
-          <h1 className="text-xl font-semibold text-[#2b2233]">Ready for Pre-Diagnostic?</h1>
-
-          <p className="text-sm leading-6 text-[#7f768f]">
-            Make sure your microphone is working before starting the session.
-          </p>
-
-          <button
-            className="mt-2 w-full rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-8 py-4 text-sm font-medium text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isStarting}
-            type="button"
-            onClick={() => void handleStartSession()}
-          >
-            {isStarting ? (
-              <LoaderCircle className="mx-auto h-5 w-5 animate-spin" />
-            ) : (
-              "Start session"
-            )}
-          </button>
-        </div>
-      </div>
+    <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${className}`}>
+      {copy}
     </div>
   );
 }

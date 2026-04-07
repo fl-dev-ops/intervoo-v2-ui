@@ -3,6 +3,7 @@ import {
   RoomAudioRenderer,
   SessionProvider,
   StartAudio,
+  usePersistentUserChoices,
   useAgent,
   useChat,
   useLocalParticipant,
@@ -26,6 +27,8 @@ import {
   usePrediagnosticsMessages,
 } from "#/features/prediagnostics/hooks/use-prediagnostics-messages";
 import { usePrediagnosticsPushToTalk } from "#/features/prediagnostics/hooks/use-push-to-talk";
+import { usePrediagnosticsTranscript } from "#/features/prediagnostics/hooks/use-prediagnostics-transcript";
+import type { PrediagnosticsSessionTranscript } from "#/lib/prediagnostics/transcript";
 
 function getPrediagnosticsInteractionMode(): PrediagnosticsInteractionMode {
   return DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE;
@@ -117,6 +120,8 @@ function LiveKitSessionContent({
   const { isConnected, start, end } = useSessionContext();
   const agent = useAgent(session);
   const messages = usePrediagnosticsMessages(session);
+  const { getTranscript } = usePrediagnosticsTranscript(messages);
+  const { userChoices } = usePersistentUserChoices({ preventSave: true });
   const [started, setStarted] = useState(false);
   const [hasSeenActiveSession, setHasSeenActiveSession] = useState(false);
 
@@ -133,10 +138,34 @@ function LiveKitSessionContent({
     }
   }, [connectionDetails.interactionMode, isConnected, start, started]);
 
-  const handleSessionEnd = useCallback(async () => {
-    await end();
-    window.location.href = "/prediagnostics/report";
-  }, [end]);
+  const handleSessionEnd = useCallback(
+    async (preCapturedTranscript?: PrediagnosticsSessionTranscript) => {
+      try {
+        const transcript = preCapturedTranscript ?? getTranscript();
+
+        const response = await fetch("/api/prediagnostics/complete", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sessionId: connectionDetails.sessionId,
+            transcript,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to finalize diagnostic session");
+        }
+      } catch (error) {
+        console.error("[prediagnostics finalize]", error);
+      } finally {
+        await end();
+        window.location.href = `/prediagnostics/report?sessionId=${encodeURIComponent(connectionDetails.sessionId)}`;
+      }
+    },
+    [connectionDetails.sessionId, end, getTranscript],
+  );
 
   useEffect(() => {
     if (
@@ -153,13 +182,42 @@ function LiveKitSessionContent({
 
   useEffect(() => {
     if (hasSeenActiveSession && agent.isFinished) {
-      void handleSessionEnd();
+      const transcript = getTranscript();
+      void handleSessionEnd(transcript);
     }
-  }, [agent.isFinished, handleSessionEnd, hasSeenActiveSession]);
+  }, [agent.isFinished, getTranscript, handleSessionEnd, hasSeenActiveSession]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+
+    const preferredAudioDeviceId = userChoices.audioDeviceId;
+
+    if (!preferredAudioDeviceId || preferredAudioDeviceId === "default") {
+      return;
+    }
+
+    if (session.room.getActiveDevice("audioinput") === preferredAudioDeviceId) {
+      return;
+    }
+
+    session.room.switchActiveDevice("audioinput", preferredAudioDeviceId, true).catch(() => {
+      void session.room
+        .switchActiveDevice("audioinput", preferredAudioDeviceId, false)
+        .catch(() => {});
+    });
+  }, [isConnected, session.room, userChoices.audioDeviceId]);
 
   return (
     <div className="flex h-screen flex-col bg-[#F5F3F7]">
-      <SessionHeader agentState={agent.state} onEnd={() => void handleSessionEnd()} />
+      <SessionHeader
+        agentState={agent.state}
+        onEnd={() => {
+          const transcript = getTranscript();
+          void handleSessionEnd(transcript);
+        }}
+      />
       <ChatTranscript messages={messages} />
       <SessionFooter interactionMode={connectionDetails.interactionMode} />
     </div>

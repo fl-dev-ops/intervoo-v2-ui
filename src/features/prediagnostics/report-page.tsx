@@ -2,46 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import confetti from "@hiseb/confetti";
 import { BriefcaseBusiness, Shield, Target } from "lucide-react";
 import { IconCircle, IconCircleCheckFilled } from "@tabler/icons-react";
-
-type JobResearchBreakdown = {
-  jd_awareness: string;
-  salary_clarity: string;
-  company_clarity: string;
-  skills_research: string;
-  tools_and_role_clarity: string;
-};
-
-type PrediagnosticsReport = {
-  backup: string | null;
-  dream_job: string | null;
-  reasoning: string | null;
-  aiming_for: string | null;
-  roles_mentioned: string[];
-  salary_expectation: string | null;
-  companies_mentioned: string[];
-  job_research_category: string;
-  job_awareness_category: string;
-  job_research_breakdown: JobResearchBreakdown;
-};
-
-const MOCK_REPORT: PrediagnosticsReport = {
-  backup: "any sort of role",
-  dream_job: "Data Science Manager or Leader in a Product company",
-  reasoning: "I like to analyze a lot of data and get insights through statistical analysis.",
-  aiming_for: "Junior Data Scientist Role",
-  roles_mentioned: ["Data Science", "Junior Data Scientist", "Data Science Manager", "Leader"],
-  salary_expectation: null,
-  companies_mentioned: [],
-  job_research_category: "Good",
-  job_awareness_category: "Strong",
-  job_research_breakdown: {
-    jd_awareness: "Some gaps",
-    salary_clarity: "Not yet",
-    company_clarity: "Rough idea",
-    skills_research: "Good",
-    tools_and_role_clarity: "Some gaps",
-  },
-};
+import type { PrediagnosticsReportStatusResponse } from "#/lib/prediagnostics/report";
 
 const REPORT_GENERATION_STEPS = [
   { label: "Job target captured" },
@@ -53,10 +14,31 @@ const REPORT_GENERATION_STEPS = [
 const STEP_REVEAL_DELAY_MS = 1000;
 const REPORT_READY_DELAY_MS = 2000;
 
-export function PrediagnosticsReportPage(props: { preferredName?: string | null }) {
-  const [isGenerating, setIsGenerating] = useState(true);
+function getReportBreakdownValue(
+  report: NonNullable<NonNullable<PrediagnosticsReportStatusResponse["report"]>["reportJson"]>,
+  key:
+    | "skills_research"
+    | "company_clarity"
+    | "jd_awareness"
+    | "tools_and_role_clarity"
+    | "salary_clarity",
+) {
+  return report.job_research_breakdown?.[key] ?? "Not yet";
+}
+
+export function PrediagnosticsReportPage(props: {
+  preferredName?: string | null;
+  reportStatus: PrediagnosticsReportStatusResponse;
+}) {
   const [completedSteps, setCompletedSteps] = useState(0);
+  const [canRevealReport, setCanRevealReport] = useState(false);
   const hasCompletedAllSteps = completedSteps === REPORT_GENERATION_STEPS.length;
+  const report = props.reportStatus.report?.reportJson ?? null;
+  const isReportReady = props.reportStatus.report?.status === "READY" && !!report;
+  const isReportFailed = props.reportStatus.report?.status === "FAILED";
+  const loadError = isReportFailed
+    ? (props.reportStatus.report?.errorMessage ?? "Failed to generate report.")
+    : null;
 
   useEffect(() => {
     if (hasCompletedAllSteps) {
@@ -78,7 +60,7 @@ export function PrediagnosticsReportPage(props: { preferredName?: string | null 
     }
 
     const timeoutId = window.setTimeout(() => {
-      setIsGenerating(false);
+      setCanRevealReport(true);
     }, REPORT_READY_DELAY_MS);
 
     return () => {
@@ -86,7 +68,11 @@ export function PrediagnosticsReportPage(props: { preferredName?: string | null 
     };
   }, [hasCompletedAllSteps]);
 
-  if (isGenerating) {
+  if (loadError) {
+    return <PrediagnosticsReportErrorState message={loadError} />;
+  }
+
+  if (!canRevealReport || !isReportReady) {
     return (
       <PrediagnosticsReportGeneratingState
         completedSteps={completedSteps}
@@ -95,7 +81,7 @@ export function PrediagnosticsReportPage(props: { preferredName?: string | null 
     );
   }
 
-  return <PrediagnosticsReportPreview preferredName={props.preferredName} report={MOCK_REPORT} />;
+  return <PrediagnosticsReportPreview preferredName={props.preferredName} report={report} />;
 }
 
 function PrediagnosticsReportGeneratingState(props: {
@@ -176,12 +162,32 @@ function GenerationStepRow(props: { label: string; complete: boolean }) {
   );
 }
 
+function PrediagnosticsReportErrorState(props: { message: string }) {
+  return (
+    <div className="grid min-h-screen place-items-center bg-[#F5F3F7] px-4">
+      <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-[0_20px_40px_rgba(112,88,186,0.12)]">
+        <h2 className="text-xl font-semibold text-[#2b2233]">Report unavailable</h2>
+        <p className="mt-3 text-sm leading-6 text-[#7f768f]">{props.message}</p>
+        <button
+          className="mt-6 w-full rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-6 py-4 text-sm font-medium text-white shadow-[0_12px_24px_rgba(93,72,220,0.28)]"
+          type="button"
+          onClick={() => {
+            window.location.href = "/prediagnostics";
+          }}
+        >
+          Back to start
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PrediagnosticsReportPreview({
   preferredName,
   report,
 }: {
   preferredName?: string | null;
-  report: PrediagnosticsReport;
+  report: NonNullable<NonNullable<PrediagnosticsReportStatusResponse["report"]>["reportJson"]>;
 }) {
   const displayName = preferredName?.trim() || "there";
   const jobGoalBadge = useMemo(
@@ -189,21 +195,13 @@ function PrediagnosticsReportPreview({
     [report.job_awareness_category],
   );
   const awarenessBadge = useMemo(
-    () => getPositiveBadge(report.job_research_category),
+    () => getPositiveBadge(report.job_research_category ?? "Not Enough"),
     [report.job_research_category],
   );
 
   return (
     <div className="min-h-screen bg-[#F5F3F7]">
       <div className="mx-auto w-full max-w-md">
-        {/*<button
-          className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#2b2233] shadow-[0_8px_24px_rgba(112,88,186,0.12)] transition hover:bg-[#f8f5fc]"
-          type="button"
-          onClick={() => window.history.back()}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>*/}
-
         <div className="p-5 sm:p-6">
           <div className="rounded-xl px-5 pt-4 text-center">
             <p className="text-2xl font-medium ">
@@ -265,12 +263,12 @@ function PrediagnosticsReportPreview({
                 </div>
                 <AwarenessRow
                   label="Skills research"
-                  value={report.job_research_breakdown.skills_research}
+                  value={getReportBreakdownValue(report, "skills_research")}
                   positive
                 />
                 <AwarenessRow
                   label="Company knowledge"
-                  value={report.job_research_breakdown.company_clarity}
+                  value={getReportBreakdownValue(report, "company_clarity")}
                 />
               </div>
 
@@ -280,17 +278,17 @@ function PrediagnosticsReportPreview({
                 </div>
                 <AwarenessRow
                   label="JD awareness"
-                  value={report.job_research_breakdown.jd_awareness}
+                  value={getReportBreakdownValue(report, "jd_awareness")}
                   warning
                 />
                 <AwarenessRow
                   label="Role clarity"
-                  value={report.job_research_breakdown.tools_and_role_clarity}
+                  value={getReportBreakdownValue(report, "tools_and_role_clarity")}
                   warning
                 />
                 <AwarenessRow
                   label="Salary understanding"
-                  value={report.job_research_breakdown.salary_clarity}
+                  value={getReportBreakdownValue(report, "salary_clarity")}
                   warning
                 />
               </div>

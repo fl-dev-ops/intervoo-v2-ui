@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { IconArrowLeft, IconLanguage, IconVolume } from "@tabler/icons-react";
+import { IconArrowLeft } from "@tabler/icons-react";
 import type { CoachOption } from "./coach-page";
 
 type ReadyPageProps = {
@@ -54,7 +54,7 @@ export function ReadyPage(props: ReadyPageProps) {
             <img alt={coach.title} className="object-fill" src={coach.imageSrc} />
 
             <div className="absolute bottom-6 left-0 flex w-full justify-between px-4">
-              <div className="p-2 px-3 rounded-2xl bg-[rgba(102,98,42,0.38)]  text-white backdrop-blur-sm flex gap-1">
+              {/*<div className="p-2 px-3 rounded-2xl bg-[rgba(102,98,42,0.38)]  text-white backdrop-blur-sm flex gap-1">
                 <IconLanguage className="h-5 w-5" />
                 Translate
               </div>
@@ -65,7 +65,7 @@ export function ReadyPage(props: ReadyPageProps) {
                 type="button"
               >
                 <IconVolume className="h-5 w-5" />
-              </button>
+              </button>*/}
             </div>
           </div>
         </div>
@@ -75,11 +75,11 @@ export function ReadyPage(props: ReadyPageProps) {
             <MessageCard>
               Hi {firstName}, I&apos;m {coach.title}, your interview partner.
             </MessageCard>
-            <MessageCard>
+            <MessageCard delayMs={400}>
               Let&apos;s have a quick chat about the jobs you&apos;re targeting. I&apos;ll use this
               to create your personalized diagnostic interview.
             </MessageCard>
-            <MessageCard>
+            <MessageCard delayMs={800}>
               You can speak in your native language. Takes less than 7 minutes.
             </MessageCard>
           </div>
@@ -104,8 +104,13 @@ export function ReadyPage(props: ReadyPageProps) {
   );
 }
 
-function MessageCard(props: { children: ReactNode }) {
+function MessageCard(props: { children: ReactNode; delayMs?: number }) {
   return (
-    <div className="rounded-tl-sm rounded-4xl bg-white px-6 py-5 shadow-xs">{props.children}</div>
+    <div
+      className="rounded-tl-sm rounded-4xl bg-white px-6 py-5 shadow-xs opacity-0 [animation:message-card-in_900ms_ease-out_forwards]"
+      style={{ animationDelay: `${props.delayMs ?? 0}ms` }}
+    >
+      {props.children}
+    </div>
   );
 }

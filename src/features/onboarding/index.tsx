@@ -5,7 +5,7 @@ import {
   type EnglishLevel,
   type NativeLanguage,
   type SpeakingSpeed,
-} from "#/pre-screening/setup";
+} from "./types";
 import { CoachPage, type CoachOption } from "./coach-page";
 import { EnglishLevelPage } from "./english-level-page";
 import { LanguagePage } from "./language-page";

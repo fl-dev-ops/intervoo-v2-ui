@@ -120,6 +120,7 @@ describe("prediagnostics LiveKit helpers", () => {
     process.env.LIVEKIT_URL = "wss://example.livekit.cloud";
 
     const details = await createPrediagnosticsConnectionDetails({
+      sessionId: "diag-session-1",
       roomName: "prediag_room",
       participantIdentity: "prediag_user",
       participantName: "Student One",
@@ -146,6 +147,8 @@ describe("prediagnostics LiveKit helpers", () => {
 
     const tokenInstance = mockedAccessToken().created[0];
 
+    expect(details.sessionId).toBe("diag-session-1");
+
     expect(tokenInstance.options).toMatchObject({
       identity: "prediag_user",
       name: "Student One",
@@ -160,6 +163,7 @@ describe("prediagnostics LiveKit helpers", () => {
       canSubscribe: true,
     });
     expect(details).toEqual({
+      sessionId: "diag-session-1",
       serverUrl: "wss://example.livekit.cloud",
       roomName: "prediag_room",
       participantName: "Student One",

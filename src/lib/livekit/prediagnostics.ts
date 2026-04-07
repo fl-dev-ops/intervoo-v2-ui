@@ -10,6 +10,7 @@ export type PrediagnosticsInteractionMode = "auto" | "ptt";
 export const DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE: PrediagnosticsInteractionMode = "ptt";
 
 export type PrediagnosticsConnectionDetails = {
+  sessionId: string;
   serverUrl: string;
   roomName: string;
   participantName: string;
@@ -33,6 +34,7 @@ export function buildPrediagnosticsParticipantName(name: string): string {
 }
 
 export async function createPrediagnosticsConnectionDetails(input: {
+  sessionId: string;
   roomName: string;
   participantIdentity: string;
   participantName: string;
@@ -73,6 +75,7 @@ export async function createPrediagnosticsConnectionDetails(input: {
   });
 
   return {
+    sessionId: input.sessionId,
     serverUrl: config.serverUrl,
     roomName: input.roomName,
     participantName: input.participantName,

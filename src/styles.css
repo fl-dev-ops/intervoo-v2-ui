@@ -1,8 +1,25 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-* {
+html,
+body {
+  background-color: #f5f3f7;
+}
+
+*,
+html,
+body {
   font-family: "Figtree", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
+}
+
+@keyframes message-card-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }

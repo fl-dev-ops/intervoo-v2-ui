@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
 import { cn } from "#/lib/utils";
-import type { SpeakingSpeed } from "#/pre-screening/setup";
+import type { SpeakingSpeed } from "./types";
 import { OnboardingShell } from "./shell";
 
 export type CoachOption = "sara" | "arjun";
