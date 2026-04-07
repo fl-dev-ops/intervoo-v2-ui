@@ -29,8 +29,59 @@ export function ReadyPage(props: ReadyPageProps) {
   const firstName = props.firstName.trim() || "there";
 
   return (
-    <section className="min-h-screen">
-      <div className="mx-auto flex min-h-screen flex-col">
+    <section className="min-h-screen bg-[#F5F3F7]">
+      {/* Desktop: two-column layout */}
+      <div className="hidden min-h-screen md:flex md:items-center md:justify-center md:px-6">
+        <div className="w-full max-w-200 flex gap-2 items-stretch shadow-2xl rounded-xl overflow-hidden">
+          <div
+            className="flex-1 flex flex-col items-center justify-center p-10 relative"
+            style={{ backgroundColor: coach.heroTint }}
+          >
+            <button
+              aria-label="Go back"
+              className="absolute top-6 left-6 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
+              type="button"
+              onClick={props.onBack}
+            >
+              <IconArrowLeft className="h-5 w-5" />
+            </button>
+            <div className="w-72 h-72 rounded-full overflow-hidden">
+              <img alt={coach.title} className="w-full h-full object-cover" src={coach.imageSrc} />
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col py-10 px-6">
+            <h1 className="text-xl leading-tight font-semibold text-center text-[#13101b]">
+              You&apos;re all set to begin
+            </h1>
+
+            <div className="mt-8 space-y-4">
+              <MessageCard>
+                Hi {firstName}, I&apos;m {coach.title}, your interview partner.
+              </MessageCard>
+              <MessageCard delayMs={400}>
+                Let&apos;s have a quick chat about the jobs you&apos;re targeting. I&apos;ll use
+                this to create your personalized diagnostic interview.
+              </MessageCard>
+              <MessageCard delayMs={800}>
+                You can speak in your native language. Takes less than 7 minutes.
+              </MessageCard>
+            </div>
+
+            <button
+              className="mt-8 w-full rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-10 py-5 text-white disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={props.loading}
+              type="button"
+              onClick={props.onContinue}
+            >
+              {props.loading ? "Saving..." : "Start Pre Diagnostic"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile: current layout */}
+      <div className="mx-auto flex min-h-screen flex-col md:hidden">
         <div className="rounded-b-[48px] shadow-lg" style={{ backgroundColor: coach.heroTint }}>
           <div className="text-center m-4 mb-0 flex flex-row items-center">
             <div className="flex-1">
@@ -43,7 +94,6 @@ export function ReadyPage(props: ReadyPageProps) {
                 <IconArrowLeft className="h-4 w-4" />
               </button>
             </div>
-
             <h1 className="flex-6 mx-auto text-2xl leading-[1.06] font-medium text-white">
               You&apos;re all set to begin
             </h1>
@@ -52,21 +102,6 @@ export function ReadyPage(props: ReadyPageProps) {
 
           <div className="relative mt-2 flex justify-center">
             <img alt={coach.title} className="object-fill" src={coach.imageSrc} />
-
-            <div className="absolute bottom-6 left-0 flex w-full justify-between px-4">
-              {/*<div className="p-2 px-3 rounded-2xl bg-[rgba(102,98,42,0.38)]  text-white backdrop-blur-sm flex gap-1">
-                <IconLanguage className="h-5 w-5" />
-                Translate
-              </div>
-
-              <button
-                aria-label="Play sample"
-                className="p-2 px-3 rounded-2xl bg-[rgba(102,98,42,0.38)] text-white backdrop-blur-sm"
-                type="button"
-              >
-                <IconVolume className="h-5 w-5" />
-              </button>*/}
-            </div>
           </div>
         </div>
 
@@ -91,7 +126,7 @@ export function ReadyPage(props: ReadyPageProps) {
           ) : null}*/}
 
           <button
-            className="mt-auto w-full rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-10 py-5  text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-auto w-full rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-10 py-5 text-white disabled:cursor-not-allowed disabled:opacity-60"
             disabled={props.loading}
             type="button"
             onClick={props.onContinue}

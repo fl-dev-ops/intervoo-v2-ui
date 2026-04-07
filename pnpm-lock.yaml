@@ -18,6 +18,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1020.0
         version: 3.1023.0
+      '@fontsource/figtree':
+        specifier: ^5.2.10
+        version: 5.2.10
       '@google/genai':
         specifier: ^1.47.0
         version: 1.48.0
@@ -812,6 +815,9 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@fontsource/figtree@5.2.10':
+    resolution: {integrity: sha512-nlO06N1qad88ySqzi/a2xwDBkamfZ4MFilP8la5dDyRY36ED0UYTs2hhtwJf8fM52+Nn7dQO2r27reKaXOyOIg==}
 
   '@google/genai@1.48.0':
     resolution: {integrity: sha512-plonYK4ML2PrxsRD9SeqmFt76eREWkQdPCglOA6aYDzL1AAbE+7PUnT54SvpWGfws13L0AZEqGSpL7+1IPnTxQ==}
@@ -4836,6 +4842,8 @@ snapshots:
       '@floating-ui/utils': 0.2.11
 
   '@floating-ui/utils@0.2.11': {}
+
+  '@fontsource/figtree@5.2.10': {}
 
   '@google/genai@1.48.0':
     dependencies:
