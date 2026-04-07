@@ -111,8 +111,6 @@ function PrediagnosticsReportGeneratingState(props: {
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-white">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(106,77,245,0.12),transparent_65%)]" />
-
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-between px-6 py-10 text-center">
         <div className="w-full" />
 
@@ -138,7 +136,7 @@ function PrediagnosticsReportGeneratingState(props: {
           </div>
         </div>
 
-        <p className="pb-2 text-mauve-500">This may take a few seconds...</p>
+        <p className="pb-2 text-[#7f768f]">This may take a few seconds...</p>
       </div>
     </section>
   );
@@ -204,7 +202,7 @@ function PrediagnosticsReportPreview({
 
   return (
     <div className="min-h-screen bg-[#F5F3F7]">
-      <div className="mx-auto w-full max-w-md">
+      <div className="mx-auto w-full max-w-md md:max-w-lg">
         <div className="p-5 sm:p-6">
           <div className="rounded-xl px-5 pt-4 text-center">
             <p className="text-2xl font-medium ">

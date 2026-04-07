@@ -210,16 +210,45 @@ function LiveKitSessionContent({
   }, [isConnected, session.room, userChoices.audioDeviceId]);
 
   return (
-    <div className="flex h-screen flex-col bg-[#F5F3F7]">
-      <SessionHeader
-        agentState={agent.state}
-        onEnd={() => {
-          const transcript = getTranscript();
-          void handleSessionEnd(transcript);
-        }}
-      />
-      <ChatTranscript messages={messages} />
-      <SessionFooter interactionMode={connectionDetails.interactionMode} />
+    <div className="min-h-screen bg-[#F5F3F7]">
+      {/* Desktop: phone preview with gradient glow */}
+      <div className="hidden min-h-screen md:flex md:items-center md:justify-center md:px-6">
+        <div className="relative h-[85vh] w-100">
+          <div
+            className="absolute -inset-2 rounded-4xl blur-xl opacity-60"
+            style={{
+              background:
+                "linear-gradient(168.19deg, #7A2CAF -0.95%, #41D69A 26.72%, #DFCF58 60.2%, #5350B4 91.75%)",
+            }}
+          />
+          <div className="relative z-10 w-full h-full rounded-[26px] bg-white overflow-hidden shadow-[0_28px_60px_rgba(74,57,143,0.12)]">
+            <div className="flex h-full flex-col">
+              <SessionHeader
+                agentState={agent.state}
+                onEnd={() => {
+                  const transcript = getTranscript();
+                  void handleSessionEnd(transcript);
+                }}
+              />
+              <ChatTranscript messages={messages} />
+              <SessionFooter interactionMode={connectionDetails.interactionMode} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile: full screen */}
+      <div className="flex h-screen flex-col bg-[#F5F3F7] md:hidden">
+        <SessionHeader
+          agentState={agent.state}
+          onEnd={() => {
+            const transcript = getTranscript();
+            void handleSessionEnd(transcript);
+          }}
+        />
+        <ChatTranscript messages={messages} />
+        <SessionFooter interactionMode={connectionDetails.interactionMode} />
+      </div>
     </div>
   );
 }
@@ -276,7 +305,7 @@ function ChatTranscript({ messages }: { messages: PrediagnosticsMessage[] }) {
   if (messages.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-[#7f768f]">Waiting for conversation...</p>
+        <p className="text-sm text-[#7f768f]">Waiting for agent to join...</p>
       </div>
     );
   }

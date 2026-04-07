@@ -190,10 +190,107 @@ export function PrediagnosticsIndexPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-4xl items-center justify-center">
-        <div className="grid w-full gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-          <section className="rounded-4xl  p-6 sm:p-8">
+    <div className="min-h-screen bg-[#F5F3F7]">
+      {/* Desktop: phone preview with gradient glow */}
+      <div className="hidden min-h-screen md:flex md:items-center md:justify-center md:px-6">
+        <div className="relative">
+          <div
+            className="absolute -inset-2 rounded-4xl blur-xl opacity-60"
+            style={{
+              background:
+                "linear-gradient(168.19deg, #7A2CAF -0.95%, #41D69A 26.72%, #DFCF58 60.2%, #5350B4 91.75%)",
+            }}
+          />
+          <div className="relative z-10 w-full max-w-105 rounded-[26px] bg-white overflow-hidden shadow-[0_28px_60px_rgba(74,57,143,0.12)]">
+            <div className="flex h-190 flex-col justify-between px-8 py-10">
+              <div>
+                <h1 className="text-2xl font-semibold tracking-[-0.03em] text-[#2b2233]">
+                  Get ready to join the session
+                </h1>
+                <p className="mt-3 text-sm leading-6 text-[#7f768f]">
+                  Check your microphone, choose the input device you want to use, and join when
+                  you&apos;re ready.
+                </p>
+              </div>
+
+              <div className="mt-8 space-y-4">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <label
+                      className="mb-2 block text-sm font-medium text-[#2b2233]"
+                      htmlFor="prediagnostics-audio-device-desktop"
+                    >
+                      Device
+                    </label>
+                    <PermissionBadge permissionState={permissionState} />
+                  </div>
+                  <select
+                    className="h-12 w-full rounded-2xl border border-mauve-500 bg-white px-4 text-sm text-[#2b2233] outline-none transition focus:border-[#5a42cc] disabled:cursor-not-allowed disabled:bg-[#f6f3fa] disabled:text-[#9b92ad]"
+                    disabled={permissionState !== "granted" || audioDevices.length === 0}
+                    id="prediagnostics-audio-device-desktop"
+                    value={
+                      selectedDeviceAvailable
+                        ? selectedDeviceId
+                        : (audioDevices[0]?.deviceId ?? "default")
+                    }
+                    onChange={handleDeviceChange}
+                  >
+                    {audioDevices.map((device, index) => (
+                      <option
+                        key={device.deviceId || `${device.label}-${index}`}
+                        value={device.deviceId}
+                      >
+                        {device.label || `Microphone ${index + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {deviceError ? (
+                  <div className="rounded-2xl border border-[#f1d1d5] bg-[#fff7f8] px-4 py-3 text-sm text-[#a03d4d]">
+                    {deviceError}
+                  </div>
+                ) : null}
+
+                <div className="mt-6 space-y-3">
+                  {permissionState === "granted" ? (
+                    <button
+                      className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-6 text-sm font-medium text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isJoining || !previewAudioTrack}
+                      type="button"
+                      onClick={() => void handleJoin()}
+                    >
+                      {isJoining ? (
+                        <LoaderCircle className="h-5 w-5 animate-spin" />
+                      ) : (
+                        "Join session"
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-6 text-sm font-medium text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] transition hover:opacity-95"
+                      type="button"
+                      onClick={() => void requestPermission()}
+                    >
+                      {hasRequestedPermission ? (
+                        <RefreshCcw className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                      {hasRequestedPermission ? "Try microphone again" : "Enable microphone"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile: current layout */}
+      <div className="md:hidden">
+        <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full items-center justify-center">
+          <section className="w-full max-w-xl rounded-4xl p-6 sm:p-8">
             <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-[#2b2233]">
               Get ready to join the session
             </h1>
