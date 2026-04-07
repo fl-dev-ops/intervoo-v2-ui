@@ -30,15 +30,18 @@ export function PrediagnosticsReportPage(props: {
   preferredName?: string | null;
   reportStatus: PrediagnosticsReportStatusResponse;
 }) {
-  const [completedSteps, setCompletedSteps] = useState(0);
-  const [canRevealReport, setCanRevealReport] = useState(false);
-  const hasCompletedAllSteps = completedSteps === REPORT_GENERATION_STEPS.length;
   const report = props.reportStatus.report?.reportJson ?? null;
   const isReportReady = props.reportStatus.report?.status === "READY" && !!report;
   const isReportFailed = props.reportStatus.report?.status === "FAILED";
   const loadError = isReportFailed
     ? (props.reportStatus.report?.errorMessage ?? "Failed to generate report.")
     : null;
+
+  const [completedSteps, setCompletedSteps] = useState(
+    isReportReady ? REPORT_GENERATION_STEPS.length : 0,
+  );
+  const [canRevealReport, setCanRevealReport] = useState(isReportReady);
+  const hasCompletedAllSteps = completedSteps === REPORT_GENERATION_STEPS.length;
 
   useEffect(() => {
     if (hasCompletedAllSteps) {
