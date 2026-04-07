@@ -292,6 +292,65 @@ export async function getDiagnosticSessionStatus(input: {
     return null;
   }
 
+  return mapSessionToStatusResponse(session);
+}
+
+export async function getLatestDiagnosticSessionStatus(
+  userId: string,
+): Promise<PrediagnosticsReportStatusResponse | null> {
+  const session = await prisma.diagnosticSession.findFirst({
+    where: {
+      userId,
+      status: { in: ["COMPLETED", "REPORT_READY"] },
+      NOT: {
+        report: {
+          status: "FAILED",
+        },
+      },
+    },
+    orderBy: { startedAt: "desc" },
+    include: { report: true },
+  });
+
+  if (!session) {
+    return null;
+  }
+
+  return mapSessionToStatusResponse(session);
+}
+
+export async function hasActiveOrCompletedSession(userId: string): Promise<boolean> {
+  const count = await prisma.diagnosticSession.count({
+    where: {
+      userId,
+      status: { in: ["STARTED", "COMPLETED", "REPORT_READY"] },
+      NOT: {
+        report: {
+          status: "FAILED",
+        },
+      },
+    },
+  });
+
+  return count > 0;
+}
+
+function mapSessionToStatusResponse(session: {
+  id: string;
+  status: string;
+  roomName: string;
+  startedAt: Date;
+  endedAt: Date | null;
+  report: {
+    id: string;
+    status: string;
+    promptVersion: string | null;
+    fileUri: string | null;
+    reportJson: unknown;
+    errorMessage: string | null;
+    metadata: unknown;
+  } | null;
+}): PrediagnosticsReportStatusResponse {
   return {
     session: {
       id: session.id,

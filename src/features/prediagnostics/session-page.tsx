@@ -161,7 +161,7 @@ function LiveKitSessionContent({
         console.error("[prediagnostics finalize]", error);
       } finally {
         await end();
-        window.location.href = `/prediagnostics/report?sessionId=${encodeURIComponent(connectionDetails.sessionId)}`;
+        window.location.href = "/prediagnostics/report";
       }
     },
     [connectionDetails.sessionId, end, getTranscript],
