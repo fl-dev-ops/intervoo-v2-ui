@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { PrediagnosticsIndexPage } from "#/features/prediagnostics/index-page";
 import { getSession } from "#/lib/auth.functions";
-import { hasActiveOrCompletedSession } from "#/lib/prediagnostics/functions";
+import { hasActiveOrCompletedPreDiagnosticSession } from "#/lib/prediagnostics/functions";
 
 export const Route = createFileRoute("/prediagnostics/")({
   beforeLoad: async ({ location }) => {
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/prediagnostics/")({
     }
 
     const fromOnboarding = new URLSearchParams(location.search).get("from") === "onboarding";
-    const hasSession = await hasActiveOrCompletedSession();
+    const hasSession = await hasActiveOrCompletedPreDiagnosticSession();
 
     if (fromOnboarding) {
       return;
