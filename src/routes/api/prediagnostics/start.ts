@@ -37,7 +37,7 @@ export async function postHandler({ request }: { request: Request }) {
     const roomName = buildPrediagnosticsRoomName(user.id);
     const participantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
     const participantName = buildPrediagnosticsParticipantName(user.name);
-    const diagnosticSession = await prisma.diagnosticSession.create({
+    const preDiagnosticSession = await prisma.preDiagnosticSession.create({
       data: {
         userId: user.id,
         status: "STARTED",
@@ -52,20 +52,20 @@ export async function postHandler({ request }: { request: Request }) {
     });
 
     const connectionDetails = await createPrediagnosticsConnectionDetails({
-      sessionId: diagnosticSession.id,
+      sessionId: preDiagnosticSession.id,
       roomName,
       participantIdentity,
       participantName,
       participantMetadata: JSON.stringify({
         userId: user.id,
         email: user.email,
-        sessionId: diagnosticSession.id,
+        sessionId: preDiagnosticSession.id,
         feature: "prediagnostics",
         interaction_mode: interactionMode,
       }),
       roomMetadata: JSON.stringify({
         feature: "prediagnostics",
-        sessionId: diagnosticSession.id,
+        sessionId: preDiagnosticSession.id,
         userId: user.id,
         studentName: participantName,
         studentEmail: user.email,
@@ -73,7 +73,7 @@ export async function postHandler({ request }: { request: Request }) {
       }),
       agentName: "local-diagnostics2",
       agentMetadata: JSON.stringify({
-        sessionId: diagnosticSession.id,
+        sessionId: preDiagnosticSession.id,
         studentId: user.id,
         studentName: participantName,
         studentEmail: user.email,

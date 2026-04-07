@@ -1,34 +1,34 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const {
-  diagnosticSessionFindUniqueMock,
-  diagnosticSessionUpdateMock,
-  diagnosticSessionReportFindUniqueMock,
-  diagnosticSessionReportCreateMock,
-  diagnosticSessionReportUpdateMock,
-  diagnosticSessionReportUpsertMock,
+  preDiagnosticSessionFindUniqueMock,
+  preDiagnosticSessionUpdateMock,
+  preDiagnosticSessionReportFindUniqueMock,
+  preDiagnosticSessionReportCreateMock,
+  preDiagnosticSessionReportUpdateMock,
+  preDiagnosticSessionReportUpsertMock,
   generateEvaluationObjectMock,
 } = vi.hoisted(() => ({
-  diagnosticSessionFindUniqueMock: vi.fn<() => Promise<unknown>>(),
-  diagnosticSessionUpdateMock: vi.fn<() => Promise<unknown>>(),
-  diagnosticSessionReportFindUniqueMock: vi.fn<() => Promise<unknown>>(),
-  diagnosticSessionReportCreateMock: vi.fn<() => Promise<unknown>>(),
-  diagnosticSessionReportUpdateMock: vi.fn<() => Promise<unknown>>(),
-  diagnosticSessionReportUpsertMock: vi.fn<() => Promise<unknown>>(),
+  preDiagnosticSessionFindUniqueMock: vi.fn<() => Promise<unknown>>(),
+  preDiagnosticSessionUpdateMock: vi.fn<() => Promise<unknown>>(),
+  preDiagnosticSessionReportFindUniqueMock: vi.fn<() => Promise<unknown>>(),
+  preDiagnosticSessionReportCreateMock: vi.fn<() => Promise<unknown>>(),
+  preDiagnosticSessionReportUpdateMock: vi.fn<() => Promise<unknown>>(),
+  preDiagnosticSessionReportUpsertMock: vi.fn<() => Promise<unknown>>(),
   generateEvaluationObjectMock: vi.fn<() => Promise<unknown>>(),
 }));
 
 vi.mock("#/db.server", () => ({
   prisma: {
-    diagnosticSession: {
-      findUnique: diagnosticSessionFindUniqueMock,
-      update: diagnosticSessionUpdateMock,
+    preDiagnosticSession: {
+      findUnique: preDiagnosticSessionFindUniqueMock,
+      update: preDiagnosticSessionUpdateMock,
     },
-    diagnosticSessionReport: {
-      findUnique: diagnosticSessionReportFindUniqueMock,
-      create: diagnosticSessionReportCreateMock,
-      update: diagnosticSessionReportUpdateMock,
-      upsert: diagnosticSessionReportUpsertMock,
+    preDiagnosticSessionReport: {
+      findUnique: preDiagnosticSessionReportFindUniqueMock,
+      create: preDiagnosticSessionReportCreateMock,
+      update: preDiagnosticSessionReportUpdateMock,
+      upsert: preDiagnosticSessionReportUpsertMock,
     },
   },
 }));
@@ -43,9 +43,9 @@ vi.mock("../../../rubrics/pre-call.md?raw", () => ({
 }));
 
 import {
-  finalizeDiagnosticSession,
-  getDiagnosticSessionStatus,
-  triggerDiagnosticSessionEvaluation,
+  finalizePreDiagnosticSession,
+  getPreDiagnosticSessionStatus,
+  triggerPreDiagnosticSessionEvaluation,
 } from "#/lib/prediagnostics/report.server";
 
 describe("prediagnostics report server flow", () => {
@@ -54,14 +54,14 @@ describe("prediagnostics report server flow", () => {
     process.env.OPENROUTER_API_KEY = "test-openrouter-key";
   });
 
-  test("finalizeDiagnosticSession stores transcript and resets report to pending", async () => {
-    diagnosticSessionFindUniqueMock.mockResolvedValue({
+  test("finalizePreDiagnosticSession stores transcript and resets report to pending", async () => {
+    preDiagnosticSessionFindUniqueMock.mockResolvedValue({
       id: "diag-session-1",
       userId: "user-1",
       endedAt: null,
     });
 
-    const result = await finalizeDiagnosticSession({
+    const result = await finalizePreDiagnosticSession({
       sessionId: "diag-session-1",
       userId: "user-1",
       transcript: {
@@ -79,7 +79,7 @@ describe("prediagnostics report server flow", () => {
       messages: null,
     });
 
-    expect(diagnosticSessionUpdateMock).toHaveBeenCalledWith({
+    expect(preDiagnosticSessionUpdateMock).toHaveBeenCalledWith({
       where: { id: "diag-session-1" },
       data: expect.objectContaining({
         status: "COMPLETED",
@@ -95,7 +95,7 @@ describe("prediagnostics report server flow", () => {
         }),
       }),
     });
-    expect(diagnosticSessionReportUpsertMock).toHaveBeenCalledWith({
+    expect(preDiagnosticSessionReportUpsertMock).toHaveBeenCalledWith({
       where: { sessionId: "diag-session-1" },
       create: expect.objectContaining({
         sessionId: "diag-session-1",
@@ -119,8 +119,8 @@ describe("prediagnostics report server flow", () => {
     });
   });
 
-  test("finalizeDiagnosticSession preserves existing transcript when incoming transcript is empty", async () => {
-    diagnosticSessionFindUniqueMock.mockResolvedValue({
+  test("finalizePreDiagnosticSession preserves existing transcript when incoming transcript is empty", async () => {
+    preDiagnosticSessionFindUniqueMock.mockResolvedValue({
       id: "diag-session-1",
       userId: "user-1",
       endedAt: null,
@@ -138,7 +138,7 @@ describe("prediagnostics report server flow", () => {
       },
     });
 
-    const result = await finalizeDiagnosticSession({
+    const result = await finalizePreDiagnosticSession({
       sessionId: "diag-session-1",
       userId: "user-1",
       transcript: {
@@ -149,7 +149,7 @@ describe("prediagnostics report server flow", () => {
       messages: null,
     });
 
-    expect(diagnosticSessionUpdateMock).toHaveBeenCalledWith({
+    expect(preDiagnosticSessionUpdateMock).toHaveBeenCalledWith({
       where: { id: "diag-session-1" },
       data: expect.objectContaining({
         transcript: expect.objectContaining({
@@ -165,8 +165,8 @@ describe("prediagnostics report server flow", () => {
     expect(result?.transcriptMessageCount).toBe(1);
   });
 
-  test("triggerDiagnosticSessionEvaluation stores the generated structured report object", async () => {
-    diagnosticSessionFindUniqueMock.mockResolvedValue({
+  test("triggerPreDiagnosticSessionEvaluation stores the generated structured report object", async () => {
+    preDiagnosticSessionFindUniqueMock.mockResolvedValue({
       id: "diag-session-1",
       userId: "user-1",
       roomName: "prediag_room",
@@ -206,14 +206,14 @@ describe("prediagnostics report server flow", () => {
       },
     });
 
-    diagnosticSessionReportFindUniqueMock.mockResolvedValue({
+    preDiagnosticSessionReportFindUniqueMock.mockResolvedValue({
       id: "report-1",
       sessionId: "diag-session-1",
       status: "PENDING",
       metadata: { evaluationState: "PENDING" },
     });
 
-    diagnosticSessionReportUpdateMock.mockResolvedValue({
+    preDiagnosticSessionReportUpdateMock.mockResolvedValue({
       id: "report-1",
     });
 
@@ -243,7 +243,7 @@ describe("prediagnostics report server flow", () => {
       },
     });
 
-    await triggerDiagnosticSessionEvaluation("diag-session-1");
+    await triggerPreDiagnosticSessionEvaluation("diag-session-1");
 
     expect(generateEvaluationObjectMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -257,7 +257,7 @@ describe("prediagnostics report server flow", () => {
       }),
     );
 
-    expect(diagnosticSessionReportUpdateMock).toHaveBeenLastCalledWith({
+    expect(preDiagnosticSessionReportUpdateMock).toHaveBeenLastCalledWith({
       where: { id: "report-1" },
       data: expect.objectContaining({
         status: "READY",
@@ -269,7 +269,7 @@ describe("prediagnostics report server flow", () => {
       }),
     });
 
-    expect(diagnosticSessionUpdateMock).toHaveBeenLastCalledWith({
+    expect(preDiagnosticSessionUpdateMock).toHaveBeenLastCalledWith({
       where: { id: "diag-session-1" },
       data: {
         status: "REPORT_READY",
@@ -277,8 +277,8 @@ describe("prediagnostics report server flow", () => {
     });
   });
 
-  test("triggerDiagnosticSessionEvaluation can use transcript messages provided during completion", async () => {
-    diagnosticSessionFindUniqueMock.mockResolvedValue({
+  test("triggerPreDiagnosticSessionEvaluation can use transcript messages provided during completion", async () => {
+    preDiagnosticSessionFindUniqueMock.mockResolvedValue({
       id: "diag-session-1",
       userId: "user-1",
       roomName: "prediag_room",
@@ -301,14 +301,14 @@ describe("prediagnostics report server flow", () => {
       },
     });
 
-    diagnosticSessionReportFindUniqueMock.mockResolvedValue({
+    preDiagnosticSessionReportFindUniqueMock.mockResolvedValue({
       id: "report-1",
       sessionId: "diag-session-1",
       status: "PENDING",
       metadata: { evaluationState: "PENDING" },
     });
 
-    diagnosticSessionReportUpdateMock.mockResolvedValue({
+    preDiagnosticSessionReportUpdateMock.mockResolvedValue({
       id: "report-1",
     });
 
@@ -333,7 +333,7 @@ describe("prediagnostics report server flow", () => {
       },
     });
 
-    await triggerDiagnosticSessionEvaluation("diag-session-1", {
+    await triggerPreDiagnosticSessionEvaluation("diag-session-1", {
       transcriptMessages: [
         {
           id: "m1",
@@ -356,8 +356,8 @@ describe("prediagnostics report server flow", () => {
     );
   });
 
-  test("getDiagnosticSessionStatus returns report data for the owning user", async () => {
-    diagnosticSessionFindUniqueMock.mockResolvedValue({
+  test("getPreDiagnosticSessionStatus returns report data for the owning user", async () => {
+    preDiagnosticSessionFindUniqueMock.mockResolvedValue({
       id: "diag-session-1",
       userId: "user-1",
       status: "REPORT_READY",
@@ -392,7 +392,7 @@ describe("prediagnostics report server flow", () => {
       },
     });
 
-    const result = await getDiagnosticSessionStatus({
+    const result = await getPreDiagnosticSessionStatus({
       sessionId: "diag-session-1",
       userId: "user-1",
     });

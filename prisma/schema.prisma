@@ -7,26 +7,13 @@ datasource db {
   provider = "postgresql"
 }
 
-enum PreScreenSessionStatus {
+enum PreDiagnosticSessionStatus {
   STARTED
   COMPLETED
   REPORT_READY
 }
 
-enum PreScreenSessionReportStatus {
-  PENDING
-  PROCESSING
-  READY
-  FAILED
-}
-
-enum DiagnosticSessionStatus {
-  STARTED
-  COMPLETED
-  REPORT_READY
-}
-
-enum DiagnosticSessionReportStatus {
+enum PreDiagnosticSessionReportStatus {
   PENDING
   PROCESSING
   READY
@@ -34,39 +21,39 @@ enum DiagnosticSessionReportStatus {
 }
 
 model User {
-  id                     String         @id
+  id                     String                    @id
   name                   String
   email                  String
-  emailVerified          Boolean        @default(false)
+  emailVerified          Boolean                   @default(false)
   image                  String?
-  phoneNumber            String?        @unique
-  phoneNumberVerified    Boolean        @default(false)
-  hasCompletedOnboarding Boolean        @default(false)
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  phoneNumber            String?                   @unique
+  phoneNumberVerified    Boolean                   @default(false)
+  hasCompletedOnboarding Boolean                   @default(false)
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
   sessions               Session[]
   accounts               Account[]
   profile                Profile?
-  diagnosticSessions     DiagnosticSession[]
+  preDiagnosticSessions  PreDiagnosticSession[]
 
   @@unique([email])
   @@map("user")
 }
 
 model Profile {
-  id                  String   @id @default(cuid())
-  userId              String   @unique
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  preferredName       String   @default("")
-  institution         String
-  degree              String
-  stream              String
-  yearOfStudy         String
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredName        String   @default("")
+  institution          String
+  degree               String
+  stream               String
+  yearOfStudy          String
   placementPreparation String   @default("")
-  academySelection    String   @default("")
-  academyName         String   @default("")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  academySelection     String   @default("")
+  academyName          String   @default("")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([userId])
   @@map("profile")
@@ -120,95 +107,42 @@ model Verification {
   @@map("verification")
 }
 
-model PreScreenQuestionnaireDraft {
-  id                 String                 @id @default(cuid())
-  status             PreScreenSessionStatus @default(STARTED)
-  currentStep        String                 @default("intro")
-  schemaVersion      Int                    @default(1)
-  questionSetKey     String                 @default("pre-screen-v1")
-  answers            Json
-  latestAgentContext Json?
-  completedAt        DateTime?
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  session            PreScreenSession?
-
-  @@index([status])
-  @@index([updatedAt])
-  @@index([questionSetKey, schemaVersion])
-}
-
-model PreScreenSession {
-  id                String                      @id @default(cuid())
-  draftId           String                      @unique
-  draft             PreScreenQuestionnaireDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
-  status            PreScreenSessionStatus      @default(STARTED)
-  roomName          String?                     @unique
-  egressId          String?
-  audioUrl          String?
-  startedAt         DateTime                    @default(now())
-  endedAt           DateTime?
-  transcript        Json?
-  sessionMetadata   Json?
-  report            PreScreenSessionReport?
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-
-  @@index([status])
-  @@index([startedAt])
-  @@index([egressId])
-}
-
-model PreScreenSessionReport {
-  id          String                       @id @default(cuid())
-  sessionId   String                       @unique
-  session     PreScreenSession             @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  status      PreScreenSessionReportStatus @default(PENDING)
-  promptVersion String?
-  fileUri     String?
-  reportJson  Json?
-  errorMessage String?
-  metadata    Json?
-  createdAt   DateTime                     @default(now())
-  updatedAt   DateTime                     @updatedAt
-
-  @@index([status])
-}
-
-model DiagnosticSession {
-  id                String                  @id @default(cuid())
-  userId            String
-  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status            DiagnosticSessionStatus @default(STARTED)
-  roomName          String                  @unique
-  egressId          String?
-  videoUrl          String?
-  startedAt         DateTime                @default(now())
-  endedAt           DateTime?
-  transcript        Json?
-  sessionMetadata   Json?
-  report            DiagnosticSessionReport?
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
+model PreDiagnosticSession {
+  id              String                       @id @default(cuid())
+  userId          String
+  user            User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          PreDiagnosticSessionStatus   @default(STARTED)
+  roomName        String                       @unique
+  egressId        String?
+  videoUrl        String?
+  startedAt       DateTime                     @default(now())
+  endedAt         DateTime?
+  transcript      Json?
+  sessionMetadata Json?
+  report          PreDiagnosticSessionReport?
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
 
   @@index([userId])
   @@index([status])
   @@index([startedAt])
   @@index([egressId])
+  @@map("pre_diagnostic_session")
 }
 
-model DiagnosticSessionReport {
-  id            String                         @id @default(cuid())
-  sessionId     String                         @unique
-  session       DiagnosticSession              @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  status        DiagnosticSessionReportStatus  @default(PENDING)
+model PreDiagnosticSessionReport {
+  id            String                              @id @default(cuid())
+  sessionId     String                              @unique
+  session       PreDiagnosticSession                @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status        PreDiagnosticSessionReportStatus    @default(PENDING)
   promptVersion String?
   fileUri       String?
   reportJson    Json?
   errorMessage  String?
   metadata      Json?
-  createdAt     DateTime                       @default(now())
-  updatedAt     DateTime                       @updatedAt
+  createdAt     DateTime                            @default(now())
+  updatedAt     DateTime                            @updatedAt
 
   @@index([status])
+  @@map("pre_diagnostic_session_report")
 }

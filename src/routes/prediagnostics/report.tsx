@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getSession } from "#/lib/auth.functions";
-import { getLatestDiagnosticSessionStatus } from "#/lib/prediagnostics/functions";
+import { getLatestPreDiagnosticSessionStatus } from "#/lib/prediagnostics/functions";
 import { PrediagnosticsReportPage } from "#/features/prediagnostics/report-page";
 import type { PrediagnosticsReportStatusResponse } from "#/lib/prediagnostics/report";
 
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/prediagnostics/report")({
     };
   },
   loader: async () => {
-    const latest = await getLatestDiagnosticSessionStatus();
+    const latest = await getLatestPreDiagnosticSessionStatus();
 
     if (!latest) {
       throw redirect({ to: "/prediagnostics" });

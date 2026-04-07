@@ -155,7 +155,7 @@ function LiveKitSessionContent({
         });
 
         if (!response.ok) {
-          throw new Error("Failed to finalize diagnostic session");
+          throw new Error("Failed to finalize pre-diagnostic session");
         }
       } catch (error) {
         console.error("[prediagnostics finalize]", error);

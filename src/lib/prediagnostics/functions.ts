@@ -2,11 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { auth } from "#/lib/auth.server";
 import {
-  getLatestDiagnosticSessionStatus as _getLatestDiagnosticSessionStatus,
-  hasActiveOrCompletedSession as _hasActiveOrCompletedSession,
+  getLatestPreDiagnosticSessionStatus as _getLatestPreDiagnosticSessionStatus,
+  hasActiveOrCompletedPreDiagnosticSession as _hasActiveOrCompletedPreDiagnosticSession,
 } from "#/lib/prediagnostics/report.server";
 
-export const getLatestDiagnosticSessionStatus = createServerFn({ method: "GET" }).handler(
+export const getLatestPreDiagnosticSessionStatus = createServerFn({ method: "GET" }).handler(
   async () => {
     const headers = getRequest().headers;
     const session = await auth.api.getSession({ headers });
@@ -15,17 +15,19 @@ export const getLatestDiagnosticSessionStatus = createServerFn({ method: "GET" }
       throw new Error("Unauthorized");
     }
 
-    return _getLatestDiagnosticSessionStatus(session.user.id);
+    return _getLatestPreDiagnosticSessionStatus(session.user.id);
   },
 );
 
-export const hasActiveOrCompletedSession = createServerFn({ method: "GET" }).handler(async () => {
-  const headers = getRequest().headers;
-  const session = await auth.api.getSession({ headers });
+export const hasActiveOrCompletedPreDiagnosticSession = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const headers = getRequest().headers;
+    const session = await auth.api.getSession({ headers });
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+    if (!session) {
+      throw new Error("Unauthorized");
+    }
 
-  return _hasActiveOrCompletedSession(session.user.id);
-});
+    return _hasActiveOrCompletedPreDiagnosticSession(session.user.id);
+  },
+);

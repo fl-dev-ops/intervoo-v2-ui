@@ -35,16 +35,16 @@ function buildEvaluationMetadata(input: {
   });
 }
 
-async function acquireDiagnosticSessionReportForEvaluation(
+async function acquirePreDiagnosticSessionReportForEvaluation(
   sessionId: string,
   options?: { force?: boolean },
 ) {
-  const existing = await prisma.diagnosticSessionReport.findUnique({
+  const existing = await prisma.preDiagnosticSessionReport.findUnique({
     where: { sessionId },
   });
 
   if (!existing) {
-    const report = await prisma.diagnosticSessionReport.create({
+    const report = await prisma.preDiagnosticSessionReport.create({
       data: {
         sessionId,
         status: "PROCESSING",
@@ -68,7 +68,7 @@ async function acquireDiagnosticSessionReportForEvaluation(
     };
   }
 
-  const report = await prisma.diagnosticSessionReport.update({
+  const report = await prisma.preDiagnosticSessionReport.update({
     where: { id: existing.id },
     data: {
       status: "PROCESSING",
@@ -88,13 +88,13 @@ async function acquireDiagnosticSessionReportForEvaluation(
   };
 }
 
-export async function finalizeDiagnosticSession(input: {
+export async function finalizePreDiagnosticSession(input: {
   sessionId: string;
   userId: string;
   transcript?: unknown;
   messages: unknown;
 }) {
-  const session = await prisma.diagnosticSession.findUnique({
+  const session = await prisma.preDiagnosticSession.findUnique({
     where: { id: input.sessionId },
   });
 
@@ -111,7 +111,7 @@ export async function finalizeDiagnosticSession(input: {
     incomingTranscriptMessages.length > 0 ? incomingTranscriptMessages : existingTranscriptMessages;
   const transcript = buildPrediagnosticsSessionTranscript(transcriptMessages);
 
-  await prisma.diagnosticSession.update({
+  await prisma.preDiagnosticSession.update({
     where: { id: session.id },
     data: {
       transcript: toJsonValue(transcript),
@@ -120,7 +120,7 @@ export async function finalizeDiagnosticSession(input: {
     },
   });
 
-  await prisma.diagnosticSessionReport.upsert({
+  await prisma.preDiagnosticSessionReport.upsert({
     where: { sessionId: session.id },
     create: {
       sessionId: session.id,
@@ -146,11 +146,11 @@ export async function finalizeDiagnosticSession(input: {
   };
 }
 
-export async function triggerDiagnosticSessionEvaluation(
+export async function triggerPreDiagnosticSessionEvaluation(
   sessionId: string,
   options?: { force?: boolean; transcriptMessages?: PrediagnosticsTranscriptMessage[] },
 ) {
-  const session = await prisma.diagnosticSession.findUnique({
+  const session = await prisma.preDiagnosticSession.findUnique({
     where: { id: sessionId },
     include: {
       report: true,
@@ -163,10 +163,10 @@ export async function triggerDiagnosticSessionEvaluation(
   });
 
   if (!session) {
-    throw new Error("Diagnostic session not found");
+    throw new Error("Pre-diagnostic session not found");
   }
 
-  const claimed = await acquireDiagnosticSessionReportForEvaluation(session.id, {
+  const claimed = await acquirePreDiagnosticSessionReportForEvaluation(session.id, {
     force: options?.force,
   });
 
@@ -175,7 +175,7 @@ export async function triggerDiagnosticSessionEvaluation(
   }
 
   if (!process.env.OPENROUTER_API_KEY) {
-    await prisma.diagnosticSessionReport.update({
+    await prisma.preDiagnosticSessionReport.update({
       where: { id: claimed.report.id },
       data: {
         status: "FAILED",
@@ -233,7 +233,7 @@ ${transcriptPromptText}`,
       error: null,
     });
 
-    await prisma.diagnosticSessionReport.update({
+    await prisma.preDiagnosticSessionReport.update({
       where: { id: claimed.report.id },
       data: {
         status: "READY",
@@ -248,7 +248,7 @@ ${transcriptPromptText}`,
       },
     });
 
-    await prisma.diagnosticSession.update({
+    await prisma.preDiagnosticSession.update({
       where: { id: session.id },
       data: {
         status: "REPORT_READY",
@@ -256,7 +256,7 @@ ${transcriptPromptText}`,
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Failed to evaluate diagnostic session";
+      error instanceof Error ? error.message : "Failed to evaluate pre-diagnostic session";
     const failedMetadata = buildEvaluationMetadata({
       existing: claimed.report.metadata,
       model: EVALUATION_MODEL_ID,
@@ -267,7 +267,7 @@ ${transcriptPromptText}`,
       error: message,
     });
 
-    await prisma.diagnosticSessionReport.update({
+    await prisma.preDiagnosticSessionReport.update({
       where: { id: claimed.report.id },
       data: {
         status: "FAILED",
@@ -279,11 +279,11 @@ ${transcriptPromptText}`,
   }
 }
 
-export async function getDiagnosticSessionStatus(input: {
+export async function getPreDiagnosticSessionStatus(input: {
   sessionId: string;
   userId: string;
 }): Promise<PrediagnosticsReportStatusResponse | null> {
-  const session = await prisma.diagnosticSession.findUnique({
+  const session = await prisma.preDiagnosticSession.findUnique({
     where: { id: input.sessionId },
     include: { report: true },
   });
@@ -295,10 +295,10 @@ export async function getDiagnosticSessionStatus(input: {
   return mapSessionToStatusResponse(session);
 }
 
-export async function getLatestDiagnosticSessionStatus(
+export async function getLatestPreDiagnosticSessionStatus(
   userId: string,
 ): Promise<PrediagnosticsReportStatusResponse | null> {
-  const session = await prisma.diagnosticSession.findFirst({
+  const session = await prisma.preDiagnosticSession.findFirst({
     where: {
       userId,
       status: { in: ["COMPLETED", "REPORT_READY"] },
@@ -319,8 +319,8 @@ export async function getLatestDiagnosticSessionStatus(
   return mapSessionToStatusResponse(session);
 }
 
-export async function hasActiveOrCompletedSession(userId: string): Promise<boolean> {
-  const count = await prisma.diagnosticSession.count({
+export async function hasActiveOrCompletedPreDiagnosticSession(userId: string): Promise<boolean> {
+  const count = await prisma.preDiagnosticSession.count({
     where: {
       userId,
       status: { in: ["STARTED", "COMPLETED", "REPORT_READY"] },
