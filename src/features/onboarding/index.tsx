@@ -79,7 +79,7 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
         englishLevel,
         speakingSpeed,
       });
-      window.location.href = "/prediagnostics?from=onboarding";
+      window.location.href = "/prediagnostics";
     } catch {
       setError("Something went wrong while saving your profile.");
     } finally {

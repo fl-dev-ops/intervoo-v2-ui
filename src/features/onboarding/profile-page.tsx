@@ -42,7 +42,7 @@ const placementPreparationOptions = [
 ] as const;
 
 const academySelectionOptions = [
-  { value: "DET", label: "DET" },
+  { value: "DET", label: "Deshpande Educational Trust" },
   { value: "FSSA", label: "FSSA" },
   { value: "Others", label: "Others" },
 ] as const;
@@ -122,7 +122,10 @@ export function ProfilePage(props: ProfilePageProps) {
               type="text"
               value={value.preferredName}
               onChange={(event) =>
-                setValue((current) => ({ ...current, preferredName: event.target.value }))
+                setValue((current) => ({
+                  ...current,
+                  preferredName: event.target.value,
+                }))
               }
             />
           </Field>
@@ -134,7 +137,10 @@ export function ProfilePage(props: ProfilePageProps) {
               type="email"
               value={value.email}
               onChange={(event) =>
-                setValue((current) => ({ ...current, email: event.target.value }))
+                setValue((current) => ({
+                  ...current,
+                  email: event.target.value,
+                }))
               }
             />
           </Field>
@@ -148,7 +154,10 @@ export function ProfilePage(props: ProfilePageProps) {
               type="text"
               value={value.degree}
               onChange={(event) =>
-                setValue((current) => ({ ...current, degree: event.target.value }))
+                setValue((current) => ({
+                  ...current,
+                  degree: event.target.value,
+                }))
               }
             />
           </Field>
@@ -160,7 +169,10 @@ export function ProfilePage(props: ProfilePageProps) {
               type="text"
               value={value.stream}
               onChange={(event) =>
-                setValue((current) => ({ ...current, stream: event.target.value }))
+                setValue((current) => ({
+                  ...current,
+                  stream: event.target.value,
+                }))
               }
             />
           </Field>
@@ -307,7 +319,9 @@ function Field(props: { label: string; children: React.ReactNode }) {
 }
 
 function SelectField(
-  props: React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode },
+  props: React.SelectHTMLAttributes<HTMLSelectElement> & {
+    children: React.ReactNode;
+  },
 ) {
   return (
     <div className="relative">

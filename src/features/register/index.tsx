@@ -117,7 +117,7 @@ export function RegisterFlow() {
   }
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
       <div className="mx-auto flex min-h-[calc(100dvh-1.5rem)] w-full flex-col">
         {step === "phone" ? (
           <PhonePage

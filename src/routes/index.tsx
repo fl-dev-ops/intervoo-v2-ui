@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/prediagnostics/report" });
     }
 
-    throw redirect({ to: "/prediagnostics" });
+    throw redirect({ to: "/onboarding" });
   },
   component: () => null,
 });
