@@ -5,7 +5,7 @@ import type { NativeLanguage } from "#/pre-screening/setup";
 import { OnboardingShell } from "./shell";
 
 type LanguagePageProps = {
-  initialValue: NativeLanguage;
+  initialValue?: NativeLanguage;
   onBack: () => void;
   onContinue: (value: NativeLanguage) => void;
 };
@@ -24,7 +24,7 @@ const languageOptions = [
 }>;
 
 export function LanguagePage(props: LanguagePageProps) {
-  const [value, setValue] = useState<NativeLanguage>(props.initialValue);
+  const [value, setValue] = useState<NativeLanguage | undefined>(props.initialValue);
 
   return (
     <OnboardingShell
@@ -39,9 +39,14 @@ export function LanguagePage(props: LanguagePageProps) {
             Back
           </button>
           <button
-            className="px-10 py-4 ml-auto inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-[1.05rem] font-medium tracking-[-0.02em] text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)]"
+            className="ml-auto inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-10 py-4 text-[1.05rem] font-medium tracking-[-0.02em] text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] disabled:opacity-60"
+            disabled={!value}
             type="button"
-            onClick={() => props.onContinue(value)}
+            onClick={() => {
+              if (value) {
+                props.onContinue(value);
+              }
+            }}
           >
             Next
             <IconArrowRight className="h-5 w-5" />

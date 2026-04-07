@@ -5,7 +5,7 @@ import type { EnglishLevel } from "#/pre-screening/setup";
 import { OnboardingShell } from "./shell";
 
 type EnglishLevelPageProps = {
-  initialValue: EnglishLevel;
+  initialValue?: EnglishLevel;
   onBack: () => void;
   onContinue: (value: EnglishLevel) => void;
 };
@@ -38,7 +38,7 @@ const englishLevels = [
 }>;
 
 export function EnglishLevelPage(props: EnglishLevelPageProps) {
-  const [value, setValue] = useState<EnglishLevel>(props.initialValue);
+  const [value, setValue] = useState<EnglishLevel | undefined>(props.initialValue);
 
   return (
     <OnboardingShell
@@ -53,9 +53,14 @@ export function EnglishLevelPage(props: EnglishLevelPageProps) {
             Back
           </button>
           <button
-            className="px-10 py-4 ml-auto inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-[1.05rem] font-medium tracking-[-0.02em] text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)]"
+            className="ml-auto inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-10 py-4 text-[1.05rem] font-medium tracking-[-0.02em] text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] disabled:opacity-60"
+            disabled={!value}
             type="button"
-            onClick={() => props.onContinue(value)}
+            onClick={() => {
+              if (value) {
+                props.onContinue(value);
+              }
+            }}
           >
             Next
             <IconArrowRight className="h-5 w-5" />

@@ -64,7 +64,7 @@ export function CoachPage(props: CoachPageProps) {
       }
       onBack={props.onBack}
       sectionTitle="Choose your coach"
-      step={1}
+      step={4}
       // subtitle="This just changes the style of guidance for now."
       title="Build your profile"
     >

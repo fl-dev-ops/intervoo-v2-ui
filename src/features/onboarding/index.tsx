@@ -56,8 +56,8 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
   const [step, setStep] = useState<OnboardingStep>("profile");
   const [profile, setProfile] = useState<ProfileFormValue>(props.initialProfile);
   const [coach, setCoach] = useState<CoachOption>("sara");
-  const [nativeLanguage, setNativeLanguage] = useState<NativeLanguage>("hindi");
-  const [englishLevel, setEnglishLevel] = useState<EnglishLevel>("intermediate");
+  const [nativeLanguage, setNativeLanguage] = useState<NativeLanguage | undefined>(undefined);
+  const [englishLevel, setEnglishLevel] = useState<EnglishLevel | undefined>(undefined);
   const [speakingSpeed, setSpeakingSpeed] = useState<SpeakingSpeed>("normal");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -68,6 +68,11 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
     setLoading(true);
 
     try {
+      if (!nativeLanguage || !englishLevel) {
+        setError("Please complete all onboarding steps.");
+        return;
+      }
+
       await completeOnboarding({ data: profile });
       savePreScreeningSetup({
         nativeLanguage,
@@ -90,19 +95,6 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
             initialValue={profile}
             onContinue={(value) => {
               setProfile(value);
-              setStep("coach");
-            }}
-          />
-        ) : null}
-
-        {step === "coach" ? (
-          <CoachPage
-            initialSpeed={speakingSpeed}
-            initialValue={coach}
-            onBack={() => setStep("profile")}
-            onContinue={(value, speed) => {
-              setCoach(value);
-              setSpeakingSpeed(speed);
               setStep("language");
             }}
           />
@@ -111,7 +103,7 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
         {step === "language" ? (
           <LanguagePage
             initialValue={nativeLanguage}
-            onBack={() => setStep("coach")}
+            onBack={() => setStep("profile")}
             onContinue={(value) => {
               setNativeLanguage(value);
               setStep("english");
@@ -125,6 +117,19 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
             onBack={() => setStep("language")}
             onContinue={(value) => {
               setEnglishLevel(value);
+              setStep("coach");
+            }}
+          />
+        ) : null}
+
+        {step === "coach" ? (
+          <CoachPage
+            initialSpeed={speakingSpeed}
+            initialValue={coach}
+            onBack={() => setStep("english")}
+            onContinue={(value, speed) => {
+              setCoach(value);
+              setSpeakingSpeed(speed);
               setStep("ready");
             }}
           />
@@ -136,7 +141,7 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
             error={error}
             firstName={firstName}
             loading={loading}
-            onBack={() => setStep("english")}
+            onBack={() => setStep("coach")}
             onContinue={() => {
               void handleComplete();
             }}
