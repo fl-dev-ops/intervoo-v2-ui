@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { BriefcaseBusiness, LoaderCircle, Shield, Target } from "lucide-react";
-import { IconCircleCheckFilled } from "@tabler/icons-react";
+import confetti from "@hiseb/confetti";
+import { BriefcaseBusiness, Shield, Target } from "lucide-react";
+import { IconCircle, IconCircleCheckFilled } from "@tabler/icons-react";
 
 type JobResearchBreakdown = {
   jd_awareness: string;
@@ -42,52 +43,135 @@ const MOCK_REPORT: PrediagnosticsReport = {
   },
 };
 
-const GENERATION_DELAY_MS = 3000;
+const REPORT_GENERATION_STEPS = [
+  { label: "Job target captured" },
+  { label: "Skill analysis" },
+  { label: "Role level understanding" },
+  { label: "Company level knowledge" },
+  { label: "JD awareness" },
+] as const;
+const STEP_REVEAL_DELAY_MS = 1000;
+const REPORT_READY_DELAY_MS = 2000;
 
 export function PrediagnosticsReportPage(props: { preferredName?: string | null }) {
   const [isGenerating, setIsGenerating] = useState(true);
+  const [completedSteps, setCompletedSteps] = useState(0);
+  const hasCompletedAllSteps = completedSteps === REPORT_GENERATION_STEPS.length;
 
   useEffect(() => {
+    if (hasCompletedAllSteps) {
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
-      setIsGenerating(false);
-    }, GENERATION_DELAY_MS);
+      setCompletedSteps((current) => Math.min(current + 1, REPORT_GENERATION_STEPS.length));
+    }, STEP_REVEAL_DELAY_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [completedSteps, hasCompletedAllSteps]);
+
+  useEffect(() => {
+    if (!hasCompletedAllSteps) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsGenerating(false);
+    }, REPORT_READY_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [hasCompletedAllSteps]);
 
   if (isGenerating) {
-    return <PrediagnosticsReportGeneratingState />;
+    return (
+      <PrediagnosticsReportGeneratingState
+        completedSteps={completedSteps}
+        shouldCelebrate={hasCompletedAllSteps}
+      />
+    );
   }
 
   return <PrediagnosticsReportPreview preferredName={props.preferredName} report={MOCK_REPORT} />;
 }
 
-function PrediagnosticsReportGeneratingState() {
+function PrediagnosticsReportGeneratingState(props: {
+  completedSteps: number;
+  shouldCelebrate: boolean;
+}) {
+  useEffect(() => {
+    if (!props.shouldCelebrate) {
+      return;
+    }
+
+    const xPositions = [0.18, 0.35, 0.5, 0.65, 0.82];
+
+    xPositions.forEach((x) => {
+      confetti({
+        position: { x: window.innerWidth * x, y: 0 },
+        count: 30,
+        size: 1.1,
+        velocity: 180,
+        fade: false,
+      });
+    });
+  }, [props.shouldCelebrate]);
+
   return (
-    <div className="grid min-h-screen place-items-center bg-[#F5F3F7] px-4">
-      <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-[0_20px_40px_rgba(112,88,186,0.12)]">
-        <div className="mx-auto flex flex-col items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#5a42cc]/10">
-            <LoaderCircle className="h-8 w-8 animate-spin text-[#5a42cc]" />
-          </div>
+    <section className="relative min-h-screen overflow-hidden bg-white">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(106,77,245,0.12),transparent_65%)]" />
 
-          <h1 className="text-xl font-semibold text-[#2b2233]">Generating your report</h1>
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-between px-6 py-10 text-center">
+        <div className="w-full" />
 
-          <p className="text-sm leading-6 text-[#7f768f]">
-            We&apos;re summarizing your job goal and awareness from the session.
+        <div className="flex w-full flex-1 flex-col items-center">
+          <img alt="Intervoo infinity mark" className="h-40 w-40" src="/infinity.svg" />
+
+          <h1 className="mt-8 text-3xl leading-none font-semibold text-[#16111d]">
+            Congratulations!
+          </h1>
+
+          <p className="mt-3 text-lg leading-7 text-[#6f667d]">
+            Getting your pre-diagnostics report.
           </p>
 
-          <div className="mt-4 w-full space-y-3">
-            <div className="h-2.5 overflow-hidden rounded-full bg-[#e5e0ed]">
-              <div className="h-full w-2/3 animate-pulse rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)]" />
-            </div>
-            <div className="h-2.5 w-3/4 rounded-full bg-[#e5e0ed]" />
-            <div className="h-2.5 w-1/2 rounded-full bg-[#e5e0ed]" />
+          <div className="mt-12 w-full max-w-65 space-y-6 text-left">
+            {REPORT_GENERATION_STEPS.map((step, index) => (
+              <GenerationStepRow
+                key={step.label}
+                complete={index < props.completedSteps}
+                label={step.label}
+              />
+            ))}
           </div>
         </div>
+
+        <p className="pb-2 text-mauve-500">This may take a few seconds...</p>
       </div>
+    </section>
+  );
+}
+
+function GenerationStepRow(props: { label: string; complete: boolean }) {
+  return (
+    <div className="flex items-center gap-4">
+      <span
+        className={
+          props.complete
+            ? "flex shrink-0 items-center justify-center rounded-full bg-[#7ad487] text-white"
+            : "shrink-0"
+        }
+      >
+        {props.complete ? (
+          <IconCircleCheckFilled className="h-7 w-7 text-green-600 bg-white" />
+        ) : (
+          <IconCircle className="h-7 w-7 text-gray-300 bg-white" />
+        )}
+      </span>
+      <span className=" text-[#16111d]">{props.label}</span>
     </div>
   );
 }
