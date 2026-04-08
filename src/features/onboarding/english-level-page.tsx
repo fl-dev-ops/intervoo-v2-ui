@@ -66,11 +66,11 @@ export function EnglishLevelPage(props: EnglishLevelPageProps) {
       }
       onBack={props.onBack}
       sectionTitle="English fluency"
-      step={3}
+      step={2}
       subtitle="Pick the option that feels closest to your current comfort level."
       title="Build your profile"
     >
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {englishLevels.map((option) => (
           <button
             key={option.value}

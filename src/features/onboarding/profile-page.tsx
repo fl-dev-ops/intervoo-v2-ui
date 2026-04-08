@@ -64,7 +64,7 @@ export function ProfilePage(props: ProfilePageProps) {
       title="Build your profile"
     >
       <form
-        className="space-y-8"
+        className="space-y-7"
         id="profile-form"
         onSubmit={(event) => {
           event.preventDefault();
@@ -251,21 +251,21 @@ export function ProfilePage(props: ProfilePageProps) {
 
 function Section(props: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-5">
+    <section className="space-y-4.5">
       <div className="flex items-center gap-3">
         <h2 className="shrink-0 text-[1rem] font-semibold uppercase tracking-[-0.02em] text-[#1f1927]">
           {props.title}
         </h2>
         <div className="h-px flex-1 border-t border-dashed border-[#d8d1e3]" />
       </div>
-      <div className="space-y-5">{props.children}</div>
+      <div className="space-y-4.5">{props.children}</div>
     </section>
   );
 }
 
 function Field(props: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-2">
+    <label className="flex flex-col gap-1.5">
       <span className="text-[14px] font-medium text-[#6e667b]">{props.label}</span>
       {props.children}
     </label>

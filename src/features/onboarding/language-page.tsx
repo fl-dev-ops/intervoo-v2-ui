@@ -52,11 +52,11 @@ export function LanguagePage(props: LanguagePageProps) {
       }
       onBack={props.onBack}
       sectionTitle="Which other language you are comfortable speaking"
-      step={2}
+      step={1}
       subtitle="We'll use this to personalize the interview experience."
       title="Build your profile"
     >
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {languageOptions.map((option) => (
           <button
             key={option.value}

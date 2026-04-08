@@ -44,12 +44,12 @@ export function CoachPage(props: CoachPageProps) {
       }
       onBack={props.onBack}
       sectionTitle="Choose your coach"
-      step={4}
+      step={3}
       // subtitle="This just changes the style of guidance for now."
       title="Build your profile"
     >
-      <div className="space-y-7">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3.5 md:gap-4">
           {coachCards.map((coach) => (
             <button
               key={coach.value}
@@ -60,14 +60,14 @@ export function CoachPage(props: CoachPageProps) {
               type="button"
               onClick={() => setValue(coach.value)}
             >
-              <div className="aspect-[0.88] overflow-hidden bg-[#9885a5]">
+              <div className="aspect-[0.82] overflow-hidden bg-[#9885a5]">
                 <img
                   alt={coach.title}
                   className="h-full w-full object-cover"
                   src={coach.imageSrc}
                 />
               </div>
-              <div className="flex flex-col items-center gap-3 p-4 py-3">
+              <div className="flex flex-col items-center gap-2 p-4 py-3">
                 <div className="text-[1.05rem] font-medium text-[#1b1624]">{coach.title}</div>
               </div>
             </button>

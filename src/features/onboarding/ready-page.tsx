@@ -33,10 +33,10 @@ export function ReadyPage(props: ReadyPageProps) {
   return (
     <section className="min-h-screen bg-[#F5F3F7]">
       {/* Desktop: two-column layout */}
-      <div className="hidden min-h-screen md:flex md:items-center md:justify-center md:px-6">
-        <div className="w-full max-w-200 flex gap-2 items-stretch shadow-2xl rounded-xl overflow-hidden">
+      <div className="hidden min-h-screen md:flex md:items-center md:justify-center md:px-6 md:py-6">
+        <div className="w-full max-w-170 flex gap-3 items-stretch overflow-hidden rounded-[28px] shadow-2xl">
           <div
-            className="flex-1 flex flex-col items-center justify-center p-10 relative"
+            className="relative flex flex-1 flex-col items-center justify-center p-8 lg:p-10"
             style={{ backgroundColor: coach.heroTint }}
           >
             <Button
@@ -49,17 +49,17 @@ export function ReadyPage(props: ReadyPageProps) {
             >
               <IconArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="w-72 h-72 rounded-full overflow-hidden">
+            <div className="h-64 w-64 overflow-hidden rounded-full lg:h-72 lg:w-72">
               <img alt={coach.title} className="w-full h-full object-cover" src={coach.imageSrc} />
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col py-10 px-6">
+          <div className="flex flex-1 flex-col px-6 py-8 lg:px-7 lg:py-9">
             <h1 className="text-xl leading-tight font-semibold text-center text-[#13101b]">
               You&apos;re all set to begin
             </h1>
 
-            <div className="mt-8 space-y-4">
+            <div className="mt-6 space-y-4">
               <MessageCard>
                 Hi {firstName}, I&apos;m {coach.title}, your interview partner.
               </MessageCard>
@@ -74,7 +74,7 @@ export function ReadyPage(props: ReadyPageProps) {
             </div>
 
             <Button
-              className="mt-8 w-full"
+              className="mt-6 w-full"
               disabled={props.loading}
               type="button"
               onClick={props.onContinue}
@@ -111,13 +111,13 @@ export function ReadyPage(props: ReadyPageProps) {
             <div className="flex-1"></div>
           </div>
 
-          <div className="relative mt-2 flex justify-center">
+          <div className="relative mt-1 flex justify-center px-5">
             <img alt={coach.title} className="object-fill" src={coach.imageSrc} />
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col p-6 pt-8">
-          <div className="space-y-5">
+        <div className="flex flex-1 flex-col px-5 pt-6 pb-6 sm:px-6">
+          <div className="space-y-4">
             <MessageCard>
               Hi {firstName}, I&apos;m {coach.title}, your interview partner.
             </MessageCard>
@@ -154,7 +154,7 @@ export function ReadyPage(props: ReadyPageProps) {
 function MessageCard(props: { children: ReactNode; delayMs?: number }) {
   return (
     <div
-      className="rounded-tl-sm rounded-4xl bg-white px-6 py-5 shadow-xs opacity-0 animate-[message-card-in_900ms_ease-out_forwards]"
+      className="rounded-tl-sm rounded-4xl bg-white px-5 py-4.5 shadow-xs opacity-0 animate-[message-card-in_900ms_ease-out_forwards] sm:px-6 sm:py-5"
       style={{ animationDelay: `${props.delayMs ?? 0}ms` }}
     >
       {props.children}
