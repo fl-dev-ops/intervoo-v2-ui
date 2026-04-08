@@ -4,7 +4,7 @@ import { cn } from "#/lib/utils";
 import type { SpeakingSpeed } from "./types";
 import { OnboardingShell } from "./shell";
 
-export type CoachOption = "sara" | "arjun";
+export type CoachOption = "sana" | "arjun";
 
 type CoachPageProps = {
   initialValue: CoachOption;

@@ -12,8 +12,8 @@ type ReadyPageProps = {
 };
 
 const coachMeta: Record<CoachOption, { title: string; imageSrc: string; heroTint: string }> = {
-  sara: {
-    title: "Sara",
+  sana: {
+    title: "Sana",
     imageSrc: "/sara.png",
     heroTint: "#b8b25b",
   },
@@ -63,9 +63,10 @@ export function ReadyPage(props: ReadyPageProps) {
                 Let&apos;s have a quick chat about the jobs you&apos;re targeting. I&apos;ll use
                 this to create your personalized diagnostic interview.
               </MessageCard>
-              <MessageCard delayMs={800}>
-                You can speak in your native language. Takes less than 7 minutes.
-              </MessageCard>
+              {/*<MessageCard delayMs={800}>
+                You can speak in your native language. Takes less than 7
+                minutes.
+              </MessageCard>*/}
             </div>
 
             <button
@@ -114,9 +115,9 @@ export function ReadyPage(props: ReadyPageProps) {
               Let&apos;s have a quick chat about the jobs you&apos;re targeting. I&apos;ll use this
               to create your personalized diagnostic interview.
             </MessageCard>
-            <MessageCard delayMs={800}>
+            {/*<MessageCard delayMs={800}>
               You can speak in your native language. Takes less than 7 minutes.
-            </MessageCard>
+            </MessageCard>*/}
           </div>
 
           {/*{props.error ? (

@@ -55,7 +55,7 @@ export function buildInitialProfile(input: {
 export function OnboardingFlow(props: OnboardingFlowProps) {
   const [step, setStep] = useState<OnboardingStep>("profile");
   const [profile, setProfile] = useState<ProfileFormValue>(props.initialProfile);
-  const [coach, setCoach] = useState<CoachOption>("sara");
+  const [coach, setCoach] = useState<CoachOption>("sana");
   const [nativeLanguage, setNativeLanguage] = useState<NativeLanguage | undefined>(undefined);
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel | undefined>(undefined);
   const [speakingSpeed, setSpeakingSpeed] = useState<SpeakingSpeed>("normal");
