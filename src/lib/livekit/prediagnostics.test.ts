@@ -126,7 +126,7 @@ describe("prediagnostics LiveKit helpers", () => {
       participantName: "Student One",
       participantMetadata: JSON.stringify({ userId: "user-1" }),
       roomMetadata: JSON.stringify({ feature: "prediagnostics" }),
-      agentName: "pre-diagnostics-agent",
+      agentName: "pre-screen-agent",
       agentMetadata: JSON.stringify({ studentId: "user-1" }),
       interactionMode: "ptt",
     });
@@ -139,7 +139,7 @@ describe("prediagnostics LiveKit helpers", () => {
     });
     expect(mockedAgentDispatchClient().createDispatchMock).toHaveBeenCalledWith(
       "prediag_room",
-      "pre-diagnostics-agent",
+      "pre-screen-agent",
       {
         metadata: JSON.stringify({ studentId: "user-1" }),
       },
