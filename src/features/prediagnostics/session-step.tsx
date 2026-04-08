@@ -15,6 +15,7 @@ import { TokenSource } from "livekit-client";
 import { LoaderCircle, Mic, SendHorizontal } from "lucide-react";
 import { IconKeyboard, IconMicrophone, IconPhoneOff, IconSend2 } from "@tabler/icons-react";
 
+import { EllipsisIcon } from "#/components/ui/ellipsis-icon";
 import { LiveWaveform } from "#/components/ui/live-waveform";
 import type {
   PrediagnosticsConnectionDetails,
@@ -81,12 +82,76 @@ function PrediagnosticsLiveKitSessionContent(
   const agent = useAgent(props.session);
   const messages = usePrediagnosticsMessages(props.session);
   const { getTranscript } = usePrediagnosticsTranscript(messages);
+  const ptt = usePrediagnosticsPushToTalk();
   const { userChoices } = usePersistentUserChoices({ preventSave: true });
   const [started, setStarted] = useState(false);
   const [hasSeenActiveSession, setHasSeenActiveSession] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [endError, setEndError] = useState<string | null>(null);
+  const [committedUserVoiceMessages, setCommittedUserVoiceMessages] = useState<
+    PrediagnosticsMessage[]
+  >([]);
   const hasAgentGreeted = messages.some((m: PrediagnosticsMessage) => m.role === "agent");
+  const previousPttStateRef = useRef(ptt.state);
+  const activeTurnStartIndexRef = useRef<number | null>(null);
+
+  const userVoiceTranscriptMessages = useMemo(
+    () => messages.filter((message) => message.role === "user" && message.kind === "transcript"),
+    [messages],
+  );
+  const activeTurnMessage = useMemo(() => {
+    if (
+      props.connectionDetails.interactionMode !== "ptt" ||
+      activeTurnStartIndexRef.current === null ||
+      !ptt.isProcessing
+    ) {
+      return null;
+    }
+
+    const turnMessages = userVoiceTranscriptMessages.slice(activeTurnStartIndexRef.current);
+    const combinedText = turnMessages
+      .map((message) => message.text.trim())
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+    if (!combinedText) {
+      return null;
+    }
+
+    return {
+      id: `active-user-voice-turn-${turnMessages[turnMessages.length - 1]?.timestamp ?? Date.now()}`,
+      role: "user" as const,
+      kind: "transcript" as const,
+      text: combinedText,
+      timestamp: turnMessages[turnMessages.length - 1]?.timestamp ?? Date.now(),
+    };
+  }, [props.connectionDetails.interactionMode, ptt.isProcessing, userVoiceTranscriptMessages]);
+
+  const displayMessages = useMemo(() => {
+    if (props.connectionDetails.interactionMode !== "ptt") {
+      return messages;
+    }
+
+    const visibleMessages = messages.filter(
+      (message) => !(message.role === "user" && message.kind === "transcript"),
+    );
+
+    return [
+      ...visibleMessages,
+      ...committedUserVoiceMessages,
+      ...(activeTurnMessage ? [activeTurnMessage] : []),
+    ].toSorted((left, right) => left.timestamp - right.timestamp);
+  }, [
+    activeTurnMessage,
+    committedUserVoiceMessages,
+    messages,
+    props.connectionDetails.interactionMode,
+  ]);
+  const showUserPendingBubble =
+    props.connectionDetails.interactionMode === "ptt" && ptt.isRecording;
+  const showAgentPendingBubble =
+    props.connectionDetails.interactionMode === "ptt" && agent.state === "thinking";
 
   useEffect(() => {
     if (!started && !isConnected) {
@@ -100,6 +165,53 @@ function PrediagnosticsLiveKitSessionContent(
       }).catch(console.error);
     }
   }, [isConnected, props.connectionDetails.interactionMode, start, started]);
+
+  useEffect(() => {
+    if (props.connectionDetails.interactionMode !== "ptt") {
+      previousPttStateRef.current = ptt.state;
+      activeTurnStartIndexRef.current = null;
+      return;
+    }
+
+    const previousState = previousPttStateRef.current;
+
+    if (ptt.state === "recording" && previousState !== "recording") {
+      activeTurnStartIndexRef.current = userVoiceTranscriptMessages.length;
+    }
+
+    const shouldCommitTurn =
+      activeTurnStartIndexRef.current !== null &&
+      previousState === "processing" &&
+      ptt.state !== "processing";
+
+    if (shouldCommitTurn) {
+      const turnMessages = userVoiceTranscriptMessages.slice(activeTurnStartIndexRef.current);
+      const combinedText = turnMessages
+        .map((message) => message.text.trim())
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+      if (combinedText) {
+        const lastTurnTimestamp = turnMessages[turnMessages.length - 1]?.timestamp ?? Date.now();
+
+        setCommittedUserVoiceMessages((current) => [
+          ...current,
+          {
+            id: `user-voice-turn-${lastTurnTimestamp}-${current.length}`,
+            role: "user",
+            kind: "transcript",
+            text: combinedText,
+            timestamp: lastTurnTimestamp,
+          },
+        ]);
+      }
+
+      activeTurnStartIndexRef.current = null;
+    }
+
+    previousPttStateRef.current = ptt.state;
+  }, [props.connectionDetails.interactionMode, ptt.state, userVoiceTranscriptMessages]);
 
   const handleSessionEnd = useCallback(
     async (preCapturedTranscript?: PrediagnosticsSessionTranscript) => {
@@ -214,7 +326,11 @@ function PrediagnosticsLiveKitSessionContent(
                 isEnding={isEnding}
                 onEnd={handleEndClick}
               />
-              <ChatTranscript messages={messages} />
+              <ChatTranscript
+                messages={displayMessages}
+                showAgentPendingBubble={showAgentPendingBubble}
+                showUserPendingBubble={showUserPendingBubble}
+              />
               {endError ? (
                 <div className="border-t border-[#f1d1d5] bg-[#fff7f8] px-5 py-3 text-sm text-[#a03d4d]">
                   {endError}
@@ -225,6 +341,7 @@ function PrediagnosticsLiveKitSessionContent(
                 agentState={agent.state}
                 hasAgentGreeted={hasAgentGreeted}
                 isEnding={isEnding}
+                ptt={ptt}
               />
             </div>
           </div>
@@ -305,16 +422,20 @@ const ChatMessageBubble = memo(function ChatMessageBubble(props: {
   );
 });
 
-const ChatTranscript = memo(function ChatTranscript(props: { messages: PrediagnosticsMessage[] }) {
+const ChatTranscript = memo(function ChatTranscript(props: {
+  messages: PrediagnosticsMessage[];
+  showAgentPendingBubble: boolean;
+  showUserPendingBubble: boolean;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [props.messages]);
+  }, [props.messages, props.showAgentPendingBubble, props.showUserPendingBubble]);
 
-  if (props.messages.length === 0) {
+  if (!props.messages.length && !props.showAgentPendingBubble && !props.showUserPendingBubble) {
     return (
       <div className="flex flex-1 items-center justify-center">
         <p className="text-sm text-[#7f768f]">Waiting for agent to join...</p>
@@ -331,6 +452,24 @@ const ChatTranscript = memo(function ChatTranscript(props: { messages: Prediagno
 
           return <ChatMessageBubble key={messageKey} isUser={isUser} text={message.text} />;
         })}
+        {props.showUserPendingBubble ? <PendingBubble isUser /> : null}
+        {props.showAgentPendingBubble ? <PendingBubble isUser={false} /> : null}
+      </div>
+    </div>
+  );
+});
+
+const PendingBubble = memo(function PendingBubble(props: { isUser: boolean }) {
+  return (
+    <div className="py-2">
+      <div className={`flex ${props.isUser ? "justify-end" : "justify-start"}`}>
+        <div
+          className={`rounded-2xl px-4 py-3 ${
+            props.isUser ? "bg-[#b8addf] text-white" : "bg-white text-[#2b2233] shadow-sm"
+          }`}
+        >
+          <EllipsisIcon className="h-auto w-full" isAnimated animate size={20} />
+        </div>
       </div>
     </div>
   );
@@ -341,6 +480,7 @@ function SessionFooter(props: {
   agentState: string | undefined;
   hasAgentGreeted: boolean;
   isEnding: boolean;
+  ptt: ReturnType<typeof usePrediagnosticsPushToTalk>;
 }) {
   if (props.interactionMode === "auto") {
     return <AutoSessionFooter {...props} />;
@@ -453,9 +593,9 @@ function PttSessionFooter(props: {
   agentState: string | undefined;
   hasAgentGreeted: boolean;
   isEnding: boolean;
+  ptt: ReturnType<typeof usePrediagnosticsPushToTalk>;
 }) {
   const { send } = useChat();
-  const ptt = usePrediagnosticsPushToTalk();
   const [chatMessage, setChatMessage] = useState("");
   const [mode, setMode] = useState<"voice" | "text">("voice");
 
@@ -477,22 +617,25 @@ function PttSessionFooter(props: {
     setChatMessage("");
   }, [chatMessage, isInputDisabled, send]);
 
-  const showUserWaveform = ptt.isRecording;
+  const showUserWaveform = props.ptt.isRecording;
   const isVoiceDisabled =
-    !ptt.isAvailable || ptt.isProcessing || ptt.isAgentSpeaking || isInputDisabled;
+    !props.ptt.isAvailable ||
+    props.ptt.isProcessing ||
+    props.ptt.isAgentSpeaking ||
+    isInputDisabled;
 
   const handleVoiceToggle = useCallback(() => {
     if (isVoiceDisabled) {
       return;
     }
 
-    if (ptt.isRecording) {
-      void ptt.endTurn();
+    if (props.ptt.isRecording) {
+      void props.ptt.endTurn();
       return;
     }
 
-    void ptt.startTurn();
-  }, [isVoiceDisabled, ptt]);
+    void props.ptt.startTurn();
+  }, [isVoiceDisabled, props.ptt]);
 
   useEffect(() => {
     if (showUserWaveform) {
@@ -549,7 +692,12 @@ function PttSessionFooter(props: {
           disabled={isInputDisabled}
           onClick={handleVoiceToggle}
         >
-          <LiveWaveform active={ptt.isRecording} bars={24} className="flex-1" processing={false} />
+          <LiveWaveform
+            active={props.ptt.isRecording}
+            bars={24}
+            className="flex-1"
+            processing={false}
+          />
           <span className="ml-2">
             <IconSend2 className="h-6 w-6" />
           </span>
@@ -563,10 +711,10 @@ function PttSessionFooter(props: {
           type="button"
           onClick={handleVoiceToggle}
         >
-          <Mic className="h-4 w-4" />
-          {ptt.isProcessing
+          <IconMicrophone className="h-4 w-4" />
+          {props.ptt.isProcessing
             ? "Processing..."
-            : ptt.isAvailable
+            : props.ptt.isAvailable
               ? "Tap to speak"
               : "Waiting for agent"}
         </button>
