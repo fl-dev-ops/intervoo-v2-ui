@@ -66,7 +66,7 @@ export async function postHandler({ request }: { request: Request }) {
 
     const promptContext = {
       agentName: coach === "arjun" ? "Arjun" : "Sara",
-      userName: participantName,
+      userName: user.profile?.preferredName?.trim() || participantName,
       ...studentProfile,
     };
 
