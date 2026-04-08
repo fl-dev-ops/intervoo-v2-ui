@@ -1,16 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getSession } from "#/lib/auth.functions";
 import { getLatestPreDiagnosticSessionStatus } from "#/lib/prediagnostics/functions";
+import {
+  getPreDiagnosticSessionStatus,
+  triggerPreDiagnosticSessionEvaluation,
+} from "#/lib/prediagnostics/report.server";
 import { PrediagnosticsReportPage } from "#/features/prediagnostics/report-page";
-import type { PrediagnosticsReportStatusResponse } from "#/lib/prediagnostics/report";
-
-function getBaseUrl() {
-  if (typeof window !== "undefined") {
-    return "";
-  }
-
-  return process.env.SERVER_URL || "http://localhost:3000";
-}
 
 export const Route = createFileRoute("/prediagnostics/report")({
   beforeLoad: async () => {
@@ -32,6 +27,12 @@ export const Route = createFileRoute("/prediagnostics/report")({
     };
   },
   loader: async () => {
+    const session = await getSession();
+
+    if (!session?.user) {
+      throw redirect({ to: "/register" });
+    }
+
     const latest = await getLatestPreDiagnosticSessionStatus();
 
     if (!latest) {
@@ -46,17 +47,16 @@ export const Route = createFileRoute("/prediagnostics/report")({
       throw redirect({ to: "/prediagnostics", search: { redo: false } });
     }
 
-    const response = await fetch(`${getBaseUrl()}/api/prediagnostics/generate-report`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId: latest.session.id }),
+    await triggerPreDiagnosticSessionEvaluation(latest.session.id);
+
+    const reportStatus = await getPreDiagnosticSessionStatus({
+      sessionId: latest.session.id,
+      userId: session.user.id,
     });
 
-    if (!response.ok) {
+    if (!reportStatus) {
       throw new Error("Failed to load report");
     }
-
-    const reportStatus = (await response.json()) as PrediagnosticsReportStatusResponse;
 
     return { reportStatus };
   },
