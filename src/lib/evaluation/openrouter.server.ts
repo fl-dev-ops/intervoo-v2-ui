@@ -3,9 +3,13 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 export const EVALUATION_MODEL_ID = "google/gemini-2.5-flash";
 
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
+function getOpenRouterModel() {
+  const openrouter = createOpenRouter({
+    apiKey: process.env.OPENROUTER_API_KEY,
+  });
+
+  return openrouter(EVALUATION_MODEL_ID);
+}
 
 export async function generateEvaluationObject<OBJECT>(input: {
   userContent: UserContent;
@@ -13,7 +17,7 @@ export async function generateEvaluationObject<OBJECT>(input: {
   temperature?: number;
 }) {
   return generateObject({
-    model: openrouter(EVALUATION_MODEL_ID),
+    model: getOpenRouterModel(),
     schema: input.schema,
     messages: [
       {

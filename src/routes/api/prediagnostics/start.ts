@@ -102,7 +102,7 @@ export async function postHandler({ request }: { request: Request }) {
         interaction_mode: interactionMode,
         studentProfile,
       }),
-      agentName: "pre-screen-agent-dev",
+      agentName: "pre-screen-agent",
       agentMetadata: JSON.stringify({
         sessionId: preDiagnosticSession.id,
         studentId: user.id,

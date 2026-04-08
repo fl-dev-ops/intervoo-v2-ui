@@ -5,13 +5,6 @@ import {
   triggerPreDiagnosticSessionEvaluation,
 } from "#/lib/prediagnostics/report.server";
 
-const REPORT_STATUS_POLL_INTERVAL_MS = 1000;
-const REPORT_STATUS_POLL_MAX_ATTEMPTS = 30;
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export async function postHandler({ request }: { request: Request }) {
   const session = await auth.api.getSession({ headers: request.headers });
 
@@ -40,26 +33,12 @@ export async function postHandler({ request }: { request: Request }) {
     await triggerPreDiagnosticSessionEvaluation(body.sessionId);
   }
 
-  let nextStatus = await getPreDiagnosticSessionStatus({
+  const finalStatus = await getPreDiagnosticSessionStatus({
     sessionId: body.sessionId,
     userId: session.user.id,
   });
 
-  let attempts = 0;
-
-  while (
-    nextStatus?.report?.status === "PROCESSING" &&
-    attempts < REPORT_STATUS_POLL_MAX_ATTEMPTS
-  ) {
-    await wait(REPORT_STATUS_POLL_INTERVAL_MS);
-    nextStatus = await getPreDiagnosticSessionStatus({
-      sessionId: body.sessionId,
-      userId: session.user.id,
-    });
-    attempts += 1;
-  }
-
-  return Response.json(nextStatus, { status: 200 });
+  return Response.json(finalStatus, { status: 200 });
 }
 
 export const Route = createFileRoute("/api/prediagnostics/generate-report")({
