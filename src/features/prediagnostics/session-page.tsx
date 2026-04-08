@@ -13,7 +13,7 @@ import {
 } from "@livekit/components-react";
 import { TokenSource } from "livekit-client";
 import { LoaderCircle, Mic, SendHorizontal } from "lucide-react";
-import { IconKeyboard, IconMicrophone } from "@tabler/icons-react";
+import { IconKeyboard, IconMicrophone, IconPhoneOff } from "@tabler/icons-react";
 
 import { LiveWaveform } from "#/components/ui/live-waveform";
 import {
@@ -272,7 +272,7 @@ function SessionHeader({
         type="button"
         onClick={onEnd}
       >
-        End session
+        <IconPhoneOff className="h-6 w-6" />
       </button>
     </header>
   );
@@ -515,6 +515,9 @@ function PttSessionFooter() {
           onClick={handleVoiceToggle}
         >
           <LiveWaveform active={ptt.isRecording} bars={26} className="flex-1" processing={false} />
+          <span className="ml-2">
+            <SendHorizontal className="h-6 w-6" />
+          </span>
         </button>
       ) : (
         <button

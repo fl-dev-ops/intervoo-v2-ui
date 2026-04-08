@@ -48,7 +48,7 @@ export function OnboardingShell(props: OnboardingShellProps) {
           <div className="relative mt-10">
             <div className="z-10 bg-[#faf9fc] relative rounded-4xl px-8 pt-10 pb-10 shadow-xl">
               {props.sectionTitle ? (
-                <h2 className="mb-6 text-[1.15rem] font-semibold tracking-[-0.03em]">
+                <h2 className="mb-6 text-[1.15rem] font-semibold tracking-[-0.03em] text-center">
                   {props.sectionTitle}
                 </h2>
               ) : null}

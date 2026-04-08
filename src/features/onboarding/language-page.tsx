@@ -54,7 +54,7 @@ export function LanguagePage(props: LanguagePageProps) {
         </div>
       }
       onBack={props.onBack}
-      sectionTitle="Your native language"
+      sectionTitle="Which other language you are comfortable speaking"
       step={2}
       subtitle="We'll use this to personalize the interview experience."
       title="Build your profile"
