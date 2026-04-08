@@ -7,6 +7,7 @@ import {
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { LoaderCircle, Mic, RefreshCcw } from "lucide-react";
+import { Button } from "#/components/ui/button";
 import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
 
 type MicPermissionState = "checking" | "prompt" | "granted" | "denied";
@@ -287,7 +288,7 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
       </div>
 
       <div className="md:hidden">
-        <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full items-center justify-center">
+        <div className="mx-auto flex min-h-screen md:min-h-[calc(100dvh-4rem)] w-full flex-col items-center justify-between">
           <section className="w-full max-w-xl rounded-4xl p-6 sm:p-8">
             <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-[#2b2233]">
               Get ready to join the session
@@ -297,32 +298,31 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
               Check your microphone, choose the input device you want to use, and join when
               you&apos;re ready.
             </p>
-
-            <div className="mt-8">
-              <div className="mt-5 space-y-4">
-                <PrejoinDeviceSelector
-                  audioDevices={audioDevices}
-                  disabled={permissionState !== "granted" || audioDevices.length === 0}
-                  permissionState={permissionState}
-                  selectedDeviceAvailable={selectedDeviceAvailable}
-                  selectedDeviceId={selectedDeviceId}
-                  selectId="prediagnostics-audio-device"
-                  onChange={handleDeviceChange}
-                />
-
-                <PrejoinErrors deviceError={deviceError} joinError={joinError} />
-
-                <PrejoinActionButton
-                  hasRequestedPermission={hasRequestedPermission}
-                  isJoining={isJoining}
-                  permissionState={permissionState}
-                  readyToJoin={!!previewAudioTrack}
-                  onJoin={handleJoin}
-                  onRequestPermission={requestPermission}
-                />
-              </div>
-            </div>
           </section>
+          <div className="w-full mt-8 p-6 sm:p-8">
+            <div className="mt-5 space-y-4">
+              <PrejoinDeviceSelector
+                audioDevices={audioDevices}
+                disabled={permissionState !== "granted" || audioDevices.length === 0}
+                permissionState={permissionState}
+                selectedDeviceAvailable={selectedDeviceAvailable}
+                selectedDeviceId={selectedDeviceId}
+                selectId="prediagnostics-audio-device"
+                onChange={handleDeviceChange}
+              />
+
+              <PrejoinErrors deviceError={deviceError} joinError={joinError} />
+
+              <PrejoinActionButton
+                hasRequestedPermission={hasRequestedPermission}
+                isJoining={isJoining}
+                permissionState={permissionState}
+                readyToJoin={!!previewAudioTrack}
+                onJoin={handleJoin}
+                onRequestPermission={requestPermission}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -399,27 +399,24 @@ function PrejoinActionButton(props: {
   return (
     <div className="mt-6 space-y-3">
       {props.permissionState === "granted" ? (
-        <button
-          className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-6 text-sm font-medium text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+        <Button
+          size={"lg"}
+          className="w-full"
           disabled={props.isJoining || !props.readyToJoin}
           type="button"
           onClick={props.onJoin}
         >
           {props.isJoining ? <LoaderCircle className="h-5 w-5 animate-spin" /> : "Join session"}
-        </button>
+        </Button>
       ) : (
-        <button
-          className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-6 text-sm font-medium text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)] transition hover:opacity-95"
-          type="button"
-          onClick={props.onRequestPermission}
-        >
+        <Button size={"lg"} className="w-full" type="button" onClick={props.onRequestPermission}>
           {props.hasRequestedPermission ? (
             <RefreshCcw className="h-4 w-4" />
           ) : (
             <Mic className="h-4 w-4" />
           )}
           {props.hasRequestedPermission ? "Try microphone again" : "Enable microphone"}
-        </button>
+        </Button>
       )}
     </div>
   );

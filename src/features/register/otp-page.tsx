@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import { OtpCodeField } from "#/components/otp-code-field";
+import { Button } from "#/components/ui/button";
 import { formatPhoneNumberForDisplay } from "#/lib/phone";
 import { IconReload } from "@tabler/icons-react";
 
@@ -75,24 +76,25 @@ export function OtpPage(props: OtpPageProps) {
                   </p>
                 ) : (
                   <div className="flex justify-center">
-                    <button
-                      className="bg-transparent text-[0.88rem] font-semibold text-gray-500 flex items-center gap-x-1"
+                    <Button
+                      size="lg"
                       disabled={props.loading}
+                      variant="ghost"
                       type="button"
                       onClick={props.onResend}
                     >
                       <IconReload className="h-4 w-4" /> Resend code
-                    </button>
+                    </Button>
                   </div>
                 )}
 
-                <button
-                  className="mx-auto my-2 w-fit px-14 py-4 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-base font-medium tracking-[-0.01em] text-white shadow-[0_12px_24px_rgba(93,72,220,0.28)] transition disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
+                <Button
+                  className="mx-auto my-2 w-fit px-14 py-4 text-base tracking-[-0.01em] disabled:shadow-none"
                   disabled={props.loading || props.otp.length !== 6}
                   type="submit"
                 >
                   {props.loading ? "Verifying..." : "Verify & Continue"}
-                </button>
+                </Button>
               </form>
 
               <div className="mt-4 flex flex-col gap-1 text-center">
@@ -111,13 +113,15 @@ export function OtpPage(props: OtpPageProps) {
       {/* Mobile: gradient top + white sheet bottom */}
       <div className="flex flex-col justify-between h-screen md:hidden overflow-hidden">
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-3">
-          <button
-            className="absolute top-4 left-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-[1.1rem] text-white"
+          <Button
+            className="absolute top-4 left-4 h-10 w-10 bg-white/15 text-[1.1rem] text-white hover:bg-white/20"
+            size="icon"
+            variant="ghost"
             type="button"
             onClick={props.onBack}
           >
             ←
-          </button>
+          </Button>
           <img alt="Intervoo" className="mx-auto h-10" src="/intervoo-logo-light.svg" />
           <div className="text-2xl font-medium text-white font-figtree tracking-wider">
             Intervoo.ai
@@ -167,24 +171,25 @@ export function OtpPage(props: OtpPageProps) {
                 </p>
               ) : (
                 <div className="flex justify-center">
-                  <button
-                    className="bg-transparent text-[0.88rem] font-semibold text-gray-500 flex items-center gap-x-1"
+                  <Button
+                    className="gap-x-1 px-0 text-[0.88rem] font-semibold text-gray-500"
                     disabled={props.loading}
+                    variant="ghost"
                     type="button"
                     onClick={props.onResend}
                   >
                     <IconReload className="h-4 w-4" /> Resend code
-                  </button>
+                  </Button>
                 </div>
               )}
 
-              <button
-                className="mx-auto my-2 w-fit px-14 py-4 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-base font-medium tracking-[-0.01em] text-white shadow-[0_12px_24px_rgba(93,72,220,0.28)] transition disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
+              <Button
+                className="mx-auto my-2 w-fit px-14 py-4 text-base tracking-[-0.01em] disabled:shadow-none"
                 disabled={props.loading || props.otp.length !== 6}
                 type="submit"
               >
                 {props.loading ? "Verifying..." : "Verify & Continue"}
-              </button>
+              </Button>
             </form>
 
             <div className="mt-auto flex flex-col gap-1 pt-6 text-center">

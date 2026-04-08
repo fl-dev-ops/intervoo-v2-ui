@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { IconArrowLeft } from "@tabler/icons-react";
+import { Button } from "#/components/ui/button";
 import type { CoachOption } from "./coach-page";
+import { LoaderCircle } from "lucide-react";
 
 type ReadyPageProps = {
   coach: CoachOption;
@@ -37,14 +39,16 @@ export function ReadyPage(props: ReadyPageProps) {
             className="flex-1 flex flex-col items-center justify-center p-10 relative"
             style={{ backgroundColor: coach.heroTint }}
           >
-            <button
+            <Button
               aria-label="Go back"
-              className="absolute top-6 left-6 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
+              className="absolute top-6 left-6 h-10 w-10 bg-white/20 text-white hover:bg-white/25"
+              size="icon"
+              variant="ghost"
               type="button"
               onClick={props.onBack}
             >
               <IconArrowLeft className="h-5 w-5" />
-            </button>
+            </Button>
             <div className="w-72 h-72 rounded-full overflow-hidden">
               <img alt={coach.title} className="w-full h-full object-cover" src={coach.imageSrc} />
             </div>
@@ -69,14 +73,18 @@ export function ReadyPage(props: ReadyPageProps) {
               </MessageCard>*/}
             </div>
 
-            <button
-              className="mt-8 w-full rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-10 py-5 text-white disabled:cursor-not-allowed disabled:opacity-60"
+            <Button
+              className="mt-8 w-full"
               disabled={props.loading}
               type="button"
               onClick={props.onContinue}
             >
-              {props.loading ? "Saving..." : "Start Pre Diagnostic"}
-            </button>
+              {props.loading ? (
+                <LoaderCircle className="h-5 w-5 animate-spin" />
+              ) : (
+                "Start Pre Diagnostic"
+              )}
+            </Button>
           </div>
         </div>
       </div>
@@ -86,14 +94,16 @@ export function ReadyPage(props: ReadyPageProps) {
         <div className="rounded-b-[48px] shadow-lg" style={{ backgroundColor: coach.heroTint }}>
           <div className="text-center m-4 mb-0 flex flex-row items-center">
             <div className="flex-1">
-              <button
+              <Button
                 aria-label="Go back"
-                className="h-10 w-10 flex items-center justify-center rounded-full bg-[rgba(102,98,42,0.28)] text-white"
+                className="h-10 w-10 bg-[rgba(102,98,42,0.28)] text-white hover:bg-[rgba(102,98,42,0.36)]"
+                size="icon"
+                variant="ghost"
                 type="button"
                 onClick={props.onBack}
               >
                 <IconArrowLeft className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
             <h1 className="flex-6 mx-auto text-2xl leading-[1.06] font-medium text-white">
               You&apos;re all set to begin
@@ -126,14 +136,15 @@ export function ReadyPage(props: ReadyPageProps) {
             </div>
           ) : null}*/}
 
-          <button
-            className="mt-auto w-full rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-10 py-5 text-white disabled:cursor-not-allowed disabled:opacity-60"
+          <Button
+            className="mt-auto"
+            size={"lg"}
             disabled={props.loading}
             type="button"
             onClick={props.onContinue}
           >
-            {props.loading ? "Saving..." : "Start Pre Diagnostic"}
-          </button>
+            {props.loading ? "Preparing..." : "Start Pre Diagnostic"}
+          </Button>
         </div>
       </div>
     </section>
@@ -143,7 +154,7 @@ export function ReadyPage(props: ReadyPageProps) {
 function MessageCard(props: { children: ReactNode; delayMs?: number }) {
   return (
     <div
-      className="rounded-tl-sm rounded-4xl bg-white px-6 py-5 shadow-xs opacity-0 [animation:message-card-in_900ms_ease-out_forwards]"
+      className="rounded-tl-sm rounded-4xl bg-white px-6 py-5 shadow-xs opacity-0 animate-[message-card-in_900ms_ease-out_forwards]"
       style={{ animationDelay: `${props.delayMs ?? 0}ms` }}
     >
       {props.children}

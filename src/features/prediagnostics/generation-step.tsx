@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { IconCircle, IconCircleCheckFilled } from "@tabler/icons-react";
+import { Button } from "#/components/ui/button";
 import type { PrediagnosticsReportStatusResponse } from "#/lib/prediagnostics/report";
 import { triggerCelebrationConfetti } from "#/lib/confetti";
 
@@ -178,15 +179,16 @@ function PrediagnosticsGenerationErrorState(props: { message: string }) {
       <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-[0_20px_40px_rgba(112,88,186,0.12)]">
         <h2 className="text-xl font-semibold text-[#2b2233]">Report unavailable</h2>
         <p className="mt-3 text-sm leading-6 text-[#7f768f]">{props.message}</p>
-        <button
-          className="mt-6 w-full rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-6 py-4 text-sm font-medium text-white shadow-[0_12px_24px_rgba(93,72,220,0.28)]"
+        <Button
+          size={"lg"}
+          className="mt-6 w-full"
           type="button"
           onClick={() => {
             window.location.href = "/prediagnostics";
           }}
         >
           Back to start
-        </button>
+        </Button>
       </div>
     </div>
   );

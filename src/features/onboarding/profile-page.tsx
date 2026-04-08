@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { IconChevronDown, IconArrowRight } from "@tabler/icons-react";
+import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 import { OnboardingShell } from "./shell";
 
@@ -53,14 +54,10 @@ export function ProfilePage(props: ProfilePageProps) {
     <OnboardingShell
       footer={
         <div className="flex">
-          <button
-            className="ml-auto inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-10 py-4 text-[1.05rem] font-medium tracking-[-0.02em] text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)]"
-            form="profile-form"
-            type="submit"
-          >
+          <Button className="ml-auto" form="profile-form" type="submit" size={"lg"}>
             Next
             <IconArrowRight className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
       }
       step={0}

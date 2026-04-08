@@ -1,4 +1,5 @@
 import type { FormEvent } from "react";
+import { Button } from "#/components/ui/button";
 import { FIXED_COUNTRY_CODE, normalizeLocalPhoneNumber } from "#/lib/phone";
 
 type PhonePageProps = {
@@ -68,13 +69,9 @@ export function PhonePage(props: PhonePageProps) {
                   </div>
                 </label>
 
-                <button
-                  className="mx-auto mt-2 w-fit px-14 py-4 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-base font-medium tracking-[-0.01em] text-white shadow-[0_12px_24px_rgba(93,72,220,0.28)] transition disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
-                  disabled={props.loading}
-                  type="submit"
-                >
+                <Button size="lg" disabled={props.loading} type="submit">
                   {props.loading ? "Sending OTP..." : "Get OTP"}
-                </button>
+                </Button>
               </form>
             </div>
           </div>
@@ -136,13 +133,13 @@ export function PhonePage(props: PhonePageProps) {
                 </div>
               </label>
 
-              <button
-                className="mx-auto mt-2 w-fit px-14 py-4 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-base font-medium tracking-[-0.01em] text-white shadow-[0_12px_24px_rgba(93,72,220,0.28)] transition disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
+              <Button
+                className="mx-auto mt-2 w-fit px-14 py-4 text-base tracking-[-0.01em] disabled:shadow-none"
                 disabled={props.loading}
                 type="submit"
               >
                 {props.loading ? "Sending OTP..." : "Get OTP"}
-              </button>
+              </Button>
             </form>
           </div>
         </div>

@@ -12,7 +12,7 @@ import {
   type UseSessionReturn,
 } from "@livekit/components-react";
 import { TokenSource } from "livekit-client";
-import { LoaderCircle, Mic, SendHorizontal } from "lucide-react";
+import { LoaderCircle, SendHorizontal } from "lucide-react";
 import { IconKeyboard, IconMicrophone, IconPhoneOff, IconSend2 } from "@tabler/icons-react";
 
 import { EllipsisIcon } from "#/components/ui/ellipsis-icon";
@@ -28,6 +28,7 @@ import {
 import { usePrediagnosticsPushToTalk } from "#/features/prediagnostics/hooks/use-push-to-talk";
 import { usePrediagnosticsTranscript } from "#/features/prediagnostics/hooks/use-prediagnostics-transcript";
 import type { PrediagnosticsSessionTranscript } from "#/lib/prediagnostics/transcript";
+import { Button } from "#/components/ui/button";
 
 const coachHeaderMeta = {
   sana: {
@@ -373,8 +374,9 @@ function SessionHeader(props: {
         </div>
       </div>
 
-      <button
-        className="flex items-center gap-2 rounded-full border border-[#e5e0ed] px-4 py-2 text-sm font-medium text-[#7f768f] transition hover:bg-[#f5f3f7] disabled:cursor-not-allowed disabled:opacity-50"
+      <Button
+        size={"lg"}
+        variant="ghost"
         type="button"
         disabled={props.isEnding}
         onClick={props.onEnd}
@@ -385,7 +387,7 @@ function SessionHeader(props: {
           <IconPhoneOff className="h-6 w-6 text-red-500" />
         )}
         {props.isEnding ? "Ending..." : null}
-      </button>
+      </Button>
     </header>
   );
 }
@@ -530,8 +532,9 @@ function AutoSessionFooter(props: {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl items-center gap-3 border border-[#e4deee] bg-white p-3 shadow-[0_-6px_32px_rgba(74,57,143,0.08)]">
-      <button
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0ECF6] text-[#6D6780] transition hover:bg-[#ebe4f6] disabled:cursor-not-allowed disabled:opacity-50"
+      <Button
+        size={"icon"}
+        variant="secondary"
         type="button"
         disabled={isInputDisabled}
         onClick={() => {
@@ -543,7 +546,7 @@ function AutoSessionFooter(props: {
         ) : (
           <IconMicrophone className="h-6 w-6" />
         )}
-      </button>
+      </Button>
 
       {mode === "text" ? (
         <>
@@ -561,29 +564,31 @@ function AutoSessionFooter(props: {
               }
             }}
           />
-          <button
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+          <Button
+            size={"icon"}
+            variant="default"
             disabled={isInputDisabled || !chatMessage.trim()}
             type="button"
             onClick={handleSendMessage}
           >
             <SendHorizontal className="h-4 w-4" />
-          </button>
+          </Button>
         </>
       ) : (
-        <button
-          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+        <Button
+          size={"icon"}
+          className={
             isMicrophoneEnabled
               ? "bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)]"
               : "bg-[#b4abc5]"
-          }`}
+          }
           type="button"
           disabled={isInputDisabled}
           onClick={toggleMicrophone}
         >
-          <Mic className="h-4 w-4" />
+          <IconMicrophone className="h-4 w-4" />
           {isMicrophoneEnabled ? "Microphone on" : "Microphone off"}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -645,8 +650,9 @@ function PttSessionFooter(props: {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl items-center gap-3 border border-[#e4deee] bg-white p-3 shadow-[0_-6px_32px_rgba(74,57,143,0.08)]">
-      <button
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0ECF6] text-[#6D6780] transition hover:bg-[#ebe4f6] disabled:cursor-not-allowed disabled:opacity-50"
+      <Button
+        size={"icon"}
+        variant="outline"
         type="button"
         disabled={isInputDisabled}
         onClick={() => {
@@ -658,7 +664,7 @@ function PttSessionFooter(props: {
         ) : (
           <IconMicrophone className="h-6 w-6" />
         )}
-      </button>
+      </Button>
 
       {mode === "text" && !showUserWaveform ? (
         <>
@@ -676,20 +682,22 @@ function PttSessionFooter(props: {
               }
             }}
           />
-          <button
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+          <Button
+            size={"icon"}
+            variant="default"
             disabled={isInputDisabled || !chatMessage.trim()}
             type="button"
             onClick={handleSendMessage}
           >
             <SendHorizontal className="h-4 w-4" />
-          </button>
+          </Button>
         </>
       ) : showUserWaveform ? (
-        <button
-          className="flex h-12 flex-1 items-center rounded-full border border-[#dcd4e7] bg-white px-5 text-left disabled:cursor-not-allowed disabled:opacity-50"
-          type="button"
+        <Button
+          className="w-full"
+          variant="secondary"
           disabled={isInputDisabled}
+          type="button"
           onClick={handleVoiceToggle}
         >
           <LiveWaveform
@@ -701,12 +709,11 @@ function PttSessionFooter(props: {
           <span className="ml-2">
             <IconSend2 className="h-6 w-6" />
           </span>
-        </button>
+        </Button>
       ) : (
-        <button
-          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition ${
-            isVoiceDisabled ? "cursor-not-allowed opacity-50" : ""
-          }`}
+        <Button
+          className="w-full"
+          variant="default"
           disabled={isVoiceDisabled}
           type="button"
           onClick={handleVoiceToggle}
@@ -717,7 +724,7 @@ function PttSessionFooter(props: {
             : props.ptt.isAvailable
               ? "Tap to speak"
               : "Waiting for agent"}
-        </button>
+        </Button>
       )}
     </div>
   );

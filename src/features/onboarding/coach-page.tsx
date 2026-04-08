@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
+import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 import { OnboardingShell } from "./shell";
 
@@ -31,22 +32,14 @@ export function CoachPage(props: CoachPageProps) {
     <OnboardingShell
       footer={
         <div className="flex items-center justify-between gap-3">
-          <button
-            className="inline-flex h-14 items-center justify-center gap-2 rounded-full bg-[#ece7f2] px-7 text-[0.98rem] font-medium text-[#2d2639]"
-            type="button"
-            onClick={props.onBack}
-          >
+          <Button size={"lg"} variant="secondary" type="button" onClick={props.onBack}>
             <IconArrowLeft className="h-4 w-4" />
             Back
-          </button>
-          <button
-            className="px-10 py-4 ml-auto inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-[1.05rem] font-medium tracking-[-0.02em] text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)]"
-            type="button"
-            onClick={() => props.onContinue(value)}
-          >
+          </Button>
+          <Button size={"lg"} type="button" onClick={() => props.onContinue(value)}>
             Next
             <IconArrowRight className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
       }
       onBack={props.onBack}

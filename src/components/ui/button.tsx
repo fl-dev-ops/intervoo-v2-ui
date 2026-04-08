@@ -4,17 +4,17 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-[#6A4DF5]/35",
   {
     variants: {
       variant: {
         default:
-          "bg-amber-400 text-slate-950 shadow-[0_0_0_1px_rgba(251,191,36,0.28)] hover:bg-amber-300",
+          "bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] shadow-[0_12px_24px_rgba(93,72,220,0.28)] hover:opacity-95 text-white",
         secondary:
-          "bg-slate-900/90 text-slate-100 shadow-[inset_0_0_0_1px_rgba(71,85,105,0.55)] hover:bg-slate-800/90",
+          "bg-white text-[#2b2233] shadow-[inset_0_0_0_1px_rgba(220,212,231,1)] hover:bg-[#f8f5fc]",
         outline:
-          "bg-transparent text-slate-100 shadow-[inset_0_0_0_1px_rgba(71,85,105,0.55)] hover:bg-slate-900/70",
-        ghost: "text-slate-200 hover:bg-slate-900/70",
+          "bg-transparent text-[#4F33A3] shadow-[inset_0_0_0_1px_rgba(90,66,204,0.28)] hover:bg-[#f3eefb]",
+        ghost: "text-[#2b2233] hover:bg-[#f3eefb]",
       },
       size: {
         default: "h-11 px-5",
