@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import confetti from "@hiseb/confetti";
 import { BriefcaseBusiness, Shield, Target } from "lucide-react";
 import { IconCircle, IconCircleCheckFilled } from "@tabler/icons-react";
+import { triggerCelebrationConfetti } from "#/lib/confetti";
 import type { PrediagnosticsReportStatusResponse } from "#/lib/prediagnostics/report";
 
 const REPORT_GENERATION_STEPS = [
@@ -97,17 +97,7 @@ function PrediagnosticsReportGeneratingState(props: {
       return;
     }
 
-    const xPositions = [0.18, 0.35, 0.5, 0.65, 0.82];
-
-    xPositions.forEach((x) => {
-      confetti({
-        position: { x: window.innerWidth * x, y: 0 },
-        count: 30,
-        size: 1.1,
-        velocity: 180,
-        fade: false,
-      });
-    });
+    void triggerCelebrationConfetti();
   }, [props.shouldCelebrate]);
 
   return (

@@ -8,6 +8,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
 
 const isVitest = Boolean(process.env.VITEST);
+const confettiServerStub = new URL("./src/lib/confetti.server-stub.ts", import.meta.url).pathname;
 
 const config = defineConfig({
   server: {
@@ -24,6 +25,13 @@ const config = defineConfig({
   },
   resolve: {
     tsconfigPaths: true,
+    alias: [
+      {
+        find: "@hiseb/confetti",
+        replacement: confettiServerStub,
+        ssr: true,
+      },
+    ],
   },
   plugins: [
     devtools(),

@@ -1,19 +1,10 @@
 import { useEffect } from "react";
-import confetti from "@hiseb/confetti";
 import { IconCheck } from "@tabler/icons-react";
+import { triggerCelebrationConfetti } from "#/lib/confetti";
 
 export function AccountCreatedPage() {
   useEffect(() => {
-    const xPositions = [0.18, 0.35, 0.5, 0.65, 0.82];
-    xPositions.forEach((x) => {
-      confetti({
-        position: { x: window.innerWidth * x, y: 0 },
-        count: 30,
-        size: 1.1,
-        velocity: 180,
-        fade: false,
-      });
-    });
+    void triggerCelebrationConfetti();
   }, []);
 
   return (
