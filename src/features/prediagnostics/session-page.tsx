@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   RoomAudioRenderer,
   SessionProvider,
@@ -29,6 +29,17 @@ import {
 import { usePrediagnosticsPushToTalk } from "#/features/prediagnostics/hooks/use-push-to-talk";
 import { usePrediagnosticsTranscript } from "#/features/prediagnostics/hooks/use-prediagnostics-transcript";
 import type { PrediagnosticsSessionTranscript } from "#/lib/prediagnostics/transcript";
+
+const coachHeaderMeta = {
+  sana: {
+    title: "Sana",
+    imageSrc: "/sara.png",
+  },
+  arjun: {
+    title: "Arjun",
+    imageSrc: "/arjun.png",
+  },
+} as const;
 
 function getPrediagnosticsInteractionMode(): PrediagnosticsInteractionMode {
   return DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE;
@@ -212,27 +223,29 @@ function LiveKitSessionContent({
     });
   }, [isConnected, session.room, userChoices.audioDeviceId]);
 
+  const handleEndClick = useCallback(() => {
+    const transcript = getTranscript();
+    void handleSessionEnd(transcript);
+  }, [getTranscript, handleSessionEnd]);
+
   return (
     <div className="min-h-screen bg-[#F5F3F7]">
-      {/* Desktop: phone preview with gradient glow */}
-      <div className="hidden min-h-screen md:flex md:items-center md:justify-center md:px-6">
-        <div className="relative h-[85vh] w-100">
+      <div className="min-h-screen md:flex md:items-center md:justify-center md:px-6">
+        <div className="relative h-screen w-full md:h-[85vh] md:w-100">
           <div
-            className="absolute -inset-2 rounded-4xl blur-xl opacity-60"
+            className="absolute -inset-2 hidden rounded-4xl blur-xl opacity-60 md:block"
             style={{
               background:
                 "linear-gradient(168.19deg, #7A2CAF -0.95%, #41D69A 26.72%, #DFCF58 60.2%, #5350B4 91.75%)",
             }}
           />
-          <div className="relative z-10 w-full h-full rounded-[26px] bg-white overflow-hidden shadow-[0_28px_60px_rgba(74,57,143,0.12)]">
+          <div className="relative z-10 h-full w-full overflow-hidden bg-white md:rounded-[26px] md:shadow-[0_28px_60px_rgba(74,57,143,0.12)]">
             <div className="flex h-full flex-col">
               <SessionHeader
                 agentState={agent.state}
+                coach={connectionDetails.coach}
                 isEnding={isEnding}
-                onEnd={() => {
-                  const transcript = getTranscript();
-                  void handleSessionEnd(transcript);
-                }}
+                onEnd={handleEndClick}
               />
               <ChatTranscript messages={messages} />
               <SessionFooter
@@ -245,43 +258,35 @@ function LiveKitSessionContent({
           </div>
         </div>
       </div>
-
-      {/* Mobile: full screen */}
-      <div className="flex h-screen flex-col bg-[#F5F3F7] md:hidden">
-        <SessionHeader
-          agentState={agent.state}
-          isEnding={isEnding}
-          onEnd={() => {
-            const transcript = getTranscript();
-            void handleSessionEnd(transcript);
-          }}
-        />
-        <ChatTranscript messages={messages} />
-        <SessionFooter
-          interactionMode={connectionDetails.interactionMode}
-          agentState={agent.state}
-          hasAgentGreeted={hasAgentGreeted}
-          isEnding={isEnding}
-        />
-      </div>
     </div>
   );
 }
 
 function SessionHeader({
   agentState,
+  coach,
   isEnding,
   onEnd,
 }: {
   agentState: string | undefined;
+  coach: PrediagnosticsConnectionDetails["coach"];
   isEnding: boolean;
   onEnd: () => void;
 }) {
+  const coachMeta = coachHeaderMeta[coach];
+
   return (
     <header className="flex items-center justify-between border-b border-[#e5e0ed] bg-white px-5 py-4">
-      <div>
-        <h1 className="text-lg font-semibold text-[#2b2233]">Pre-Diagnostic Session</h1>
-        <p className="text-sm text-[#7f768f]">{getAgentStateLabel(agentState)}</p>
+      <div className="flex items-center gap-3">
+        <img
+          alt={coachMeta.title}
+          className="h-11 w-11 rounded-full object-cover ring-2 ring-[#eee8f5]"
+          src={coachMeta.imageSrc}
+        />
+        <div>
+          <h1 className="text-lg font-semibold text-[#2b2233]">Pre-Diagnostic Session</h1>
+          <p className="text-sm text-[#7f768f]">{getAgentStateLabel(agentState)}</p>
+        </div>
       </div>
 
       <button
@@ -316,7 +321,31 @@ function getAgentStateLabel(state: string | undefined): string {
   }
 }
 
-function ChatTranscript({ messages }: { messages: PrediagnosticsMessage[] }) {
+const ChatMessageBubble = memo(function ChatMessageBubble({
+  isUser,
+  text,
+}: {
+  isUser: boolean;
+  text: string;
+}) {
+  return (
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+      <div
+        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+          isUser ? "bg-[#5a42cc] text-white" : "bg-white text-[#2b2233] shadow-sm"
+        }`}
+      >
+        <p className="text-sm leading-relaxed">{text}</p>
+      </div>
+    </div>
+  );
+});
+
+const ChatTranscript = memo(function ChatTranscript({
+  messages,
+}: {
+  messages: PrediagnosticsMessage[];
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -338,25 +367,14 @@ function ChatTranscript({ messages }: { messages: PrediagnosticsMessage[] }) {
       <div className="space-y-3">
         {messages.map((message, index) => {
           const isUser = message.role === "user";
-          const text = message.text;
           const messageKey = `${message.id}-${index}`;
 
-          return (
-            <div key={messageKey} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                  isUser ? "bg-[#5a42cc] text-white" : "bg-white text-[#2b2233] shadow-sm"
-                }`}
-              >
-                <p className="text-sm leading-relaxed">{text}</p>
-              </div>
-            </div>
-          );
+          return <ChatMessageBubble key={messageKey} isUser={isUser} text={message.text} />;
         })}
       </div>
     </div>
   );
-}
+});
 
 function SessionFooter({
   interactionMode,
