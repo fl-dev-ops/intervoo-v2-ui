@@ -293,7 +293,7 @@ function SessionHeader({
         {isEnding ? (
           <LoaderCircle className="h-6 w-6 animate-spin" />
         ) : (
-          <IconPhoneOff className="h-6 w-6" />
+          <IconPhoneOff className="h-6 w-6 text-red-500" />
         )}
         {isEnding ? "Ending..." : null}
       </button>
