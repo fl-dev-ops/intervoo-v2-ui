@@ -1,6 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getSession } from "#/lib/auth.functions";
-import { hasActiveOrCompletedPreDiagnosticSession } from "#/lib/prediagnostics/functions";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -14,13 +13,7 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/onboarding" });
     }
 
-    const hasSession = await hasActiveOrCompletedPreDiagnosticSession();
-
-    if (hasSession) {
-      throw redirect({ to: "/prediagnostics/report" });
-    }
-
-    throw redirect({ to: "/onboarding" });
+    throw redirect({ to: "/prediagnostics" });
   },
   component: () => null,
 });

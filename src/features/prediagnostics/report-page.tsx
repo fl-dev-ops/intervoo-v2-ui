@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import confetti from "@hiseb/confetti";
 import { BriefcaseBusiness, Shield, Target } from "lucide-react";
 import { IconCircle, IconCircleCheckFilled } from "@tabler/icons-react";
@@ -308,6 +309,13 @@ function PrediagnosticsReportPreview({
                 We&apos;re preparing the next step. Your report is ready, and the full diagnostic
                 interview experience will be available soon.
               </p>
+              <Link
+                className="mt-6 inline-flex items-center justify-center rounded-full bg-gray-200 px-5 py-3 text-sm font-medium text-[#4F33A3] transition hover:border-[#c8bde0] hover:bg-gray-50"
+                to="/prediagnostics"
+                search={{ redo: true }}
+              >
+                Retake Pre Diagnostics
+              </Link>
             </section>
           </div>
         </div>

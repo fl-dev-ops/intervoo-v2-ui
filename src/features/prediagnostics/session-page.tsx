@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   RoomAudioRenderer,
   SessionProvider,
@@ -13,7 +13,7 @@ import {
 } from "@livekit/components-react";
 import { TokenSource } from "livekit-client";
 import { LoaderCircle, Mic, SendHorizontal } from "lucide-react";
-import { IconKeyboard, IconMicrophone, IconPhoneOff } from "@tabler/icons-react";
+import { IconKeyboard, IconMicrophone, IconPhoneOff, IconSend2 } from "@tabler/icons-react";
 
 import { LiveWaveform } from "#/components/ui/live-waveform";
 import {
@@ -124,6 +124,8 @@ function LiveKitSessionContent({
   const { userChoices } = usePersistentUserChoices({ preventSave: true });
   const [started, setStarted] = useState(false);
   const [hasSeenActiveSession, setHasSeenActiveSession] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const hasAgentGreeted = messages.some((m: PrediagnosticsMessage) => m.role === "agent");
 
   useEffect(() => {
     if (!started && !isConnected) {
@@ -140,6 +142,7 @@ function LiveKitSessionContent({
 
   const handleSessionEnd = useCallback(
     async (preCapturedTranscript?: PrediagnosticsSessionTranscript) => {
+      setIsEnding(true);
       try {
         const transcript = preCapturedTranscript ?? getTranscript();
 
@@ -225,13 +228,19 @@ function LiveKitSessionContent({
             <div className="flex h-full flex-col">
               <SessionHeader
                 agentState={agent.state}
+                isEnding={isEnding}
                 onEnd={() => {
                   const transcript = getTranscript();
                   void handleSessionEnd(transcript);
                 }}
               />
               <ChatTranscript messages={messages} />
-              <SessionFooter interactionMode={connectionDetails.interactionMode} />
+              <SessionFooter
+                interactionMode={connectionDetails.interactionMode}
+                agentState={agent.state}
+                hasAgentGreeted={hasAgentGreeted}
+                isEnding={isEnding}
+              />
             </div>
           </div>
         </div>
@@ -241,13 +250,19 @@ function LiveKitSessionContent({
       <div className="flex h-screen flex-col bg-[#F5F3F7] md:hidden">
         <SessionHeader
           agentState={agent.state}
+          isEnding={isEnding}
           onEnd={() => {
             const transcript = getTranscript();
             void handleSessionEnd(transcript);
           }}
         />
         <ChatTranscript messages={messages} />
-        <SessionFooter interactionMode={connectionDetails.interactionMode} />
+        <SessionFooter
+          interactionMode={connectionDetails.interactionMode}
+          agentState={agent.state}
+          hasAgentGreeted={hasAgentGreeted}
+          isEnding={isEnding}
+        />
       </div>
     </div>
   );
@@ -255,9 +270,11 @@ function LiveKitSessionContent({
 
 function SessionHeader({
   agentState,
+  isEnding,
   onEnd,
 }: {
   agentState: string | undefined;
+  isEnding: boolean;
   onEnd: () => void;
 }) {
   return (
@@ -268,11 +285,17 @@ function SessionHeader({
       </div>
 
       <button
-        className="rounded-full border border-[#e5e0ed] px-4 py-2 text-sm font-medium text-[#7f768f] transition hover:bg-[#f5f3f7]"
+        className="flex items-center gap-2 rounded-full border border-[#e5e0ed] px-4 py-2 text-sm font-medium text-[#7f768f] transition hover:bg-[#f5f3f7] disabled:cursor-not-allowed disabled:opacity-50"
         type="button"
+        disabled={isEnding}
         onClick={onEnd}
       >
-        <IconPhoneOff className="h-6 w-6" />
+        {isEnding ? (
+          <LoaderCircle className="h-6 w-6 animate-spin" />
+        ) : (
+          <IconPhoneOff className="h-6 w-6" />
+        )}
+        {isEnding ? "Ending..." : null}
       </button>
     </header>
   );
@@ -296,11 +319,11 @@ function getAgentStateLabel(state: string | undefined): string {
 function ChatTranscript({ messages }: { messages: PrediagnosticsMessage[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages]);
 
   if (messages.length === 0) {
     return (
@@ -335,22 +358,58 @@ function ChatTranscript({ messages }: { messages: PrediagnosticsMessage[] }) {
   );
 }
 
-function SessionFooter({ interactionMode }: { interactionMode: PrediagnosticsInteractionMode }) {
+function SessionFooter({
+  interactionMode,
+  agentState,
+  hasAgentGreeted,
+  isEnding,
+}: {
+  interactionMode: PrediagnosticsInteractionMode;
+  agentState: string | undefined;
+  hasAgentGreeted: boolean;
+  isEnding: boolean;
+}) {
   if (interactionMode === "auto") {
-    return <AutoSessionFooter />;
+    return (
+      <AutoSessionFooter
+        agentState={agentState}
+        hasAgentGreeted={hasAgentGreeted}
+        isEnding={isEnding}
+      />
+    );
   }
 
-  return <PttSessionFooter />;
+  return (
+    <PttSessionFooter
+      agentState={agentState}
+      hasAgentGreeted={hasAgentGreeted}
+      isEnding={isEnding}
+    />
+  );
 }
 
-function AutoSessionFooter() {
+function AutoSessionFooter({
+  agentState,
+  hasAgentGreeted,
+  isEnding,
+}: {
+  agentState: string | undefined;
+  hasAgentGreeted: boolean;
+  isEnding: boolean;
+}) {
   const { send } = useChat();
   const { localParticipant } = useLocalParticipant();
   const [chatMessage, setChatMessage] = useState("");
   const [mode, setMode] = useState<"voice" | "text">("voice");
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(true);
 
+  const isInputDisabled = isEnding || agentState === "thinking" || !hasAgentGreeted;
+
   const handleSendMessage = useCallback(() => {
+    if (isInputDisabled) {
+      return;
+    }
+
     const nextMessage = chatMessage.trim();
 
     if (!nextMessage) {
@@ -359,23 +418,24 @@ function AutoSessionFooter() {
 
     void send(nextMessage);
     setChatMessage("");
-  }, [chatMessage, send]);
+  }, [chatMessage, isInputDisabled, send]);
 
   const toggleMicrophone = useCallback(() => {
-    if (!localParticipant) {
+    if (!localParticipant || isInputDisabled) {
       return;
     }
 
     const nextEnabled = !isMicrophoneEnabled;
     void localParticipant.setMicrophoneEnabled(nextEnabled);
     setIsMicrophoneEnabled(nextEnabled);
-  }, [isMicrophoneEnabled, localParticipant]);
+  }, [isInputDisabled, isMicrophoneEnabled, localParticipant]);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl items-center gap-3 border border-[#e4deee] bg-white p-3 shadow-[0_-6px_32px_rgba(74,57,143,0.08)]">
       <button
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0ECF6] text-[#6D6780] transition hover:bg-[#ebe4f6]"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0ECF6] text-[#6D6780] transition hover:bg-[#ebe4f6] disabled:cursor-not-allowed disabled:opacity-50"
         type="button"
+        disabled={isInputDisabled}
         onClick={() => {
           setMode((current) => (current === "voice" ? "text" : "voice"));
         }}
@@ -390,10 +450,11 @@ function AutoSessionFooter() {
       {mode === "text" ? (
         <>
           <input
-            className="h-12 flex-1 rounded-full border border-[#dcd4e7] bg-white px-5 text-sm text-[#2b2233] placeholder-[#9b92ad] outline-none focus:border-[#5a42cc]"
+            className="h-12 flex-1 rounded-full border border-[#dcd4e7] bg-white px-5 text-sm text-[#2b2233] placeholder-[#9b92ad] outline-none focus:border-[#5a42cc] disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Type your response..."
             type="text"
             value={chatMessage}
+            disabled={isInputDisabled}
             onChange={(event) => setChatMessage(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
@@ -404,7 +465,7 @@ function AutoSessionFooter() {
           />
           <button
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!chatMessage.trim()}
+            disabled={isInputDisabled || !chatMessage.trim()}
             type="button"
             onClick={handleSendMessage}
           >
@@ -413,12 +474,13 @@ function AutoSessionFooter() {
         </>
       ) : (
         <button
-          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 ${
+          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 ${
             isMicrophoneEnabled
               ? "bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)]"
               : "bg-[#b4abc5]"
           }`}
           type="button"
+          disabled={isInputDisabled}
           onClick={toggleMicrophone}
         >
           <Mic className="h-4 w-4" />
@@ -429,13 +491,27 @@ function AutoSessionFooter() {
   );
 }
 
-function PttSessionFooter() {
+function PttSessionFooter({
+  agentState,
+  hasAgentGreeted,
+  isEnding,
+}: {
+  agentState: string | undefined;
+  hasAgentGreeted: boolean;
+  isEnding: boolean;
+}) {
   const { send } = useChat();
   const ptt = usePrediagnosticsPushToTalk();
   const [chatMessage, setChatMessage] = useState("");
   const [mode, setMode] = useState<"voice" | "text">("voice");
 
+  const isInputDisabled = isEnding || agentState === "thinking" || !hasAgentGreeted;
+
   const handleSendMessage = useCallback(() => {
+    if (isInputDisabled) {
+      return;
+    }
+
     const nextMessage = chatMessage.trim();
 
     if (!nextMessage) {
@@ -444,10 +520,11 @@ function PttSessionFooter() {
 
     void send(nextMessage);
     setChatMessage("");
-  }, [chatMessage, send]);
+  }, [chatMessage, isInputDisabled, send]);
 
   const showUserWaveform = ptt.isRecording;
-  const isVoiceDisabled = !ptt.isAvailable || ptt.isProcessing || ptt.isAgentSpeaking;
+  const isVoiceDisabled =
+    !ptt.isAvailable || ptt.isProcessing || ptt.isAgentSpeaking || isInputDisabled;
 
   const handleVoiceToggle = useCallback(() => {
     if (isVoiceDisabled) {
@@ -471,8 +548,9 @@ function PttSessionFooter() {
   return (
     <div className="mx-auto flex w-full max-w-3xl items-center gap-3 border border-[#e4deee] bg-white p-3 shadow-[0_-6px_32px_rgba(74,57,143,0.08)]">
       <button
-        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0ECF6] text-[#6D6780] transition hover:bg-[#ebe4f6]"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F0ECF6] text-[#6D6780] transition hover:bg-[#ebe4f6] disabled:cursor-not-allowed disabled:opacity-50"
         type="button"
+        disabled={isInputDisabled}
         onClick={() => {
           setMode((current) => (current === "voice" ? "text" : "voice"));
         }}
@@ -487,10 +565,11 @@ function PttSessionFooter() {
       {mode === "text" && !showUserWaveform ? (
         <>
           <input
-            className="h-12 flex-1 rounded-full border border-[#dcd4e7] bg-white px-5 text-sm text-[#2b2233] placeholder-[#9b92ad] outline-none focus:border-[#5a42cc]"
+            className="h-12 flex-1 rounded-full border border-[#dcd4e7] bg-white px-5 text-sm text-[#2b2233] placeholder-[#9b92ad] outline-none focus:border-[#5a42cc] disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Type your response..."
             type="text"
             value={chatMessage}
+            disabled={isInputDisabled}
             onChange={(event) => setChatMessage(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
@@ -501,7 +580,7 @@ function PttSessionFooter() {
           />
           <button
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!chatMessage.trim()}
+            disabled={isInputDisabled || !chatMessage.trim()}
             type="button"
             onClick={handleSendMessage}
           >
@@ -510,18 +589,19 @@ function PttSessionFooter() {
         </>
       ) : showUserWaveform ? (
         <button
-          className="flex h-12 flex-1 items-center rounded-full border border-[#dcd4e7] bg-white px-5 text-left"
+          className="flex h-12 flex-1 items-center rounded-full border border-[#dcd4e7] bg-white px-5 text-left disabled:cursor-not-allowed disabled:opacity-50"
           type="button"
+          disabled={isInputDisabled}
           onClick={handleVoiceToggle}
         >
-          <LiveWaveform active={ptt.isRecording} bars={26} className="flex-1" processing={false} />
+          <LiveWaveform active={ptt.isRecording} bars={24} className="flex-1" processing={false} />
           <span className="ml-2">
-            <SendHorizontal className="h-6 w-6" />
+            <IconSend2 className="h-6 w-6" />
           </span>
         </button>
       ) : (
         <button
-          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition hover:opacity-95 ${
+          className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-5 text-sm font-medium text-white shadow-[0_8px_20px_rgba(93,72,220,0.35)] transition ${
             isVoiceDisabled ? "cursor-not-allowed opacity-50" : ""
           }`}
           disabled={isVoiceDisabled}
