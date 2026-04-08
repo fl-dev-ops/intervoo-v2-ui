@@ -73,7 +73,15 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
         return;
       }
 
-      await completeOnboarding({ data: profile });
+      await completeOnboarding({
+        data: {
+          ...profile,
+          nativeLanguage: nativeLanguage ?? "",
+          englishLevel: englishLevel ?? "",
+          speakingSpeed,
+          coach,
+        },
+      });
       savePreScreeningSetup({
         nativeLanguage,
         englishLevel,

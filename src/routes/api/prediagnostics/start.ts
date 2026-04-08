@@ -37,6 +37,22 @@ export async function postHandler({ request }: { request: Request }) {
     const roomName = buildPrediagnosticsRoomName(user.id);
     const participantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
     const participantName = buildPrediagnosticsParticipantName(user.name);
+
+    const studentProfile = {
+      preferredName: user.profile?.preferredName ?? "",
+      institution: user.profile?.institution ?? "",
+      degree: user.profile?.degree ?? "",
+      stream: user.profile?.stream ?? "",
+      yearOfStudy: user.profile?.yearOfStudy ?? "",
+      placementPreparation: user.profile?.placementPreparation ?? "",
+      academySelection: user.profile?.academySelection ?? "",
+      academyName: user.profile?.academyName ?? "",
+      nativeLanguage: user.profile?.nativeLanguage ?? "",
+      englishLevel: user.profile?.englishLevel ?? "",
+      speakingSpeed: user.profile?.speakingSpeed ?? "",
+      coach: user.profile?.coach ?? "",
+    };
+
     const preDiagnosticSession = await prisma.preDiagnosticSession.create({
       data: {
         userId: user.id,
@@ -47,6 +63,7 @@ export async function postHandler({ request }: { request: Request }) {
           participantIdentity,
           participantName,
           interactionMode,
+          studentProfile,
         },
       },
     });
@@ -70,6 +87,7 @@ export async function postHandler({ request }: { request: Request }) {
         studentName: participantName,
         studentEmail: user.email,
         interaction_mode: interactionMode,
+        studentProfile,
       }),
       agentName: "pre-screen-agent",
       agentMetadata: JSON.stringify({
@@ -78,6 +96,7 @@ export async function postHandler({ request }: { request: Request }) {
         studentName: participantName,
         studentEmail: user.email,
         interaction_mode: interactionMode,
+        studentProfile,
       }),
       interactionMode,
     });

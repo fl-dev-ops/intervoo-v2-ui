@@ -14,6 +14,10 @@ type OnboardingInput = {
   placementPreparation: string;
   academySelection: string;
   academyName: string;
+  nativeLanguage: string;
+  englishLevel: string;
+  speakingSpeed: string;
+  coach: string;
 };
 
 export const getSession = createServerFn({ method: "GET" }).handler(async () => {
@@ -68,6 +72,10 @@ export const completeOnboarding = createServerFn({ method: "POST" })
               placementPreparation: data.placementPreparation,
               academySelection: data.academySelection,
               academyName: data.academyName.trim(),
+              nativeLanguage: data.nativeLanguage,
+              englishLevel: data.englishLevel,
+              speakingSpeed: data.speakingSpeed,
+              coach: data.coach,
             },
             update: {
               preferredName: data.preferredName.trim(),
@@ -78,6 +86,10 @@ export const completeOnboarding = createServerFn({ method: "POST" })
               placementPreparation: data.placementPreparation,
               academySelection: data.academySelection,
               academyName: data.academyName.trim(),
+              nativeLanguage: data.nativeLanguage,
+              englishLevel: data.englishLevel,
+              speakingSpeed: data.speakingSpeed,
+              coach: data.coach,
             },
           },
         },

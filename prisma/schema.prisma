@@ -52,6 +52,10 @@ model Profile {
   placementPreparation String   @default("")
   academySelection     String   @default("")
   academyName          String   @default("")
+  nativeLanguage       String   @default("")
+  englishLevel         String   @default("")
+  speakingSpeed        String   @default("")
+  coach                String   @default("")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

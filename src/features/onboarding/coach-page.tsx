@@ -15,8 +15,8 @@ type CoachPageProps = {
 
 const coachCards = [
   {
-    value: "sara",
-    title: "Sara",
+    value: "sana",
+    title: "Sana",
     imageSrc: "/sara.png",
   },
   {
