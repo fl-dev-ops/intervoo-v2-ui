@@ -97,7 +97,7 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
 
   return (
     <main className="min-h-screen bg-[#F5F3F7]">
-      <div className="mx-auto flex min-h-screen w-full flex-col">
+      <div className="mx-auto flex min-h-screen w-full flex-col justify-start">
         {step === "profile" ? (
           <ProfilePage
             initialValue={profile}

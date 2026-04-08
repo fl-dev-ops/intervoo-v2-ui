@@ -31,7 +31,7 @@ export function ReadyPage(props: ReadyPageProps) {
   return (
     <section className="min-h-screen bg-[#F5F3F7]">
       {/* Desktop: two-column layout */}
-      <div className="hidden min-h-screen md:flex md:items-center md:justify-center md:px-6">
+      <div className="hidden min-h-screen md:flex md:items-center md:justify-start md:px-6">
         <div className="w-full max-w-200 flex gap-2 items-stretch shadow-2xl rounded-xl overflow-hidden">
           <div
             className="flex-1 flex flex-col items-center justify-center p-10 relative"

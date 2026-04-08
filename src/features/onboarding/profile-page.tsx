@@ -24,16 +24,6 @@ export type ProfileFormValue = {
   academyName: string;
 };
 
-const yearOptions = [
-  { value: "1", label: "1st" },
-  { value: "2", label: "2nd" },
-  { value: "3", label: "3rd" },
-  { value: "4", label: "4th" },
-  { value: "5", label: "5th" },
-  { value: "6", label: "Final" },
-  { value: "completed", label: "Graduate" },
-] as const;
-
 const placementPreparationOptions = [
   { value: "through_college", label: "Through my college" },
   { value: "self_preparing", label: "Preparing on my own" },
@@ -191,39 +181,6 @@ export function ProfilePage(props: ProfilePageProps) {
               }
             />
           </Field>
-
-          <div className="flex flex-col gap-3">
-            <span className="text-[14px] font-medium text-[#6e667b]">Which year are you in?</span>
-            <div className="grid grid-cols-4 gap-2">
-              {yearOptions.map((option) => (
-                <button
-                  key={option.value}
-                  className={cn(
-                    "h-11 rounded-xl text-[13px] font-medium transition",
-                    value.yearOfStudy === option.value
-                      ? "bg-[#5a42cc] text-white"
-                      : "bg-white text-[#3b3347]",
-                  )}
-                  type="button"
-                  onClick={() =>
-                    setValue((current) => ({
-                      ...current,
-                      yearOfStudy: option.value,
-                    }))
-                  }
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <input
-              readOnly
-              required
-              className="hidden rounded-xl"
-              tabIndex={-1}
-              value={value.yearOfStudy}
-            />
-          </div>
         </Section>
 
         <Section title="Placements preparation">

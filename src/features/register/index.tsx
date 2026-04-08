@@ -103,6 +103,20 @@ export function RegisterFlow() {
     }
   }
 
+  useEffect(() => {
+    if (step !== "created") {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      window.location.href = "/onboarding";
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [step]);
+
   async function handleResend() {
     setError("");
     setLoading(true);
@@ -147,13 +161,7 @@ export function RegisterFlow() {
           />
         ) : null}
 
-        {step === "created" ? (
-          <AccountCreatedPage
-            onContinue={() => {
-              window.location.href = "/onboarding";
-            }}
-          />
-        ) : null}
+        {step === "created" ? <AccountCreatedPage /> : null}
       </div>
     </main>
   );

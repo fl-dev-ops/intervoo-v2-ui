@@ -38,6 +38,19 @@ export async function postHandler({ request }: { request: Request }) {
     const participantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
     const participantName = buildPrediagnosticsParticipantName(user.name);
 
+    console.log(user.profile?.speakingSpeed);
+
+    const speakingSpeedInt =
+      user.profile?.speakingSpeed === "normal"
+        ? 1
+        : user.profile?.speakingSpeed === "relaxed"
+          ? 0.7
+          : 0.5;
+
+    console.log(user.profile?.coach);
+
+    const voice = user.profile?.coach === "sana" ? "ishita" : "rahul";
+
     const studentProfile = {
       preferredName: user.profile?.preferredName ?? "",
       institution: user.profile?.institution ?? "",
@@ -49,8 +62,8 @@ export async function postHandler({ request }: { request: Request }) {
       academyName: user.profile?.academyName ?? "",
       nativeLanguage: user.profile?.nativeLanguage ?? "",
       englishLevel: user.profile?.englishLevel ?? "",
-      speakingSpeed: user.profile?.speakingSpeed ?? "",
-      coach: user.profile?.coach ?? "",
+      speakingSpeed: speakingSpeedInt ?? "",
+      voice: voice ?? "",
     };
 
     const preDiagnosticSession = await prisma.preDiagnosticSession.create({
@@ -89,7 +102,7 @@ export async function postHandler({ request }: { request: Request }) {
         interaction_mode: interactionMode,
         studentProfile,
       }),
-      agentName: "pre-screen-agent",
+      agentName: "pre-screen-agent-dev",
       agentMetadata: JSON.stringify({
         sessionId: preDiagnosticSession.id,
         studentId: user.id,
