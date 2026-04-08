@@ -1,16 +1,13 @@
 import { useState } from "react";
 import { completeOnboarding } from "#/lib/auth.functions";
-import {
-  savePreScreeningSetup,
-  type EnglishLevel,
-  type NativeLanguage,
-  type SpeakingSpeed,
-} from "./types";
+import { savePreScreeningSetup, type EnglishLevel, type NativeLanguage } from "./types";
 import { CoachPage, type CoachOption } from "./coach-page";
 import { EnglishLevelPage } from "./english-level-page";
 import { LanguagePage } from "./language-page";
 import { ProfilePage, type ProfileFormValue } from "./profile-page";
 import { ReadyPage } from "./ready-page";
+
+const DEFAULT_SPEAKING_SPEED = "normal";
 
 type OnboardingStep = "profile" | "coach" | "language" | "english" | "ready";
 
@@ -58,7 +55,6 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
   const [coach, setCoach] = useState<CoachOption>("sana");
   const [nativeLanguage, setNativeLanguage] = useState<NativeLanguage | undefined>(undefined);
   const [englishLevel, setEnglishLevel] = useState<EnglishLevel | undefined>(undefined);
-  const [speakingSpeed, setSpeakingSpeed] = useState<SpeakingSpeed>("normal");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const firstName = profile.name.trim().split(/\s+/).filter(Boolean)[0] ?? "";
@@ -78,14 +74,13 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
           ...profile,
           nativeLanguage: nativeLanguage ?? "",
           englishLevel: englishLevel ?? "",
-          speakingSpeed,
+          speakingSpeed: DEFAULT_SPEAKING_SPEED,
           coach,
         },
       });
       savePreScreeningSetup({
         nativeLanguage,
         englishLevel,
-        speakingSpeed,
       });
       window.location.href = "/prediagnostics";
     } catch {
@@ -132,12 +127,10 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
 
         {step === "coach" ? (
           <CoachPage
-            initialSpeed={speakingSpeed}
             initialValue={coach}
             onBack={() => setStep("english")}
-            onContinue={(value, speed) => {
+            onContinue={(value) => {
               setCoach(value);
-              setSpeakingSpeed(speed);
               setStep("ready");
             }}
           />

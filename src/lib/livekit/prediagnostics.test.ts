@@ -125,15 +125,28 @@ describe("prediagnostics LiveKit helpers", () => {
       participantIdentity: "prediag_user",
       participantName: "Student One",
       participantMetadata: JSON.stringify({ userId: "user-1" }),
-      roomMetadata: JSON.stringify({ feature: "prediagnostics" }),
+      roomMetadata: JSON.stringify({
+        interaction_mode: "ptt",
+        prompt_context: { userName: "Student One" },
+        config: { voice: "ishita", speakingSpeed: 1 },
+      }),
       agentName: "pre-screen-agent",
-      agentMetadata: JSON.stringify({ studentId: "user-1" }),
+      agentMetadata: JSON.stringify({
+        studentId: "user-1",
+        prompt_context: { userName: "Student One" },
+        config: { voice: "ishita", speakingSpeed: 1 },
+      }),
       interactionMode: "ptt",
+      coach: "sana",
     });
 
     expect(mockedRoomServiceClient().createRoomMock).toHaveBeenCalledWith({
       name: "prediag_room",
-      metadata: JSON.stringify({ feature: "prediagnostics" }),
+      metadata: JSON.stringify({
+        interaction_mode: "ptt",
+        prompt_context: { userName: "Student One" },
+        config: { voice: "ishita", speakingSpeed: 1 },
+      }),
       emptyTimeout: 600,
       maxParticipants: 10,
     });
@@ -141,7 +154,11 @@ describe("prediagnostics LiveKit helpers", () => {
       "prediag_room",
       "pre-screen-agent",
       {
-        metadata: JSON.stringify({ studentId: "user-1" }),
+        metadata: JSON.stringify({
+          studentId: "user-1",
+          prompt_context: { userName: "Student One" },
+          config: { voice: "ishita", speakingSpeed: 1 },
+        }),
       },
     );
 
@@ -169,6 +186,7 @@ describe("prediagnostics LiveKit helpers", () => {
       participantName: "Student One",
       participantToken: "mock-jwt-token",
       interactionMode: "ptt",
+      coach: "sana",
     });
   });
 });

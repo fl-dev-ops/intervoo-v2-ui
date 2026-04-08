@@ -10,6 +10,7 @@ export const env = createEnv({
     LIVEKIT_URL: z.string().url().optional(),
     LIVEKIT_API_KEY: z.string().min(1).optional(),
     LIVEKIT_API_SECRET: z.string().min(1).optional(),
+    LIVEKIT_AGENT_NAME: z.string().min(1),
     DIAGNOSTIC_LIVEKIT_URL: z.string().url().optional(),
     DIAGNOSTIC_LIVEKIT_API_KEY: z.string().min(1).optional(),
     DIAGNOSTIC_LIVEKIT_API_SECRET: z.string().min(1).optional(),
@@ -39,7 +40,10 @@ export const env = createEnv({
    * What object holds the environment variables at runtime. This is usually
    * `process.env` or `import.meta.env`.
    */
-  runtimeEnv: import.meta.env,
+  runtimeEnv: {
+    ...process.env,
+    ...import.meta.env,
+  },
 
   /**
    * By default, this library will feed the environment variables directly to

@@ -1,10 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getSession } from "#/lib/auth.functions";
-import {
-  getLatestPreDiagnosticSessionStatus,
-  generateReport,
-} from "#/lib/prediagnostics/functions";
-import { PrediagnosticsReportPage } from "#/features/prediagnostics/report-page";
+import { getLatestPreDiagnosticSessionStatus } from "#/lib/prediagnostics/functions";
+import { PrediagnosticsReportPreviewPage } from "#/features/prediagnostics/report-preview-page";
 
 export const Route = createFileRoute("/prediagnostics/report")({
   beforeLoad: async () => {
@@ -36,17 +33,7 @@ export const Route = createFileRoute("/prediagnostics/report")({
       return { reportStatus: latest };
     }
 
-    if (latest.report?.status === "FAILED") {
-      throw redirect({ to: "/prediagnostics", search: { redo: false } });
-    }
-
-    const reportStatus = await generateReport();
-
-    if (!reportStatus) {
-      throw new Error("Failed to load report");
-    }
-
-    return { reportStatus };
+    throw redirect({ to: "/prediagnostics", search: { redo: false } });
   },
   component: PrediagnosticsReportRoute,
 });
@@ -55,5 +42,7 @@ function PrediagnosticsReportRoute() {
   const { preferredName } = Route.useRouteContext();
   const { reportStatus } = Route.useLoaderData();
 
-  return <PrediagnosticsReportPage preferredName={preferredName} reportStatus={reportStatus} />;
+  return (
+    <PrediagnosticsReportPreviewPage preferredName={preferredName} reportStatus={reportStatus} />
+  );
 }

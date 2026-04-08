@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { prisma } from "#/db.server";
+import { env } from "#/env";
 import { auth } from "#/lib/auth.server";
 import {
   DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE,
@@ -46,6 +47,7 @@ export async function postHandler({ request }: { request: Request }) {
           : 0.5;
 
     const voice = user.profile?.coach === "sana" ? "ishita" : "rahul";
+    const coach = user.profile?.coach === "arjun" ? "arjun" : "sana";
 
     const studentProfile = {
       preferredName: user.profile?.preferredName ?? "",
@@ -60,6 +62,17 @@ export async function postHandler({ request }: { request: Request }) {
       englishLevel: user.profile?.englishLevel ?? "",
       speakingSpeed: speakingSpeedInt ?? "",
       voice: voice ?? "",
+    };
+
+    const promptContext = {
+      agentName: coach === "arjun" ? "Arjun" : "Sara",
+      userName: participantName,
+      ...studentProfile,
+    };
+
+    const agentConfig = {
+      voice,
+      speakingSpeed: speakingSpeedInt,
     };
 
     const preDiagnosticSession = await prisma.preDiagnosticSession.create({
@@ -86,28 +99,25 @@ export async function postHandler({ request }: { request: Request }) {
         userId: user.id,
         email: user.email,
         sessionId: preDiagnosticSession.id,
-        feature: "prediagnostics",
         interaction_mode: interactionMode,
       }),
       roomMetadata: JSON.stringify({
-        feature: "prediagnostics",
         sessionId: preDiagnosticSession.id,
         userId: user.id,
-        studentName: participantName,
-        studentEmail: user.email,
         interaction_mode: interactionMode,
-        studentProfile,
+        prompt_context: promptContext,
+        config: agentConfig,
       }),
-      agentName: "pre-screen-agent",
+      agentName: env.LIVEKIT_AGENT_NAME,
       agentMetadata: JSON.stringify({
         sessionId: preDiagnosticSession.id,
         studentId: user.id,
-        studentName: participantName,
-        studentEmail: user.email,
         interaction_mode: interactionMode,
-        studentProfile,
+        prompt_context: promptContext,
+        config: agentConfig,
       }),
       interactionMode,
+      coach,
     });
 
     return Response.json(connectionDetails, { status: 200 });

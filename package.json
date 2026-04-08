@@ -6,7 +6,7 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vp dev --port 3000",
+    "dev": "dotenv -e .env.local vp dev --port 3000",
     "build": "vp build",
     "preview": "vp preview",
     "test": "vp test run",

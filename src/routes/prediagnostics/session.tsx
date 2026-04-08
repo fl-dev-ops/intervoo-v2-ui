@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PrediagnosticsSessionPage } from "#/features/prediagnostics/session-page";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/prediagnostics/session")({
-  component: PrediagnosticsSessionPage,
+  beforeLoad: () => {
+    throw redirect({ to: "/prediagnostics" });
+  },
 });

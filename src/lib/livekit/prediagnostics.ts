@@ -16,6 +16,7 @@ export type PrediagnosticsConnectionDetails = {
   participantName: string;
   participantToken: string;
   interactionMode: PrediagnosticsInteractionMode;
+  coach: "sana" | "arjun";
 };
 
 export function buildPrediagnosticsRoomName(seed: string): string {
@@ -43,6 +44,7 @@ export async function createPrediagnosticsConnectionDetails(input: {
   agentName: string;
   agentMetadata: string;
   interactionMode: PrediagnosticsInteractionMode;
+  coach: "sana" | "arjun";
 }): Promise<PrediagnosticsConnectionDetails> {
   const roomClient = createLiveKitRoomServiceClient();
   const dispatchClient = createLiveKitAgentDispatchClient();
@@ -81,5 +83,6 @@ export async function createPrediagnosticsConnectionDetails(input: {
     participantName: input.participantName,
     participantToken: await token.toJwt(),
     interactionMode: input.interactionMode,
+    coach: input.coach,
   };
 }

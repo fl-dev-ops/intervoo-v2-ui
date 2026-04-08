@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, stripSearchParams } from "@tanstack/react-router";
-import { PrediagnosticsIndexPage } from "#/features/prediagnostics/index-page";
+import { PrediagnosticsFlowPage } from "#/features/prediagnostics/flow-page";
 import { getSession } from "#/lib/auth.functions";
-import { hasActiveOrCompletedPreDiagnosticSession } from "#/lib/prediagnostics/functions";
+import { getLatestPreDiagnosticSessionStatus } from "#/lib/prediagnostics/functions";
 
 export const Route = createFileRoute("/prediagnostics/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -25,11 +25,11 @@ export const Route = createFileRoute("/prediagnostics/")({
       return;
     }
 
-    const hasSession = await hasActiveOrCompletedPreDiagnosticSession();
+    const latestSession = await getLatestPreDiagnosticSessionStatus();
 
-    if (hasSession) {
+    if (latestSession?.report?.status === "READY" && latestSession.report.reportJson) {
       throw redirect({ to: "/prediagnostics/report" });
     }
   },
-  component: PrediagnosticsIndexPage,
+  component: PrediagnosticsFlowPage,
 });

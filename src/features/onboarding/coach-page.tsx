@@ -1,16 +1,14 @@
 import { useState } from "react";
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
 import { cn } from "#/lib/utils";
-import type { SpeakingSpeed } from "./types";
 import { OnboardingShell } from "./shell";
 
 export type CoachOption = "sana" | "arjun";
 
 type CoachPageProps = {
   initialValue: CoachOption;
-  initialSpeed: SpeakingSpeed;
   onBack: () => void;
-  onContinue: (value: CoachOption, speed: SpeakingSpeed) => void;
+  onContinue: (value: CoachOption) => void;
 };
 
 const coachCards = [
@@ -26,19 +24,8 @@ const coachCards = [
   },
 ] as const;
 
-const speedOptions = [
-  { value: "normal", label: "Normal", multiplier: "1x" },
-  { value: "relaxed", label: "Relaxed", multiplier: ".7x" },
-  { value: "slow", label: "Slow", multiplier: ".5x" },
-] as const satisfies Array<{
-  value: SpeakingSpeed;
-  label: string;
-  multiplier: string;
-}>;
-
 export function CoachPage(props: CoachPageProps) {
   const [value, setValue] = useState<CoachOption>(props.initialValue);
-  const [speed, setSpeed] = useState<SpeakingSpeed>(props.initialSpeed);
 
   return (
     <OnboardingShell
@@ -55,7 +42,7 @@ export function CoachPage(props: CoachPageProps) {
           <button
             className="px-10 py-4 ml-auto inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] text-[1.05rem] font-medium tracking-[-0.02em] text-white shadow-[0_14px_28px_rgba(93,72,220,0.25)]"
             type="button"
-            onClick={() => props.onContinue(value, speed)}
+            onClick={() => props.onContinue(value)}
           >
             Next
             <IconArrowRight className="h-5 w-5" />
@@ -92,44 +79,6 @@ export function CoachPage(props: CoachPageProps) {
               </div>
             </button>
           ))}
-        </div>
-
-        <div>
-          <h3 className="text-[1rem] font-semibold text-[#16121f]">Speed</h3>
-          <div className="mt-4 space-y-4">
-            {speedOptions.map((option) => (
-              <button
-                key={option.value}
-                className={cn(
-                  "flex w-full items-center justify-between rounded-xl border bg-white p-4 py-3 text-left shadow-[0_12px_28px_rgba(23,18,36,0.04)] transition",
-                  speed === option.value ? "border-[#5a42cc]" : "border-[#ddd4e8]",
-                )}
-                type="button"
-                onClick={() => setSpeed(option.value)}
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full border-2 transition",
-                      speed === option.value ? "border-[#5a42cc]" : "border-[#d8d0e1]",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "h-3 w-3 rounded-full transition",
-                        speed === option.value ? "bg-[#5a42cc]" : "bg-transparent",
-                      )}
-                    />
-                  </div>
-                  <span className="text-[1rem] font-medium text-[#111018]">{option.label}</span>
-                </div>
-
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full px-3 text-[0.95rem] font-medium text-[#66606f]">
-                  {option.multiplier}
-                </span>
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </OnboardingShell>

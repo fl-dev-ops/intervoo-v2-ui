@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/lib/auth.server";
-import {
-  finalizePreDiagnosticSession,
-  triggerPreDiagnosticSessionEvaluation,
-} from "#/lib/prediagnostics/report.server";
+import { finalizePreDiagnosticSession } from "#/lib/prediagnostics/report.server";
 
 export async function postHandler({ request }: { request: Request }) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -42,13 +39,6 @@ export async function postHandler({ request }: { request: Request }) {
       },
       { status: 409 },
     );
-  }
-
-  if (result.transcriptMessageCount > 0) {
-    await triggerPreDiagnosticSessionEvaluation(body.sessionId, {
-      force: true,
-      transcriptMessages: result.transcriptMessages,
-    });
   }
 
   return Response.json(
