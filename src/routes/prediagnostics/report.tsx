@@ -4,6 +4,14 @@ import { getLatestPreDiagnosticSessionStatus } from "#/lib/prediagnostics/functi
 import { PrediagnosticsReportPage } from "#/features/prediagnostics/report-page";
 import type { PrediagnosticsReportStatusResponse } from "#/lib/prediagnostics/report";
 
+function getBaseUrl() {
+  if (typeof window !== "undefined") {
+    return "";
+  }
+
+  return process.env.SERVER_URL || "http://localhost:3000";
+}
+
 export const Route = createFileRoute("/prediagnostics/report")({
   beforeLoad: async () => {
     const session = await getSession();
@@ -27,7 +35,7 @@ export const Route = createFileRoute("/prediagnostics/report")({
     const latest = await getLatestPreDiagnosticSessionStatus();
 
     if (!latest) {
-      throw redirect({ to: "/prediagnostics" });
+      throw redirect({ to: "/prediagnostics", search: { redo: false } });
     }
 
     if (latest.report?.status === "READY" && latest.report.reportJson) {
@@ -35,10 +43,10 @@ export const Route = createFileRoute("/prediagnostics/report")({
     }
 
     if (latest.report?.status === "FAILED") {
-      throw redirect({ to: "/prediagnostics" });
+      throw redirect({ to: "/prediagnostics", search: { redo: false } });
     }
 
-    const response = await fetch("/api/prediagnostics/generate-report", {
+    const response = await fetch(`${getBaseUrl()}/api/prediagnostics/generate-report`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId: latest.session.id }),
