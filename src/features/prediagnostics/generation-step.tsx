@@ -3,6 +3,7 @@ import { IconCircle, IconCircleCheckFilled } from "@tabler/icons-react";
 import { Button } from "#/components/ui/button";
 import type { PrediagnosticsReportStatusResponse } from "#/lib/prediagnostics/report";
 import { triggerCelebrationConfetti } from "#/lib/confetti";
+import { PrediagnosticsShell } from "#/features/prediagnostics/shell";
 
 const REPORT_GENERATION_STEPS = [
   { label: "Job target captured" },
@@ -141,41 +142,31 @@ export function PrediagnosticsGenerationStep(props: PrediagnosticsGenerationStep
 
 function PrediagnosticsGenerationProcessingState(props: { completedSteps: number }) {
   return (
-    <section className="relative min-h-screen overflow-hidden bg-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-between px-6 py-10 text-center">
-        <div className="w-full" />
-
-        <div className="flex w-full flex-1 flex-col items-center">
-          <img alt="Intervoo infinity mark" className="h-40 w-40" src="/infinity.svg" />
-
-          <h1 className="mt-8 text-3xl font-semibold leading-none text-[#16111d]">
-            Congratulations!
-          </h1>
-
-          <p className="mt-3 text-lg leading-7 text-[#6f667d]">
-            Getting your pre-diagnostics report.
-          </p>
-
-          <div className="mt-12 w-full max-w-65 space-y-6 text-left">
-            {REPORT_GENERATION_STEPS.map((step, index) => (
-              <GenerationStepRow
-                key={step.label}
-                complete={index < props.completedSteps}
-                label={step.label}
-              />
-            ))}
-          </div>
+    <PrediagnosticsShell
+      title="Congratulations!"
+      description="Getting your pre-diagnostics report."
+      panelClassName="text-center"
+    >
+      <div className="flex flex-col items-center">
+        <div className="mt-4 w-full max-w-65 space-y-6 text-left">
+          {REPORT_GENERATION_STEPS.map((step, index) => (
+            <GenerationStepRow
+              key={step.label}
+              complete={index < props.completedSteps}
+              label={step.label}
+            />
+          ))}
         </div>
 
-        <p className="pb-2 text-[#7f768f]">This may take a few seconds...</p>
+        <p className="mt-10 text-[#7f768f]">This may take a few seconds...</p>
       </div>
-    </section>
+    </PrediagnosticsShell>
   );
 }
 
 function PrediagnosticsGenerationErrorState(props: { message: string }) {
   return (
-    <div className="grid min-h-screen place-items-center bg-[#F5F3F7] px-4">
+    <div className="grid min-h-screen place-items-center bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] px-4">
       <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-[0_20px_40px_rgba(112,88,186,0.12)]">
         <h2 className="text-xl font-semibold text-[#2b2233]">Report unavailable</h2>
         <p className="mt-3 text-sm leading-6 text-[#7f768f]">{props.message}</p>

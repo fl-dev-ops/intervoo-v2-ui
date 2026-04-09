@@ -309,8 +309,8 @@ function PrediagnosticsLiveKitSessionContent(
   }, [getTranscript, handleSessionEnd]);
 
   return (
-    <div className="min-h-screen bg-[#F5F3F7]">
-      <div className="min-h-screen md:flex md:items-center md:justify-center md:px-6">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
+      <div className="min-h-screen md:flex md:items-center md:justify-center md:px-6 md:pt-12 md:pb-8">
         <div className="relative h-screen w-full md:h-[85vh] md:w-100">
           <div
             className="absolute -inset-2 hidden rounded-4xl blur-xl opacity-60 md:block"
@@ -363,11 +363,16 @@ function SessionHeader(props: {
   return (
     <header className="flex items-center justify-between border-b border-[#e5e0ed] bg-white px-5 py-4">
       <div className="flex items-center gap-3">
-        <img
-          alt={coachMeta.title}
-          className="h-11 w-11 rounded-full object-cover ring-2 ring-[#eee8f5]"
-          src={coachMeta.imageSrc}
-        />
+        <div
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20"
+          style={{ backgroundColor: props.coach === "arjun" ? "#8ea5c4" : "#b8b25b" }}
+        >
+          <img
+            alt={coachMeta.title}
+            className="h-11 w-11 rounded-full object-cover"
+            src={coachMeta.imageSrc}
+          />
+        </div>
         <div>
           <h1 className="text-lg font-semibold text-[#2b2233]">Pre-Diagnostic Session</h1>
           <p className="text-sm text-[#7f768f]">{getAgentStateLabel(props.agentState)}</p>
@@ -414,8 +419,12 @@ const ChatMessageBubble = memo(function ChatMessageBubble(props: {
   return (
     <div className={`flex ${props.isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+        className={`max-w-[80%] px-4 py-3 ${
           props.isUser ? "bg-[#5a42cc] text-white" : "bg-white text-[#2b2233] shadow-sm"
+        } ${
+          props.isUser
+            ? "rounded-tl-4xl rounded-tr-none rounded-br-4xl rounded-bl-4xl"
+            : "rounded-tl-none rounded-tr-4xl rounded-br-4xl rounded-bl-4xl"
         }`}
       >
         <p className="text-sm leading-relaxed">{props.text}</p>
@@ -466,8 +475,12 @@ const PendingBubble = memo(function PendingBubble(props: { isUser: boolean }) {
     <div className="py-2">
       <div className={`flex ${props.isUser ? "justify-end" : "justify-start"}`}>
         <div
-          className={`rounded-2xl px-4 py-3 ${
+          className={`px-4 py-3 ${
             props.isUser ? "bg-[#b8addf] text-white" : "bg-white text-[#2b2233] shadow-sm"
+          } ${
+            props.isUser
+              ? "rounded-tl-4xl rounded-tr-none rounded-br-4xl rounded-bl-4xl"
+              : "rounded-tl-none rounded-tr-4xl rounded-br-4xl rounded-bl-4xl"
           }`}
         >
           <EllipsisIcon className="h-auto w-full" isAnimated animate size={20} />

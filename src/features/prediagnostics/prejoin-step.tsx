@@ -9,6 +9,7 @@ import { Track } from "livekit-client";
 import { LoaderCircle, Mic, RefreshCcw } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
+import { PrediagnosticsShell } from "#/features/prediagnostics/shell";
 
 type MicPermissionState = "checking" | "prompt" | "granted" | "denied";
 
@@ -228,104 +229,44 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
 
   if (permissionState === "checking") {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#F5F3F7]">
+      <div className="grid min-h-screen place-items-center bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
         <div className="flex flex-col items-center gap-3">
           <LoaderCircle className="h-8 w-8 animate-spin text-[#5a42cc]" />
-          <p className="text-sm text-[#7f768f]">Checking microphone access...</p>
+          <p className="text-sm text-white/70">Checking microphone access...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F3F7]">
-      <div className="hidden min-h-screen md:flex md:items-center md:justify-center md:px-6">
-        <div className="relative">
-          <div
-            className="absolute -inset-2 rounded-4xl blur-xl opacity-60"
-            style={{
-              background:
-                "linear-gradient(168.19deg, #7A2CAF -0.95%, #41D69A 26.72%, #DFCF58 60.2%, #5350B4 91.75%)",
-            }}
-          />
-          <div className="relative z-10 w-full max-w-105 overflow-hidden rounded-[26px] bg-white shadow-[0_28px_60px_rgba(74,57,143,0.12)]">
-            <div className="flex h-190 flex-col justify-between px-8 py-10">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-[-0.03em] text-[#2b2233]">
-                  Get ready to join the session
-                </h1>
-                <p className="mt-3 text-sm leading-6 text-[#7f768f]">
-                  Check your microphone, choose the input device you want to use, and join when
-                  you&apos;re ready.
-                </p>
-              </div>
+    <PrediagnosticsShell
+      title="Get ready to join the session"
+      description="Check your microphone, choose the input device you want to use, and join when you're ready."
+      panelClassName="bg-[#f1ecf7] md:rounded-[28px] md:px-8 md:pt-10 md:pb-10"
+    >
+      <div className="mt-5 space-y-4">
+        <PrejoinDeviceSelector
+          audioDevices={audioDevices}
+          disabled={permissionState !== "granted" || audioDevices.length === 0}
+          permissionState={permissionState}
+          selectedDeviceAvailable={selectedDeviceAvailable}
+          selectedDeviceId={selectedDeviceId}
+          selectId="prediagnostics-audio-device"
+          onChange={handleDeviceChange}
+        />
 
-              <div className="mt-8 space-y-4">
-                <PrejoinDeviceSelector
-                  audioDevices={audioDevices}
-                  disabled={permissionState !== "granted" || audioDevices.length === 0}
-                  permissionState={permissionState}
-                  selectedDeviceAvailable={selectedDeviceAvailable}
-                  selectedDeviceId={selectedDeviceId}
-                  selectId="prediagnostics-audio-device-desktop"
-                  onChange={handleDeviceChange}
-                />
+        <PrejoinErrors deviceError={deviceError} joinError={joinError} />
 
-                <PrejoinErrors deviceError={deviceError} joinError={joinError} />
-
-                <PrejoinActionButton
-                  hasRequestedPermission={hasRequestedPermission}
-                  isJoining={isJoining}
-                  permissionState={permissionState}
-                  readyToJoin={!!previewAudioTrack}
-                  onJoin={handleJoin}
-                  onRequestPermission={requestPermission}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <PrejoinActionButton
+          hasRequestedPermission={hasRequestedPermission}
+          isJoining={isJoining}
+          permissionState={permissionState}
+          readyToJoin={!!previewAudioTrack}
+          onJoin={handleJoin}
+          onRequestPermission={requestPermission}
+        />
       </div>
-
-      <div className="md:hidden">
-        <div className="mx-auto flex min-h-screen md:min-h-[calc(100dvh-4rem)] w-full flex-col items-center justify-between">
-          <section className="w-full max-w-xl rounded-4xl p-6 sm:p-8">
-            <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-[#2b2233]">
-              Get ready to join the session
-            </h1>
-
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#7f768f] sm:text-base">
-              Check your microphone, choose the input device you want to use, and join when
-              you&apos;re ready.
-            </p>
-          </section>
-          <div className="w-full mt-8 p-6 sm:p-8">
-            <div className="mt-5 space-y-4">
-              <PrejoinDeviceSelector
-                audioDevices={audioDevices}
-                disabled={permissionState !== "granted" || audioDevices.length === 0}
-                permissionState={permissionState}
-                selectedDeviceAvailable={selectedDeviceAvailable}
-                selectedDeviceId={selectedDeviceId}
-                selectId="prediagnostics-audio-device"
-                onChange={handleDeviceChange}
-              />
-
-              <PrejoinErrors deviceError={deviceError} joinError={joinError} />
-
-              <PrejoinActionButton
-                hasRequestedPermission={hasRequestedPermission}
-                isJoining={isJoining}
-                permissionState={permissionState}
-                readyToJoin={!!previewAudioTrack}
-                onJoin={handleJoin}
-                onRequestPermission={requestPermission}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </PrediagnosticsShell>
   );
 }
 
