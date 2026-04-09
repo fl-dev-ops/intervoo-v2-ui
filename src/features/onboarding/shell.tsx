@@ -1,9 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "#/lib/utils";
-
 type OnboardingShellProps = {
-  step: number;
-  totalSteps?: number;
   title: string;
   subtitle?: string;
   sectionTitle?: string;
@@ -13,42 +9,30 @@ type OnboardingShellProps = {
 };
 
 export function OnboardingShell(props: OnboardingShellProps) {
-  const totalSteps = props.totalSteps ?? 5;
-
   return (
-    <section className="min-h-screen bg-[#F5F3F7]">
-      {/* Desktop: centered card */}
-      <div className="hidden min-h-screen md:flex md:items-center md:justify-center md:px-6 md:py-6">
-        <div className="w-full max-w-125">
-          <div className="text-center">
-            <img
-              alt="Intervoo"
-              className="mx-auto h-10 brightness-0"
-              src="/intervoo-logo-light.svg"
-            />
-            <h1 className="mt-4 text-[1.8rem] leading-tight font-medium text-[#13101b] font-figtree tracking-[0.02em]">
-              {props.title}
-            </h1>
-            {props.subtitle ? (
-              <p className="mx-auto mt-3 max-w-2xl text-[0.92rem] leading-6 text-[#797186]">
-                {props.subtitle}
-              </p>
-            ) : null}
-            <div className="mt-6 flex justify-center gap-2">
-              {Array.from({ length: totalSteps }).map((_, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "h-2 rounded-full transition",
-                    index === props.step ? "w-5 bg-[#5a42cc]" : "w-5 bg-[#cdc4dc]",
-                  )}
-                />
-              ))}
+    <section className="min-h-screen bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
+      {/* Desktop: branded header + card */}
+      <div className="hidden min-h-screen md:flex md:justify-center md:px-6 md:pt-12 md:pb-8">
+        <div className="w-full max-w-120">
+          <div className="space-y-3 text-center">
+            <img alt="Intervoo" className="mx-auto h-10" src="/intervoo-logo-light.svg" />
+            <div className="text-2xl font-medium tracking-wider text-white font-figtree">
+              Intervoo.ai
             </div>
+            <p className="mt-6 mb-8 text-[16px] font-medium text-gray-500">
+              Speak better. Interview better.
+              <br /> With India-trained voice AI.
+            </p>
           </div>
 
-          <div className="relative mt-8">
-            <div className="z-10 bg-[#faf9fc] relative rounded-4xl px-8 pt-8 pb-8 shadow-xl">
+          <div className="relative mt-16">
+            <img
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute -top-30 left-0 z-0 w-[inherit] scale-150"
+              src="/glitter.svg"
+            />
+            <div className="z-10 relative rounded-4xl bg-[#faf9fc] px-8 pt-8 pb-8 shadow-xl">
               {props.sectionTitle ? (
                 <h2 className="mb-5 text-[1.1rem] font-semibold tracking-[-0.03em] text-center text-[#1b1624]">
                   {props.sectionTitle}
@@ -63,41 +47,40 @@ export function OnboardingShell(props: OnboardingShellProps) {
         </div>
       </div>
 
-      {/* Mobile: current layout */}
-      <div className="mx-auto flex min-h-screen w-full flex-col bg-[#F5F3F7] px-5 pt-8 pb-6 text-[#13101b] sm:px-6 md:hidden">
-        <div className="relative text-center">
-          <h1 className="text-[1.75rem] leading-[1.1] font-semibold tracking-[-0.04em] sm:text-[1.9rem]">
-            {props.title}
-          </h1>
-
-          <div className="mt-6 flex justify-center gap-2">
-            {Array.from({ length: totalSteps }).map((_, index) => (
-              <div
-                key={index}
-                className={cn(
-                  "h-2 rounded-full transition",
-                  index === props.step ? "w-5 bg-[#5a42cc]" : "w-5 bg-[#cdc4dc]",
-                )}
-              />
-            ))}
-          </div>
-
-          {props.sectionTitle ? (
-            <h2 className="mt-8 text-[1.08rem] font-semibold tracking-[-0.03em] text-[#1b1624]">
-              {props.sectionTitle}
-            </h2>
-          ) : null}
-
-          {props.subtitle ? (
-            <p className="mx-auto mt-3 max-w-md text-[0.92rem] leading-6 text-[#797186]">
-              {props.subtitle}
+      {/* Mobile: branded hero + sheet */}
+      <div className="flex min-h-screen flex-col justify-between md:hidden">
+        <div className="flex flex-col items-center px-6 pt-10 pb-8 text-center">
+          <div className="space-y-3">
+            <img alt="Intervoo" className="mx-auto h-10" src="/intervoo-logo-light.svg" />
+            <div className="text-2xl font-medium tracking-wider text-white font-figtree">
+              Intervoo.ai
+            </div>
+            <p className="my-4 text-[16px] font-medium text-gray-500">
+              Speak better. Interview better.
+              <br /> With India-trained voice AI.
             </p>
-          ) : null}
+          </div>
         </div>
 
-        <div className="mt-8 flex-1">{props.children}</div>
+        <div className="relative w-screen overflow-x-hidden">
+          <img
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute -top-30 left-0 z-0 w-[inherit] scale-150"
+            src="/glitter.svg"
+          />
+          <div className="relative z-10 flex flex-col rounded-t-4xl bg-[#faf9fc] px-6 pt-7 pb-6 text-[#13101b] sm:px-8 sm:pt-8 sm:pb-8">
+            {props.sectionTitle ? (
+              <h2 className="text-center text-[1.08rem] font-semibold tracking-[-0.03em] text-[#1b1624]">
+                {props.sectionTitle}
+              </h2>
+            ) : null}
 
-        <div className="mt-10">{props.footer}</div>
+            <div className="mt-8 flex-1">{props.children}</div>
+
+            <div className="mt-10">{props.footer}</div>
+          </div>
+        </div>
       </div>
     </section>
   );

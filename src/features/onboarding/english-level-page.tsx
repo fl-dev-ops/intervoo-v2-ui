@@ -75,10 +75,10 @@ export function EnglishLevelPage(props: EnglishLevelPageProps) {
           <button
             key={option.value}
             className={cn(
-              "flex w-full items-start gap-4 rounded-xl border bg-white p-4 py-3 text-left transition",
+              "flex w-full items-start gap-4 rounded-xl border bg-[#f4f0f8] p-4 py-3 text-left transition",
               value === option.value
-                ? "border-[#5a42cc] shadow-[0_8px_24px_rgba(90,66,204,0.08)]"
-                : "border-transparent",
+                ? "border-2 border-[#5a42cc] shadow-[0_8px_24px_rgba(90,66,204,0.08)]"
+                : "border-[#ddd5e8]",
             )}
             type="button"
             onClick={() => setValue(option.value)}
@@ -92,7 +92,7 @@ export function EnglishLevelPage(props: EnglishLevelPageProps) {
               <div
                 className={cn(
                   "h-3 w-3 rounded-full transition",
-                  value === option.value ? "bg-[#5a42cc]" : "bg-transparent",
+                  value === option.value ? "bg-[#5a42cc]" : "bg-[#f4f0f8]",
                 )}
               />
             </div>

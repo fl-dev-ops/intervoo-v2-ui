@@ -2,14 +2,23 @@ import { useState } from "react";
 import { completeOnboarding } from "#/lib/auth.functions";
 import { savePreScreeningSetup, type EnglishLevel, type NativeLanguage } from "./types";
 import { CoachPage, type CoachOption } from "./coach-page";
+import { EducationPage } from "./education-page";
 import { EnglishLevelPage } from "./english-level-page";
 import { LanguagePage } from "./language-page";
+import { PlacementsPage } from "./placements-page";
 import { ProfilePage, type ProfileFormValue } from "./profile-page";
 import { ReadyPage } from "./ready-page";
 
 const DEFAULT_SPEAKING_SPEED = "normal";
 
-type OnboardingStep = "profile" | "coach" | "language" | "english" | "ready";
+type OnboardingStep =
+  | "profile"
+  | "education"
+  | "placements"
+  | "coach"
+  | "language"
+  | "english"
+  | "ready";
 
 type OnboardingFlowProps = {
   initialProfile: ProfileFormValue;
@@ -98,6 +107,28 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
             initialValue={profile}
             onContinue={(value) => {
               setProfile(value);
+              setStep("education");
+            }}
+          />
+        ) : null}
+
+        {step === "education" ? (
+          <EducationPage
+            initialValue={profile}
+            onBack={() => setStep("profile")}
+            onContinue={(value) => {
+              setProfile(value);
+              setStep("placements");
+            }}
+          />
+        ) : null}
+
+        {step === "placements" ? (
+          <PlacementsPage
+            initialValue={profile}
+            onBack={() => setStep("education")}
+            onContinue={(value) => {
+              setProfile(value);
               setStep("language");
             }}
           />
@@ -106,7 +137,7 @@ export function OnboardingFlow(props: OnboardingFlowProps) {
         {step === "language" ? (
           <LanguagePage
             initialValue={nativeLanguage}
-            onBack={() => setStep("profile")}
+            onBack={() => setStep("placements")}
             onContinue={(value) => {
               setNativeLanguage(value);
               setStep("english");
