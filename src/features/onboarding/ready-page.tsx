@@ -34,7 +34,7 @@ export function ReadyPage(props: ReadyPageProps) {
     <section className="min-h-screen bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
       {/* Desktop: two-column layout */}
       <div className="hidden min-h-screen md:flex md:justify-center md:px-6 md:pt-12 md:pb-8">
-        <div className="w-full max-w-170">
+        <div className="w-full max-w-200">
           <div className="space-y-3 text-center">
             <img alt="Intervoo" className="mx-auto h-10" src="/intervoo-logo-light.svg" />
             <div className="text-2xl font-medium tracking-wider text-white font-figtree">
@@ -68,7 +68,7 @@ export function ReadyPage(props: ReadyPageProps) {
                 >
                   <IconArrowLeft className="h-5 w-5" />
                 </Button>
-                <div className="h-64 w-64 overflow-hidden rounded-full lg:h-72 lg:w-72">
+                <div className="h-64 w-64 overflow-hidden rounded-full">
                   <img
                     alt={coach.title}
                     className="w-full h-full object-cover"

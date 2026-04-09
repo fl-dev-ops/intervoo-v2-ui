@@ -33,7 +33,7 @@ export function PrediagnosticsReportPreviewPage(props: {
 
 function PrediagnosticsReportErrorState(props: { message: string }) {
   return (
-    <div className="grid min-h-screen place-items-center bg-[#F5F3F7] px-4">
+    <div className="grid min-h-screen place-items-center bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] px-4">
       <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-[0_20px_40px_rgba(112,88,186,0.12)]">
         <h2 className="text-xl font-semibold text-[#2b2233]">Report unavailable</h2>
         <p className="mt-3 text-sm leading-6 text-[#7f768f]">{props.message}</p>
@@ -70,18 +70,29 @@ function PrediagnosticsReportPreview({
   );
 
   return (
-    <div className="min-h-screen bg-[#F5F3F7]">
-      <div className="mx-auto w-full max-w-md md:max-w-lg">
-        <div className="p-5 sm:p-6">
-          <div className="rounded-xl px-5 pt-4 text-center">
-            <p className="text-2xl font-medium ">
-              Hi {displayName} <span aria-hidden="true">👋</span>
-            </p>
-            <h1 className="mt-1">Here is your pre-diagnostics report</h1>
-          </div>
+    <div className="min-h-screen bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
+      <div className="mx-auto w-full max-w-md px-5 pt-10 pb-8 text-center text-white md:max-w-lg md:px-6 md:pt-12">
+        <p className="text-3xl font-medium tracking-[-0.03em]">
+          Hi {displayName} <span aria-hidden="true">👋</span>
+        </p>
+        <h1 className="mt-2 text-lg font-semibold tracking-[-0.02em] text-white/95">
+          Here is your pre-diagnostics report
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-white/65">
+          A quick summary of your current job awareness and interview readiness.
+        </p>
+      </div>
 
-          <div className="mt-5 space-y-4">
-            <section className="rounded-xl bg-white p-4">
+      <div className="relative mx-auto w-full max-w-md md:max-w-lg">
+        <img
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -top-30 left-0 z-0 w-[inherit] scale-150"
+          src="/glitter.svg"
+        />
+        <div className="relative z-10 rounded-t-4xl px-5 pt-6 pb-8 sm:px-6 sm:pt-7">
+          <div className="space-y-4">
+            <section className="rounded-xl bg-white p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3 border-b border-[#eee8f5] pb-3">
                 <div className="flex items-center gap-3">
                   <IconCircleCheckFilled className="h-7 w-7 text-[#30b961]" />
@@ -118,7 +129,7 @@ function PrediagnosticsReportPreview({
               ) : null}
             </section>
 
-            <section className="rounded-xl bg-white p-4">
+            <section className="rounded-xl bg-white p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3 border-b border-[#eee8f5] pb-3">
                 <div className="flex items-center gap-3">
                   <IconCircleCheckFilled className="h-7 w-7 text-[#30b961]" />
@@ -170,14 +181,14 @@ function PrediagnosticsReportPreview({
             </section>
 
             <section className="my-12 rounded-xl px-5 text-center">
-              <h2 className="text-[1.35rem] font-semibold tracking-[-0.02em] text-[#2b2233]">
+              <h2 className="text-[1.35rem] font-semibold tracking-[-0.02em] text-white">
                 Diagnostic interview coming soon
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#6f667d]">
+              <p className="mt-2 text-sm leading-6 text-white/65">
                 We&apos;re preparing the next step. Your report is ready, and the full diagnostic
                 interview experience will be available soon.
               </p>
-              <Button asChild size={"lg"} className="mt-6">
+              <Button asChild size={"lg"} variant="secondary" className="mt-6">
                 <Link to="/prediagnostics" search={{ redo: true }}>
                   Retake Pre Diagnostics
                 </Link>
@@ -203,7 +214,7 @@ function Badge(props: { label: string; color: "green" | "amber" }) {
 
 function InfoCard(props: { icon: ReactNode; iconClassName: string; title: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#ece7f2] p-3">
+    <div className="rounded-xl p-1">
       <div className="flex items-start gap-3">
         <div
           className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full ${props.iconClassName}`}
