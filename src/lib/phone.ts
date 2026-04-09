@@ -9,7 +9,7 @@ export function normalizeLocalPhoneNumber(value: string) {
     return "";
   }
 
-  if (digits.startsWith(FIXED_COUNTRY_CODE_DIGITS)) {
+  if (digits.length > LOCAL_PHONE_LENGTH && digits.startsWith(FIXED_COUNTRY_CODE_DIGITS)) {
     return digits.slice(FIXED_COUNTRY_CODE_DIGITS.length).slice(0, LOCAL_PHONE_LENGTH);
   }
 
