@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useChat, useSession, type UseSessionReturn } from "@livekit/components-react";
 import { TokenSource } from "livekit-client";
 import { LoaderCircle, SendHorizontal } from "lucide-react";
@@ -36,6 +36,7 @@ const coachHeaderMeta = {
 
 type PrediagnosticsSessionStepProps = {
   connectionDetails: PrediagnosticsConnectionDetails;
+  initialMessages?: PrediagnosticsMessage[];
   sessionId: string;
   onFinished: (payload: { sessionId: string }) => void;
 };
@@ -74,6 +75,7 @@ function PrediagnosticsLiveKitSessionContent(
 ) {
   const adapter = usePrediagnosticsSessionAdapter({
     connectionDetails: props.connectionDetails,
+    initialMessages: props.initialMessages,
     session: props.session,
     sessionId: props.sessionId,
     onFinished: props.onFinished,
@@ -82,6 +84,19 @@ function PrediagnosticsLiveKitSessionContent(
   const handleEndClick = useCallback(() => {
     void adapter.requestDisconnect();
   }, [adapter]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F5F3F7]">

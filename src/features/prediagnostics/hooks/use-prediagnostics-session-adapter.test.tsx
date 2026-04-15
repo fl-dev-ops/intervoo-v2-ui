@@ -185,4 +185,77 @@ describe("usePrediagnosticsSessionAdapter", () => {
     expect(endMock).toHaveBeenCalledTimes(1);
     expect(onFinishedMock).toHaveBeenCalledWith({ sessionId: "session-2" });
   });
+
+  test("restores prior user transcript messages into displayMessages for ptt sessions", () => {
+    useSessionContextMock.mockReturnValue({
+      end: endMock,
+      isConnected: true,
+      start: startMock,
+    });
+
+    usePrediagnosticsMessagesMock.mockReturnValue([
+      {
+        id: "agent-1",
+        role: "agent",
+        kind: "transcript",
+        text: "Tell me about your goals.",
+        timestamp: 2,
+      },
+      {
+        id: "user-live-1",
+        role: "user",
+        kind: "transcript",
+        text: "partial live segment",
+        timestamp: 3,
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      usePrediagnosticsSessionAdapter({
+        connectionDetails: {
+          sessionId: "session-3",
+          serverUrl: "wss://example.livekit.cloud",
+          roomName: "room-3",
+          participantName: "Student One",
+          participantToken: "token",
+          interactionMode: "ptt",
+          coach: "sana",
+        },
+        initialMessages: [
+          {
+            id: "user-restored-1",
+            role: "user",
+            kind: "transcript",
+            text: "I want to prepare for chef interviews.",
+            timestamp: 1,
+          },
+        ],
+        session: {
+          room: {
+            getActiveDevice: vi.fn<() => string>(),
+            switchActiveDevice: vi.fn<(kind: MediaDeviceKind, deviceId: string) => Promise<void>>(),
+          },
+        } as never,
+        sessionId: "session-3",
+        onFinished: onFinishedMock,
+      }),
+    );
+
+    expect(result.current.displayMessages).toEqual([
+      {
+        id: "user-restored-1",
+        role: "user",
+        kind: "transcript",
+        text: "I want to prepare for chef interviews.",
+        timestamp: 1,
+      },
+      {
+        id: "agent-1",
+        role: "agent",
+        kind: "transcript",
+        text: "Tell me about your goals.",
+        timestamp: 2,
+      },
+    ]);
+  });
 });

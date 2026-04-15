@@ -5,6 +5,7 @@ import {
   buildPrediagnosticsParticipantIdentity,
   buildPrediagnosticsRoomName,
   createPrediagnosticsConnectionDetails,
+  createPrediagnosticsReconnectDetails,
 } from "#/lib/livekit/prediagnostics";
 
 vi.mock("livekit-server-sdk", () => {
@@ -102,12 +103,12 @@ describe("prediagnostics LiveKit helpers", () => {
 
   it("builds unique participant identities with a stable prefix", () => {
     const identity = buildPrediagnosticsParticipantIdentity("User-123");
-    expect(identity).toMatch(/^prediag_user_user123_/);
+    expect(identity).toBe("prediag_user_user123");
   });
 
   it("builds unique room names with a stable prefix", () => {
     const roomName = buildPrediagnosticsRoomName("User-123");
-    expect(roomName).toMatch(/^prediag_user123_/);
+    expect(roomName).toBe("prediag_user123");
   });
 
   it("defaults prediagnostics interaction mode to push to talk", () => {
@@ -187,6 +188,34 @@ describe("prediagnostics LiveKit helpers", () => {
       participantToken: "mock-jwt-token",
       interactionMode: "ptt",
       coach: "sana",
+    });
+  });
+
+  it("reissues connection details for an existing session without creating a room or dispatch", async () => {
+    process.env.LIVEKIT_API_KEY = "test-key";
+    process.env.LIVEKIT_API_SECRET = "test-secret";
+    process.env.LIVEKIT_URL = "wss://example.livekit.cloud";
+
+    const details = await createPrediagnosticsReconnectDetails({
+      sessionId: "diag-session-2",
+      roomName: "prediag_room_existing",
+      participantIdentity: "prediag_user_existing",
+      participantName: "Student Two",
+      participantMetadata: JSON.stringify({ userId: "user-2" }),
+      interactionMode: "auto",
+      coach: "arjun",
+    });
+
+    expect(mockedRoomServiceClient().createRoomMock).not.toHaveBeenCalled();
+    expect(mockedAgentDispatchClient().createDispatchMock).not.toHaveBeenCalled();
+    expect(details).toEqual({
+      sessionId: "diag-session-2",
+      serverUrl: "wss://example.livekit.cloud",
+      roomName: "prediag_room_existing",
+      participantName: "Student Two",
+      participantToken: "mock-jwt-token",
+      interactionMode: "auto",
+      coach: "arjun",
     });
   });
 });

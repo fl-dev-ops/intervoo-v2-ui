@@ -146,6 +146,46 @@ export async function finalizePreDiagnosticSession(input: {
   };
 }
 
+export async function persistPreDiagnosticSessionTranscript(input: {
+  sessionId: string;
+  userId: string;
+  transcript?: unknown;
+  messages?: unknown;
+}) {
+  const session = await prisma.preDiagnosticSession.findUnique({
+    where: { id: input.sessionId },
+  });
+
+  if (!session || session.userId !== input.userId) {
+    return null;
+  }
+
+  const existingTranscriptMessages = getPrediagnosticsSessionTranscriptMessages(session.transcript);
+  const incomingTranscript = input.transcript as PrediagnosticsSessionTranscript | undefined;
+  const incomingTranscriptMessages = Array.isArray(incomingTranscript?.messages)
+    ? sanitizePrediagnosticsTranscriptMessages(incomingTranscript.messages)
+    : sanitizePrediagnosticsTranscriptMessages(input.messages);
+
+  const transcriptMessages = sanitizePrediagnosticsTranscriptMessages([
+    ...existingTranscriptMessages,
+    ...incomingTranscriptMessages,
+  ]);
+  const transcript = buildPrediagnosticsSessionTranscript(transcriptMessages);
+
+  await prisma.preDiagnosticSession.update({
+    where: { id: session.id },
+    data: {
+      transcript: toJsonValue(transcript),
+    },
+  });
+
+  return {
+    sessionId: session.id,
+    transcriptMessageCount: transcriptMessages.length,
+    transcriptMessages,
+  };
+}
+
 export async function triggerPreDiagnosticSessionEvaluation(
   sessionId: string,
   options?: { force?: boolean; transcriptMessages?: PrediagnosticsTranscriptMessage[] },
@@ -341,6 +381,7 @@ function mapSessionToStatusResponse(session: {
   roomName: string;
   startedAt: Date;
   endedAt: Date | null;
+  transcript: unknown;
   report: {
     id: string;
     status: string;
@@ -358,6 +399,11 @@ function mapSessionToStatusResponse(session: {
       roomName: session.roomName,
       startedAt: session.startedAt.toISOString(),
       endedAt: session.endedAt?.toISOString() ?? null,
+      transcript: session.transcript
+        ? buildPrediagnosticsSessionTranscript(
+            getPrediagnosticsSessionTranscriptMessages(session.transcript),
+          )
+        : null,
     },
     report: session.report
       ? {

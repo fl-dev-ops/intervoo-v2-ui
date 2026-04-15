@@ -16,6 +16,7 @@ import { Route as PrediagnosticsIndexRouteImport } from './routes/prediagnostics
 import { Route as PrediagnosticsSessionRouteImport } from './routes/prediagnostics/session'
 import { Route as PrediagnosticsReportRouteImport } from './routes/prediagnostics/report'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
+import { Route as ApiPrediagnosticsTranscriptRouteImport } from './routes/api/prediagnostics/transcript'
 import { Route as ApiPrediagnosticsStartRouteImport } from './routes/api/prediagnostics/start'
 import { Route as ApiPrediagnosticsReportStatusRouteImport } from './routes/api/prediagnostics/report-status'
 import { Route as ApiPrediagnosticsGenerateReportRouteImport } from './routes/api/prediagnostics/generate-report'
@@ -57,6 +58,12 @@ const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   path: '/api/trpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPrediagnosticsTranscriptRoute =
+  ApiPrediagnosticsTranscriptRouteImport.update({
+    id: '/api/prediagnostics/transcript',
+    path: '/api/prediagnostics/transcript',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPrediagnosticsStartRoute = ApiPrediagnosticsStartRouteImport.update({
   id: '/api/prediagnostics/start',
   path: '/api/prediagnostics/start',
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/api/prediagnostics/generate-report': typeof ApiPrediagnosticsGenerateReportRoute
   '/api/prediagnostics/report-status': typeof ApiPrediagnosticsReportStatusRoute
   '/api/prediagnostics/start': typeof ApiPrediagnosticsStartRoute
+  '/api/prediagnostics/transcript': typeof ApiPrediagnosticsTranscriptRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRoutesByTo {
@@ -112,6 +120,7 @@ export interface FileRoutesByTo {
   '/api/prediagnostics/generate-report': typeof ApiPrediagnosticsGenerateReportRoute
   '/api/prediagnostics/report-status': typeof ApiPrediagnosticsReportStatusRoute
   '/api/prediagnostics/start': typeof ApiPrediagnosticsStartRoute
+  '/api/prediagnostics/transcript': typeof ApiPrediagnosticsTranscriptRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRoutesById {
@@ -127,6 +136,7 @@ export interface FileRoutesById {
   '/api/prediagnostics/generate-report': typeof ApiPrediagnosticsGenerateReportRoute
   '/api/prediagnostics/report-status': typeof ApiPrediagnosticsReportStatusRoute
   '/api/prediagnostics/start': typeof ApiPrediagnosticsStartRoute
+  '/api/prediagnostics/transcript': typeof ApiPrediagnosticsTranscriptRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRouteTypes {
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/api/prediagnostics/generate-report'
     | '/api/prediagnostics/report-status'
     | '/api/prediagnostics/start'
+    | '/api/prediagnostics/transcript'
     | '/api/trpc/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/api/prediagnostics/generate-report'
     | '/api/prediagnostics/report-status'
     | '/api/prediagnostics/start'
+    | '/api/prediagnostics/transcript'
     | '/api/trpc/$'
   id:
     | '__root__'
@@ -171,6 +183,7 @@ export interface FileRouteTypes {
     | '/api/prediagnostics/generate-report'
     | '/api/prediagnostics/report-status'
     | '/api/prediagnostics/start'
+    | '/api/prediagnostics/transcript'
     | '/api/trpc/$'
   fileRoutesById: FileRoutesById
 }
@@ -186,6 +199,7 @@ export interface RootRouteChildren {
   ApiPrediagnosticsGenerateReportRoute: typeof ApiPrediagnosticsGenerateReportRoute
   ApiPrediagnosticsReportStatusRoute: typeof ApiPrediagnosticsReportStatusRoute
   ApiPrediagnosticsStartRoute: typeof ApiPrediagnosticsStartRoute
+  ApiPrediagnosticsTranscriptRoute: typeof ApiPrediagnosticsTranscriptRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
 }
 
@@ -240,6 +254,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/prediagnostics/transcript': {
+      id: '/api/prediagnostics/transcript'
+      path: '/api/prediagnostics/transcript'
+      fullPath: '/api/prediagnostics/transcript'
+      preLoaderRoute: typeof ApiPrediagnosticsTranscriptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/prediagnostics/start': {
       id: '/api/prediagnostics/start'
       path: '/api/prediagnostics/start'
@@ -290,6 +311,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPrediagnosticsGenerateReportRoute: ApiPrediagnosticsGenerateReportRoute,
   ApiPrediagnosticsReportStatusRoute: ApiPrediagnosticsReportStatusRoute,
   ApiPrediagnosticsStartRoute: ApiPrediagnosticsStartRoute,
+  ApiPrediagnosticsTranscriptRoute: ApiPrediagnosticsTranscriptRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
 }
 export const routeTree = rootRouteImport

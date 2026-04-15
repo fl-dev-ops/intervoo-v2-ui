@@ -11,6 +11,7 @@ import { Button } from "#/components/ui/button";
 import { LiveWaveform } from "#/components/ui/live-waveform";
 import { MicSelector, type AudioDevice } from "#/components/ui/mic-selector";
 import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
+import type { PrediagnosticsMessage } from "#/features/prediagnostics/hooks/use-prediagnostics-messages";
 
 type MicPermissionState = "checking" | "prompt" | "granted" | "denied";
 
@@ -23,19 +24,26 @@ const DEFAULT_USER_CHOICES: Partial<LocalUserChoices> = {
 };
 
 type PrediagnosticsPrejoinStepProps = {
+  resumableSession: {
+    sessionId: string;
+    initialMessages: PrediagnosticsMessage[];
+  } | null;
   onStarted: (payload: {
     sessionId: string;
     connectionDetails: PrediagnosticsConnectionDetails;
+    initialMessages?: PrediagnosticsMessage[];
   }) => void;
 };
 
-async function startPrediagnosticsSession(): Promise<PrediagnosticsConnectionDetails> {
+async function startPrediagnosticsSession(
+  sessionId?: string,
+): Promise<PrediagnosticsConnectionDetails> {
   const response = await fetch("/api/prediagnostics/start", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({}),
+    body: JSON.stringify(sessionId ? { sessionId } : {}),
   });
 
   if (!response.ok) {
@@ -222,10 +230,11 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
     setJoinError(null);
 
     try {
-      const connectionDetails = await startPrediagnosticsSession();
+      const connectionDetails = await startPrediagnosticsSession(props.resumableSession?.sessionId);
       props.onStarted({
         sessionId: connectionDetails.sessionId,
         connectionDetails,
+        initialMessages: props.resumableSession?.initialMessages,
       });
     } catch (error) {
       setJoinError(
