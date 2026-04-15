@@ -549,6 +549,7 @@ export const MicrophoneWaveform = ({
       }
       return;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [processing, active]);
 
   useEffect(() => {
@@ -557,7 +558,7 @@ export const MicrophoneWaveform = ({
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-        audioContextRef.current.close();
+        void audioContextRef.current.close();
       }
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
@@ -622,14 +623,14 @@ export const MicrophoneWaveform = ({
       }
     };
 
-    setupMicrophone();
+    void setupMicrophone();
 
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-        audioContextRef.current.close();
+        void audioContextRef.current.close();
       }
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
@@ -763,7 +764,7 @@ export const LiveMicrophoneWaveform = ({
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/webm",
         });
-        processAudioBlob(audioBlob);
+        void processAudioBlob(audioBlob);
       }
       return;
     }
@@ -812,7 +813,7 @@ export const LiveMicrophoneWaveform = ({
       }
     };
 
-    setupMicrophone();
+    void setupMicrophone();
 
     return () => {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
@@ -905,9 +906,9 @@ export const LiveMicrophoneWaveform = ({
       playbackStartTimeRef.current = audioContextRef.current.currentTime - startTime;
       setPlaybackPosition(startTime);
 
-      source.onended = () => {
+      source.addEventListener("ended", () => {
         setPlaybackPosition(null);
-      };
+      });
     },
     [enableAudioPlayback, playbackRate],
   );
@@ -1267,7 +1268,7 @@ export const RecordingWaveform = ({
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-        audioContextRef.current.close();
+        void audioContextRef.current.close();
       }
 
       if (recordingDataRef.current.length > 0) {
@@ -1308,14 +1309,14 @@ export const RecordingWaveform = ({
       }
     };
 
-    setupMicrophone();
+    void setupMicrophone();
 
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-        audioContextRef.current.close();
+        void audioContextRef.current.close();
       }
     };
   }, [recording, fftSize, smoothingTimeConstant, onError, onRecordingComplete]);

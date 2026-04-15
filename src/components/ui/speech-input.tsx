@@ -1,13 +1,12 @@
 "use client";
 
 import {
-  Children,
   createContext,
   forwardRef,
-  isValidElement,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   type ComponentPropsWithoutRef,
   type ReactNode,
@@ -229,13 +228,13 @@ const SpeechInput = forwardRef<HTMLDivElement, SpeechInputProps>(function Speech
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getToken, scribe, onStart, microphone]);
 
-  const stop = () => {
+  const stop = useCallback(() => {
     startRequestIdRef.current += 1;
     scribe.disconnect();
     onStop?.(buildEvent(transcriptsRef.current));
-  };
+  }, [scribe, onStop]);
 
-  const cancel = () => {
+  const cancel = useCallback(() => {
     startRequestIdRef.current += 1;
     const event = buildEvent(transcriptsRef.current);
     scribe.disconnect();
@@ -245,28 +244,41 @@ const SpeechInput = forwardRef<HTMLDivElement, SpeechInputProps>(function Speech
       committedTranscripts: [],
     };
     onCancel?.(event);
-  };
+  }, [scribe, onCancel]);
 
-  const contextValue: SpeechInputContextValue = {
-    isConnected: scribe.isConnected,
-    isConnecting,
-    start,
-    stop,
-    cancel,
-    error: scribe.error,
-    size,
-    ...buildEvent({
-      partialTranscript: scribe.partialTranscript,
-      committedTranscripts: scribe.committedTranscripts.map((t) => t.text),
+  const contextValue: SpeechInputContextValue = useMemo(
+    () => ({
+      isConnected: scribe.isConnected,
+      isConnecting,
+      start,
+      stop,
+      cancel,
+      error: scribe.error,
+      size,
+      ...buildEvent({
+        partialTranscript: scribe.partialTranscript,
+        committedTranscripts: scribe.committedTranscripts.map((t) => t.text),
+      }),
     }),
-  };
+    [
+      scribe.isConnected,
+      isConnecting,
+      start,
+      stop,
+      cancel,
+      scribe.error,
+      size,
+      scribe.partialTranscript,
+      scribe.committedTranscripts,
+    ],
+  );
 
   useEffect(() => {
     return () => {
       startRequestIdRef.current += 1;
       scribe.disconnect();
     };
-  }, [scribe.disconnect]);
+  }, [scribe]);
 
   return (
     <SpeechInputContext.Provider value={contextValue}>
@@ -304,7 +316,7 @@ const SpeechInputRecordButton = forwardRef<HTMLButtonElement, SpeechInputRecordB
           if (speechInput.isConnected) {
             speechInput.stop();
           } else {
-            speechInput.start();
+            void speechInput.start();
           }
           onClick?.(e);
         }}

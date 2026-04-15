@@ -524,7 +524,7 @@ export function ReactShaderToy({
   };
 
   const onDeviceOrientationChange = ({ alpha, beta, gamma }: DeviceOrientationEvent) => {
-    uniformsRef.current.iDeviceOrientation!.value = [
+    uniformsRef.current.iDeviceOrientation.value = [
       alpha ?? 0,
       beta ?? 0,
       gamma ?? 0,
@@ -739,12 +739,7 @@ export function ReactShaderToy({
           if (!shaderProgramRef.current) return;
           const customUniformLocation = gl.getUniformLocation(shaderProgramRef.current, name);
           if (!customUniformLocation) return;
-          processUniform(
-            gl,
-            customUniformLocation,
-            currentUniform.type as UniformType,
-            currentUniform.value,
-          );
+          processUniform(gl, customUniformLocation, currentUniform.type, currentUniform.value);
         }
       }
     }
@@ -939,7 +934,7 @@ export function ReactShaderToy({
         gl.useProgram(null);
         gl.deleteProgram(shaderProgramRef.current ?? null);
         if (textures.length > 0) {
-          for (const texture of textures as Texture[]) {
+          for (const texture of textures) {
             gl.deleteTexture(texture._webglTexture);
           }
         }

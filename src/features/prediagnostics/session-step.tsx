@@ -1,9 +1,5 @@
 import { memo, useCallback, useMemo, useState } from "react";
-import {
-  useChat,
-  useSession,
-  type UseSessionReturn,
-} from "@livekit/components-react";
+import { useChat, useSession, type UseSessionReturn } from "@livekit/components-react";
 import { TokenSource } from "livekit-client";
 import { LoaderCircle, SendHorizontal } from "lucide-react";
 import { IconMicrophone, IconPhoneOff } from "@tabler/icons-react";
@@ -44,9 +40,7 @@ type PrediagnosticsSessionStepProps = {
   onFinished: (payload: { sessionId: string }) => void;
 };
 
-export function PrediagnosticsSessionStep(
-  props: PrediagnosticsSessionStepProps,
-) {
+export function PrediagnosticsSessionStep(props: PrediagnosticsSessionStepProps) {
   const tokenSource = useMemo(
     () =>
       TokenSource.literal({
@@ -128,11 +122,7 @@ function PrediagnosticsLiveKitSessionContent(
               />
             </div>
             <div className="absolute right-4 bottom-4">
-              <StartAudioButton
-                label="Enable audio"
-                size="sm"
-                variant="secondary"
-              />
+              <StartAudioButton label="Enable audio" size="sm" variant="secondary" />
             </div>
           </div>
         </div>
@@ -156,9 +146,10 @@ function SessionHeader(props: {
           className="h-9 w-9 rounded-full object-cover ring-2 ring-[#eee8f5]"
           src={coachMeta.imageSrc}
         />
-        <h1 className="text-lg font-semibold text-[#2b2233]">
-          Pre-Diagnostic Session
-        </h1>
+        <div className="flex flex-col gap-0">
+          <h1 className="text-base font-semibold text-[#2b2233]">Pre-Diagnostic Session</h1>
+          <span className="text-sm">by {coachMeta.title}</span>
+        </div>
       </div>
 
       <Button
@@ -184,11 +175,7 @@ const ChatTranscript = memo(function ChatTranscript(props: {
   showAgentPendingBubble: boolean;
   showUserPendingBubble: boolean;
 }) {
-  if (
-    !props.messages.length &&
-    !props.showAgentPendingBubble &&
-    !props.showUserPendingBubble
-  ) {
+  if (!props.messages.length && !props.showAgentPendingBubble && !props.showUserPendingBubble) {
     return (
       <Conversation className="bg-transparent">
         <ConversationEmptyState
@@ -269,8 +256,7 @@ function AutoSessionFooter(props: {
   isEnding: boolean;
   userCanSpeak: boolean;
 }) {
-  const isInputDisabled =
-    !props.userCanSpeak || props.agentIsThinking || !props.agentCanListen;
+  const isInputDisabled = !props.userCanSpeak || props.agentIsThinking || !props.agentCanListen;
 
   return (
     <div className="px-4 pb-4">
@@ -342,7 +328,7 @@ function PttSessionFooter(props: {
   }, [isVoiceDisabled, props.ptt]);
 
   return (
-    <div className="mx-4 mb-4">
+    <div className="mx-4 my-4">
       <div className="flex items-center gap-3">
         <div className="flex h-10 flex-1 items-center rounded-full bg-slate-100 px-3 border border-slate-200">
           {showWaveform ? (
@@ -358,12 +344,8 @@ function PttSessionFooter(props: {
             />
           ) : (
             <input
-              className="h-full w-full bg-transparent text-sm text-[#2b2233] placeholder-[#9b92ad] outline-none disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder={
-                props.agentCanListen
-                  ? "Type your response..."
-                  : "Waiting for agent"
-              }
+              className="h-full w-full bg-transparent text-sm text-[#2b2233] placeholder-[#9b92ad] outline-none disabled:cursor-not-allowed disabled:opacity-50 px-1"
+              placeholder={props.agentCanListen ? "Type your response..." : "Waiting for agent"}
               type="text"
               value={chatMessage}
               disabled={isInputDisabled}

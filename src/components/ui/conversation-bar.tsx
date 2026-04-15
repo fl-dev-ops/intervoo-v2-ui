@@ -112,7 +112,7 @@ export const ConversationBar = React.forwardRef<HTMLDivElement, ConversationBarP
 
         await getMicStream();
 
-        await conversation.startSession({
+        conversation.startSession({
           agentId,
           connectionType: "webrtc",
           onStatusChange: (status) => setAgentState(status.status),
@@ -142,7 +142,7 @@ export const ConversationBar = React.forwardRef<HTMLDivElement, ConversationBarP
       if (agentState === "connected" || agentState === "connecting") {
         handleEndSession();
       } else if (agentState === "disconnected") {
-        startConversation();
+        void startConversation();
       }
     }, [agentState, handleEndSession, startConversation]);
 
