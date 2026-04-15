@@ -8,6 +8,19 @@ import {
 export type PrediagnosticsInteractionMode = "auto" | "ptt";
 
 export const DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE: PrediagnosticsInteractionMode = "ptt";
+const DEFAULT_PREDIAGNOSTICS_ROOM_EMPTY_TIMEOUT_SECONDS = 60 * 5;
+const PREDIAGNOSTICS_ROOM_DEPARTURE_TIMEOUT_SECONDS = 60 * 5;
+
+function getRoomEmptyTimeout(): number {
+  const envValue = process.env["PREDIAGNOSTICS_ROOM_EMPTY_TIMEOUT_SECONDS"];
+  if (envValue !== undefined) {
+    const parsed = Number(envValue);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.floor(parsed);
+    }
+  }
+  return DEFAULT_PREDIAGNOSTICS_ROOM_EMPTY_TIMEOUT_SECONDS;
+}
 
 export type PrediagnosticsConnectionDetails = {
   sessionId: string;
@@ -79,18 +92,6 @@ async function createPrediagnosticsParticipantConnectionDetails(input: {
   };
 }
 
-export async function createPrediagnosticsReconnectDetails(input: {
-  sessionId: string;
-  roomName: string;
-  participantIdentity: string;
-  participantName: string;
-  participantMetadata: string;
-  interactionMode: PrediagnosticsInteractionMode;
-  coach: "sana" | "arjun";
-}): Promise<PrediagnosticsConnectionDetails> {
-  return createPrediagnosticsParticipantConnectionDetails(input);
-}
-
 export async function createPrediagnosticsConnectionDetails(input: {
   sessionId: string;
   roomName: string;
@@ -113,7 +114,8 @@ export async function createPrediagnosticsConnectionDetails(input: {
     await roomClient.createRoom({
       name: input.roomName,
       metadata: input.roomMetadata,
-      emptyTimeout: 60 * 10,
+      emptyTimeout: getRoomEmptyTimeout(),
+      departureTimeout: PREDIAGNOSTICS_ROOM_DEPARTURE_TIMEOUT_SECONDS,
       maxParticipants: 10,
     });
 

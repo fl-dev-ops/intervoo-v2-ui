@@ -65,6 +65,13 @@ export function usePrediagnosticsSessionAdapter(
   const hasCompletedSessionRef = useRef(false);
   const isPageUnloadingRef = useRef(false);
   const lastPersistedTranscriptRef = useRef<string | null>(null);
+  const hasAgentBeenActiveInSessionRef = useRef(false);
+
+  useEffect(() => {
+    console.log(
+      `[agent-debug] room.isConnected=${isConnected} room.state=${props.session.room.state} agent.state=${agent.state} canListen=${agent.canListen} isFinished=${agent.isFinished} identity=${agent.identity ?? "n/a"}`,
+    );
+  }, [agent, isConnected, props.session.room.state]);
 
   const hasAgentGreeted = messages.some(
     (message: PrediagnosticsMessage) => message.role === "agent",
@@ -73,7 +80,11 @@ export function usePrediagnosticsSessionAdapter(
   const agentIsSpeaking = agent.state === "speaking";
   const agentCanListen = agent.canListen;
   const agentIsFinished = agent.isFinished;
-  const userCanSpeak = agentCanListen && !agentIsThinking && !isEnding;
+  const userCanSpeak = !isEnding;
+
+  if (agentCanListen || agentIsSpeaking) {
+    hasAgentBeenActiveInSessionRef.current = true;
+  }
 
   const userVoiceTranscriptMessages = useMemo(
     () =>
@@ -192,6 +203,7 @@ export function usePrediagnosticsSessionAdapter(
       return;
     }
 
+    console.log(`[agent-debug] session started, isConnected=${isConnected}`);
     setSessionHasStarted(true);
   }, [isConnected, sessionHasStarted]);
 
@@ -270,7 +282,8 @@ export function usePrediagnosticsSessionAdapter(
       !sessionHasStarted ||
       isEnding ||
       isPageUnloadingRef.current ||
-      displayMessages.length === 0
+      displayMessages.length === 0 ||
+      agentIsSpeaking
     ) {
       return;
     }
@@ -304,7 +317,14 @@ export function usePrediagnosticsSessionAdapter(
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [displayMessages.length, getTranscript, isEnding, props.sessionId, sessionHasStarted]);
+  }, [
+    agentIsSpeaking,
+    displayMessages.length,
+    getTranscript,
+    isEnding,
+    props.sessionId,
+    sessionHasStarted,
+  ]);
 
   const finalizeAndEndSession = useCallback(
     async (preCapturedTranscript?: PrediagnosticsSessionTranscript) => {
@@ -368,7 +388,10 @@ export function usePrediagnosticsSessionAdapter(
       return;
     }
 
-    if (sessionHasStarted && agentIsFinished) {
+    if (sessionHasStarted && hasAgentBeenActiveInSessionRef.current && agentIsFinished) {
+      console.log(
+        `[agent-debug] auto-finalize firing | sessionHasStarted=${sessionHasStarted} hasAgentActive=${hasAgentBeenActiveInSessionRef.current} agentIsFinished=${agentIsFinished}`,
+      );
       void finalizeAndEndSession(getTranscript());
     }
   }, [agentIsFinished, finalizeAndEndSession, getTranscript, sessionHasStarted]);

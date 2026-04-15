@@ -46,6 +46,13 @@ async function startPrediagnosticsSession(
     body: JSON.stringify(sessionId ? { sessionId } : {}),
   });
 
+  if (response.status === 409) {
+    window.localStorage.removeItem("prediagnostics.activeSessionId");
+    window.localStorage.removeItem("prediagnostics.connectionDetails");
+    window.location.href = "/prediagnostics?reason=session_expired";
+    throw new Error("Session expired");
+  }
+
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
     const errorMessage =

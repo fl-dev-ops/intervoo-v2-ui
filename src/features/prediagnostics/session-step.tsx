@@ -309,11 +309,7 @@ function PttSessionFooter(props: {
   const hasTypedMessage = chatMessage.trim().length > 0;
   const showWaveform = props.ptt.isRecording || props.ptt.isProcessing;
   const isVoiceDisabled =
-    !props.agentCanListen ||
-    props.ptt.isProcessing ||
-    props.agentIsSpeaking ||
-    props.agentIsThinking ||
-    isInputDisabled;
+    props.ptt.isProcessing || props.agentIsSpeaking || props.agentIsThinking || isInputDisabled;
 
   const handleSendMessage = useCallback(() => {
     if (isInputDisabled) {
@@ -330,7 +326,7 @@ function PttSessionFooter(props: {
   }, [chatMessage, isInputDisabled, send]);
 
   const handleVoiceToggle = useCallback(() => {
-    if (isVoiceDisabled) {
+    if (isInputDisabled) {
       return;
     }
 
@@ -340,7 +336,7 @@ function PttSessionFooter(props: {
     }
 
     void props.ptt.startTurn();
-  }, [isVoiceDisabled, props.ptt]);
+  }, [isInputDisabled, props.ptt]);
 
   return (
     <div className="mx-4 my-4">
@@ -360,7 +356,7 @@ function PttSessionFooter(props: {
           ) : (
             <input
               className="h-full w-full bg-transparent text-sm text-[#2b2233] placeholder-[#9b92ad] outline-none disabled:cursor-not-allowed disabled:opacity-50 px-1"
-              placeholder={props.agentCanListen ? "Type your response..." : "Waiting for agent"}
+              placeholder="Type your response..."
               type="text"
               value={chatMessage}
               disabled={isInputDisabled}

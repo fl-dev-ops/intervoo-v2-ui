@@ -5,7 +5,6 @@ import {
   buildPrediagnosticsParticipantIdentity,
   buildPrediagnosticsRoomName,
   createPrediagnosticsConnectionDetails,
-  createPrediagnosticsReconnectDetails,
 } from "#/lib/livekit/prediagnostics";
 
 vi.mock("livekit-server-sdk", () => {
@@ -32,6 +31,9 @@ vi.mock("livekit-server-sdk", () => {
 
   class MockRoomServiceClient {
     public static createRoomMock = vi.fn<(input: Record<string, unknown>) => Promise<void>>();
+    public static listRoomsMock = vi.fn<() => Promise<Array<{ name: string }>>>();
+    public static listParticipantsMock =
+      vi.fn<(roomName: string) => Promise<Array<Record<string, unknown>>>>();
 
     constructor(
       public serverUrl: string,
@@ -41,6 +43,14 @@ vi.mock("livekit-server-sdk", () => {
 
     async createRoom(input: Record<string, unknown>) {
       return MockRoomServiceClient.createRoomMock(input);
+    }
+
+    async listRooms() {
+      return MockRoomServiceClient.listRoomsMock();
+    }
+
+    async listParticipants(roomName: string) {
+      return MockRoomServiceClient.listParticipantsMock(roomName);
     }
   }
 
@@ -81,11 +91,15 @@ describe("prediagnostics LiveKit helpers", () => {
     process.env.LIVEKIT_URL = originalEnv.url;
     vi.clearAllMocks();
     (AccessToken as unknown as { created: unknown[] }).created.length = 0;
+    mockedRoomServiceClient().listRoomsMock.mockResolvedValue([]);
+    mockedRoomServiceClient().listParticipantsMock.mockResolvedValue([]);
   });
 
   function mockedRoomServiceClient() {
     return RoomServiceClient as unknown as typeof RoomServiceClient & {
       createRoomMock: ReturnType<typeof vi.fn>;
+      listRoomsMock: ReturnType<typeof vi.fn>;
+      listParticipantsMock: ReturnType<typeof vi.fn>;
     };
   }
 
@@ -148,7 +162,8 @@ describe("prediagnostics LiveKit helpers", () => {
         prompt_context: { userName: "Student One" },
         config: { voice: "ishita", speakingSpeed: 1 },
       }),
-      emptyTimeout: 600,
+      emptyTimeout: 300,
+      departureTimeout: 300,
       maxParticipants: 10,
     });
     expect(mockedAgentDispatchClient().createDispatchMock).toHaveBeenCalledWith(
@@ -188,34 +203,6 @@ describe("prediagnostics LiveKit helpers", () => {
       participantToken: "mock-jwt-token",
       interactionMode: "ptt",
       coach: "sana",
-    });
-  });
-
-  it("reissues connection details for an existing session without creating a room or dispatch", async () => {
-    process.env.LIVEKIT_API_KEY = "test-key";
-    process.env.LIVEKIT_API_SECRET = "test-secret";
-    process.env.LIVEKIT_URL = "wss://example.livekit.cloud";
-
-    const details = await createPrediagnosticsReconnectDetails({
-      sessionId: "diag-session-2",
-      roomName: "prediag_room_existing",
-      participantIdentity: "prediag_user_existing",
-      participantName: "Student Two",
-      participantMetadata: JSON.stringify({ userId: "user-2" }),
-      interactionMode: "auto",
-      coach: "arjun",
-    });
-
-    expect(mockedRoomServiceClient().createRoomMock).not.toHaveBeenCalled();
-    expect(mockedAgentDispatchClient().createDispatchMock).not.toHaveBeenCalled();
-    expect(details).toEqual({
-      sessionId: "diag-session-2",
-      serverUrl: "wss://example.livekit.cloud",
-      roomName: "prediag_room_existing",
-      participantName: "Student Two",
-      participantToken: "mock-jwt-token",
-      interactionMode: "auto",
-      coach: "arjun",
     });
   });
 });

@@ -129,7 +129,72 @@ describe("usePrediagnosticsSessionAdapter", () => {
     expect(onFinishedMock).toHaveBeenCalledWith({ sessionId: "session-1" });
   });
 
-  test("auto-finalizes when the agent finishes after the session has started", async () => {
+  test("auto-finalizes when the agent finishes after being active", async () => {
+    const room = {
+      getActiveDevice: vi.fn<() => string>(),
+      switchActiveDevice: vi.fn<(kind: MediaDeviceKind, deviceId: string) => Promise<void>>(),
+    };
+
+    useSessionContextMock
+      .mockReturnValueOnce({
+        end: endMock,
+        isConnected: false,
+        start: startMock,
+      })
+      .mockReturnValue({
+        end: endMock,
+        isConnected: true,
+        start: startMock,
+      });
+
+    useAgentMock
+      .mockReturnValueOnce({
+        state: "connecting",
+        canListen: false,
+        isFinished: false,
+      })
+      .mockReturnValueOnce({
+        state: "listening",
+        canListen: true,
+        isFinished: false,
+      })
+      .mockReturnValue({
+        state: "disconnected",
+        canListen: false,
+        isFinished: true,
+      });
+
+    const { rerender } = renderHook(() =>
+      usePrediagnosticsSessionAdapter({
+        connectionDetails: {
+          sessionId: "session-2",
+          serverUrl: "wss://example.livekit.cloud",
+          roomName: "room-2",
+          participantName: "Student One",
+          participantToken: "token",
+          interactionMode: "auto",
+          coach: "sana",
+        },
+        session: { room } as never,
+        sessionId: "session-2",
+        onFinished: onFinishedMock,
+      }),
+    );
+
+    // First rerender: agent becomes active (listening)
+    rerender();
+    // Second rerender: agent finishes
+    rerender();
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(endMock).toHaveBeenCalledTimes(1);
+    expect(onFinishedMock).toHaveBeenCalledWith({ sessionId: "session-2" });
+  });
+
+  test("does NOT auto-finalize when agent finishes without ever being active", async () => {
     const room = {
       getActiveDevice: vi.fn<() => string>(),
       switchActiveDevice: vi.fn<(kind: MediaDeviceKind, deviceId: string) => Promise<void>>(),
@@ -162,28 +227,28 @@ describe("usePrediagnosticsSessionAdapter", () => {
     const { rerender } = renderHook(() =>
       usePrediagnosticsSessionAdapter({
         connectionDetails: {
-          sessionId: "session-2",
+          sessionId: "session-rejoin",
           serverUrl: "wss://example.livekit.cloud",
-          roomName: "room-2",
+          roomName: "room-rejoin",
           participantName: "Student One",
           participantToken: "token",
           interactionMode: "auto",
           coach: "sana",
         },
         session: { room } as never,
-        sessionId: "session-2",
+        sessionId: "session-rejoin",
         onFinished: onFinishedMock,
       }),
     );
 
     rerender();
 
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-    });
+    // Wait a tick to ensure effects have run
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(endMock).toHaveBeenCalledTimes(1);
-    expect(onFinishedMock).toHaveBeenCalledWith({ sessionId: "session-2" });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(endMock).not.toHaveBeenCalled();
+    expect(onFinishedMock).not.toHaveBeenCalled();
   });
 
   test("restores prior user transcript messages into displayMessages for ptt sessions", () => {

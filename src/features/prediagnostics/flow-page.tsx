@@ -8,6 +8,7 @@ import type { PrediagnosticsReportStatusResponse } from "#/lib/prediagnostics/re
 import {
   getPrediagnosticsSessionIdFromStorage,
   replacePrediagnosticsSessionIdInStorage,
+  replacePrediagnosticsConnectionDetailsInStorage,
 } from "#/shared/prediagnostics/session-storage";
 
 type FlowPhase = "prejoin" | "session" | "generation";
@@ -49,6 +50,7 @@ export function PrediagnosticsFlowPage() {
       setInitialMessages(payload.initialMessages ?? []);
       setResumableSession(null);
       replacePrediagnosticsSessionIdInStorage(payload.sessionId);
+      replacePrediagnosticsConnectionDetailsInStorage(payload.connectionDetails);
       setPhase("session");
     },
     [],
@@ -59,11 +61,13 @@ export function PrediagnosticsFlowPage() {
     setInitialMessages([]);
     setResumableSession(null);
     replacePrediagnosticsSessionIdInStorage(payload.sessionId);
+    replacePrediagnosticsConnectionDetailsInStorage(null);
     setPhase("generation");
   }, []);
 
   const handleGenerationCompleted = useCallback(() => {
     replacePrediagnosticsSessionIdInStorage(null);
+    replacePrediagnosticsConnectionDetailsInStorage(null);
     window.location.href = "/prediagnostics/report";
   }, []);
 
@@ -109,6 +113,7 @@ export function PrediagnosticsFlowPage() {
 
         if (statusPayload.report?.status === "READY" && statusPayload.report.reportJson) {
           replacePrediagnosticsSessionIdInStorage(null);
+          replacePrediagnosticsConnectionDetailsInStorage(null);
           window.location.href = "/prediagnostics/report";
           return;
         }
@@ -118,6 +123,7 @@ export function PrediagnosticsFlowPage() {
       } catch {
         if (!cancelled) {
           replacePrediagnosticsSessionIdInStorage(null);
+          replacePrediagnosticsConnectionDetailsInStorage(null);
           setSessionId(null);
           setConnectionDetails(null);
           setInitialMessages([]);
