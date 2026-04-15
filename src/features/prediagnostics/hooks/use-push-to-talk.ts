@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  useAgent,
   useLocalParticipant,
   useRemoteParticipants,
   useRoomContext,
-  useVoiceAssistant,
+  useSessionContext,
 } from "@livekit/components-react";
 import { ParticipantKind, RpcError } from "livekit-client";
 
@@ -11,9 +12,10 @@ export type PrediagnosticsPttState = "idle" | "recording" | "processing" | "agen
 
 export function usePrediagnosticsPushToTalk() {
   const room = useRoomContext();
+  const { session } = useSessionContext();
+  const agent = useAgent(session);
   const { localParticipant } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
-  const { state: voiceAssistantState } = useVoiceAssistant();
 
   const [state, setState] = useState<PrediagnosticsPttState>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export function usePrediagnosticsPushToTalk() {
   }, []);
 
   useEffect(() => {
-    if (voiceAssistantState === "speaking") {
+    if (agent.state === "speaking") {
       updateState("agent_speaking");
       return;
     }
@@ -50,7 +52,7 @@ export function usePrediagnosticsPushToTalk() {
         window.clearTimeout(timer);
       };
     }
-  }, [updateState, voiceAssistantState]);
+  }, [agent.state, updateState]);
 
   const startTurn = useCallback(async () => {
     if (!agentParticipant || !localParticipant || state !== "idle") {
@@ -121,7 +123,7 @@ export function usePrediagnosticsPushToTalk() {
   return {
     state,
     error,
-    isAvailable: !!agentParticipant,
+    isAvailable: !!agentParticipant && agent.canListen,
     isRecording: state === "recording",
     isProcessing: state === "processing",
     isAgentSpeaking: state === "agent_speaking",

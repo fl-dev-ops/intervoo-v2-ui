@@ -55,7 +55,8 @@ export function usePrediagnosticsMessages(session: UseSessionReturn) {
     }));
 
     return [...transcriptMessages, ...normalizedChatMessages].toSorted(
-      (left, right) => left.timestamp - right.timestamp,
+      (left: PrediagnosticsMessage, right: PrediagnosticsMessage) =>
+        left.timestamp - right.timestamp,
     );
   }, [chatMessages, messages, room.localParticipant.identity]);
 }

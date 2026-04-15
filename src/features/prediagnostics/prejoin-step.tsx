@@ -8,6 +8,8 @@ import {
 import { Track } from "livekit-client";
 import { LoaderCircle, Mic, RefreshCcw } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { LiveWaveform } from "#/components/ui/live-waveform";
+import { MicSelector, type AudioDevice } from "#/components/ui/mic-selector";
 import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
 
 type MicPermissionState = "checking" | "prompt" | "granted" | "denied";
@@ -52,20 +54,33 @@ async function startPrediagnosticsSession(): Promise<PrediagnosticsConnectionDet
   return (await response.json()) as PrediagnosticsConnectionDetails;
 }
 
-export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps) {
-  const [permissionState, setPermissionState] = useState<MicPermissionState>("checking");
+export function PrediagnosticsPrejoinStep(
+  props: PrediagnosticsPrejoinStepProps,
+) {
+  const [permissionState, setPermissionState] =
+    useState<MicPermissionState>("checking");
   const [hasRequestedPermission, setHasRequestedPermission] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
 
-  const { userChoices, saveAudioInputDeviceId, saveAudioInputEnabled } = usePersistentUserChoices({
-    defaults: DEFAULT_USER_CHOICES,
-  });
+  const { userChoices, saveAudioInputDeviceId, saveAudioInputEnabled } =
+    usePersistentUserChoices({
+      defaults: DEFAULT_USER_CHOICES,
+    });
 
   const audioDevices = useMediaDevices({ kind: "audioinput" });
   const selectedDeviceId = userChoices.audioDeviceId || "default";
   const audioEnabled = userChoices.audioEnabled ?? true;
+  const selectorDevices = useMemo<AudioDevice[]>(
+    () =>
+      audioDevices.map((device, index) => ({
+        deviceId: device.deviceId,
+        label: device.label || `Microphone ${index + 1}`,
+        groupId: device.groupId,
+      })),
+    [audioDevices],
+  );
 
   const previewTracks = usePreviewTracks(
     {
@@ -148,7 +163,9 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
       return;
     }
 
-    const defaultNamedDevice = audioDevices.find((device) => device.deviceId === "default");
+    const defaultNamedDevice = audioDevices.find(
+      (device) => device.deviceId === "default",
+    );
     const nextDevice = defaultNamedDevice ?? audioDevices[0];
 
     if (!nextDevice) {
@@ -156,7 +173,12 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
     }
 
     saveAudioInputDeviceId(nextDevice.deviceId);
-  }, [audioDevices, saveAudioInputDeviceId, selectedDeviceAvailable, selectedDeviceId]);
+  }, [
+    audioDevices,
+    saveAudioInputDeviceId,
+    selectedDeviceAvailable,
+    selectedDeviceId,
+  ]);
 
   const requestPermission = useCallback(async () => {
     setHasRequestedPermission(true);
@@ -164,7 +186,9 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
 
     try {
       const deviceIdConstraint =
-        selectedDeviceId !== "default" ? { exact: selectedDeviceId } : undefined;
+        selectedDeviceId !== "default"
+          ? { exact: selectedDeviceId }
+          : undefined;
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: deviceIdConstraint ? { deviceId: deviceIdConstraint } : true,
       });
@@ -173,15 +197,16 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
       setPermissionState("granted");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "We couldn't access your microphone.";
+        error instanceof Error
+          ? error.message
+          : "We couldn't access your microphone.";
       setDeviceError(message);
       setPermissionState("denied");
     }
   }, [saveAudioInputEnabled, selectedDeviceId]);
 
   const handleDeviceChange = useCallback(
-    async (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextDeviceId = event.target.value;
+    async (nextDeviceId: string) => {
       saveAudioInputDeviceId(nextDeviceId);
       setDeviceError(null);
 
@@ -191,12 +216,17 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          audio: nextDeviceId === "default" ? true : { deviceId: { exact: nextDeviceId } },
+          audio:
+            nextDeviceId === "default"
+              ? true
+              : { deviceId: { exact: nextDeviceId } },
         });
         stream.getTracks().forEach((track) => track.stop());
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "We couldn't switch to that microphone.";
+          error instanceof Error
+            ? error.message
+            : "We couldn't switch to that microphone.";
         setDeviceError(message);
       }
     },
@@ -219,7 +249,9 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
       });
     } catch (error) {
       setJoinError(
-        error instanceof Error ? error.message : "Failed to start the pre-diagnostic session.",
+        error instanceof Error
+          ? error.message
+          : "Failed to start the pre-diagnostic session.",
       );
     } finally {
       setIsJoining(false);
@@ -231,7 +263,9 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
       <div className="grid min-h-screen place-items-center bg-[#F5F3F7]">
         <div className="flex flex-col items-center gap-3">
           <LoaderCircle className="h-8 w-8 animate-spin text-[#5a42cc]" />
-          <p className="text-sm text-[#7f768f]">Checking microphone access...</p>
+          <p className="text-sm text-[#7f768f]">
+            Checking microphone access...
+          </p>
         </div>
       </div>
     );
@@ -249,29 +283,33 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
             }}
           />
           <div className="relative z-10 w-full max-w-105 overflow-hidden rounded-[26px] bg-white shadow-[0_28px_60px_rgba(74,57,143,0.12)]">
-            <div className="flex h-190 flex-col justify-between px-8 py-10">
+            <div className="flex h-190 flex-col justify-between p-4 pt-6">
               <div>
                 <h1 className="text-2xl font-semibold tracking-[-0.03em] text-[#2b2233]">
                   Get ready to join the session
                 </h1>
                 <p className="mt-3 text-sm leading-6 text-[#7f768f]">
-                  Check your microphone, choose the input device you want to use, and join when
-                  you&apos;re ready.
+                  Check your microphone, choose the input device you want to
+                  use, and join when you&apos;re ready.
                 </p>
               </div>
 
               <div className="mt-8 space-y-4">
                 <PrejoinDeviceSelector
-                  audioDevices={audioDevices}
-                  disabled={permissionState !== "granted" || audioDevices.length === 0}
+                  disabled={
+                    permissionState !== "granted" || audioDevices.length === 0
+                  }
+                  devices={selectorDevices}
                   permissionState={permissionState}
                   selectedDeviceAvailable={selectedDeviceAvailable}
                   selectedDeviceId={selectedDeviceId}
-                  selectId="prediagnostics-audio-device-desktop"
                   onChange={handleDeviceChange}
                 />
 
-                <PrejoinErrors deviceError={deviceError} joinError={joinError} />
+                <PrejoinErrors
+                  deviceError={deviceError}
+                  joinError={joinError}
+                />
 
                 <PrejoinActionButton
                   hasRequestedPermission={hasRequestedPermission}
@@ -289,25 +327,26 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
 
       <div className="md:hidden">
         <div className="mx-auto flex min-h-screen md:min-h-[calc(100dvh-4rem)] w-full flex-col items-center justify-between">
-          <section className="w-full max-w-xl rounded-4xl p-6 sm:p-8">
+          <section className="w-full max-w-xl rounded-4xl p-4 sm:p-4">
             <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-[#2b2233]">
               Get ready to join the session
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#7f768f] sm:text-base">
-              Check your microphone, choose the input device you want to use, and join when
-              you&apos;re ready.
+              Check your microphone, choose the input device you want to use,
+              and join when you&apos;re ready.
             </p>
           </section>
-          <div className="w-full mt-8 p-6 sm:p-8">
+          <div className="w-full mt-8 p-4 sm:p-8">
             <div className="mt-5 space-y-4">
               <PrejoinDeviceSelector
-                audioDevices={audioDevices}
-                disabled={permissionState !== "granted" || audioDevices.length === 0}
+                disabled={
+                  permissionState !== "granted" || audioDevices.length === 0
+                }
+                devices={selectorDevices}
                 permissionState={permissionState}
                 selectedDeviceAvailable={selectedDeviceAvailable}
                 selectedDeviceId={selectedDeviceId}
-                selectId="prediagnostics-audio-device"
                 onChange={handleDeviceChange}
               />
 
@@ -330,44 +369,62 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
 }
 
 function PrejoinDeviceSelector(props: {
-  audioDevices: MediaDeviceInfo[];
   disabled: boolean;
+  devices: AudioDevice[];
   permissionState: MicPermissionState;
-  selectId: string;
   selectedDeviceAvailable: boolean;
   selectedDeviceId: string;
-  onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  onChange: (deviceId: string) => void;
 }) {
+  const selectorValue = props.selectedDeviceAvailable
+    ? props.selectedDeviceId
+    : (props.devices[0]?.deviceId ?? "default");
+  const waveformActive = props.permissionState === "granted" && !props.disabled;
+
   return (
-    <div>
+    <div className="space-y-3">
       <div className="mb-2 flex justify-between">
-        <label className="mb-2 block text-sm font-medium text-[#2b2233]" htmlFor={props.selectId}>
+        <label className="mb-2 block text-sm font-medium text-[#2b2233]">
           Device
         </label>
         <PermissionBadge permissionState={props.permissionState} />
       </div>
-      <select
-        className="h-12 w-full rounded-2xl border border-[#dcd4e7] bg-white px-4 text-sm text-[#2b2233] outline-none transition focus:border-[#5a42cc] disabled:cursor-not-allowed disabled:bg-[#f6f3fa] disabled:text-[#9b92ad]"
-        disabled={props.disabled}
-        id={props.selectId}
-        value={
-          props.selectedDeviceAvailable
-            ? props.selectedDeviceId
-            : (props.audioDevices[0]?.deviceId ?? "default")
-        }
-        onChange={props.onChange}
-      >
-        {props.audioDevices.map((device, index) => (
-          <option key={device.deviceId || `${device.label}-${index}`} value={device.deviceId}>
-            {device.label || `Microphone ${index + 1}`}
-          </option>
-        ))}
-      </select>
+
+      <div className="overflow-hidden rounded-xl border border-[#e4d8f1] bg-white shadow-[0_8px_24px_rgba(111,82,184,0.06)]">
+        <div className="bg-[#faf7fd] px-5 py-4">
+          <LiveWaveform
+            active={waveformActive}
+            deviceId={selectorValue === "default" ? undefined : selectorValue}
+            mode="scrolling"
+            height={44}
+            barWidth={3}
+            barGap={2}
+            className="w-full"
+          />
+        </div>
+        <div className="mx-5 border-t border-[#ede3f6]" />
+        <div className="p-2">
+          <MicSelector
+            value={selectorValue}
+            devices={props.devices}
+            disabled={props.disabled}
+            loading={false}
+            error={null}
+            showMuteControl={false}
+            showWaveformPreview={false}
+            className="h-13 w-full justify-start rounded-[22px] border-0 bg-transparent px-3 text-sm text-[#2b2233] shadow-none hover:bg-[#f8f5fc]"
+            onValueChange={props.onChange}
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
-function PrejoinErrors(props: { deviceError: string | null; joinError: string | null }) {
+function PrejoinErrors(props: {
+  deviceError: string | null;
+  joinError: string | null;
+}) {
   if (!props.deviceError && !props.joinError) {
     return null;
   }
@@ -406,16 +463,27 @@ function PrejoinActionButton(props: {
           type="button"
           onClick={props.onJoin}
         >
-          {props.isJoining ? <LoaderCircle className="h-5 w-5 animate-spin" /> : "Join session"}
+          {props.isJoining ? (
+            <LoaderCircle className="h-5 w-5 animate-spin" />
+          ) : (
+            "Join session"
+          )}
         </Button>
       ) : (
-        <Button size={"lg"} className="w-full" type="button" onClick={props.onRequestPermission}>
+        <Button
+          size={"lg"}
+          className="w-full"
+          type="button"
+          onClick={props.onRequestPermission}
+        >
           {props.hasRequestedPermission ? (
             <RefreshCcw className="h-4 w-4" />
           ) : (
             <Mic className="h-4 w-4" />
           )}
-          {props.hasRequestedPermission ? "Try microphone again" : "Enable microphone"}
+          {props.hasRequestedPermission
+            ? "Try microphone again"
+            : "Enable microphone"}
         </Button>
       )}
     </div>
@@ -436,5 +504,9 @@ function PermissionBadge(props: { permissionState: MicPermissionState }) {
         ? "bg-[#fff0f2] text-[#b64b5c]"
         : "bg-[#f3eefb] text-[#6e667b]";
 
-  return <span className={`rounded-full px-3 py-1 text-xs font-medium ${className}`}>{label}</span>;
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-medium ${className}`}>
+      {label}
+    </span>
+  );
 }
