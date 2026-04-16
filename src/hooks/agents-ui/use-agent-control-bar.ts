@@ -1,12 +1,12 @@
 import { useCallback } from "react";
 import {
-  type TrackReference,
   useLocalParticipantPermissions,
   usePersistentUserChoices,
   useSessionContext,
   useTrackToggle,
-} from "@livekit/components-react";
-import { Track } from "livekit-client";
+  Track,
+  type TrackReference,
+} from "#/shared/livekit";
 
 const trackSourceToProtocol = (source: Track.Source) => {
   switch (source) {

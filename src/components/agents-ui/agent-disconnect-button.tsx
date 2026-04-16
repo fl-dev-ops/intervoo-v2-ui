@@ -1,7 +1,7 @@
 "use client";
 
 import { type ComponentProps } from "react";
-import { useSessionContext } from "@livekit/components-react";
+import { useSessionContext } from "#/shared/livekit";
 import { type VariantProps } from "class-variance-authority";
 import { PhoneOffIcon } from "lucide-react";
 

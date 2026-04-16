@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { type AgentState } from "@livekit/components-react";
+import { type AgentState } from "#/shared/livekit";
 
 function generateConnectingSequenceBar(columns: number): number[][] {
   const sequence: number[][] = [];

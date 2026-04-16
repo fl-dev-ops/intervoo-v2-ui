@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  type TrackReferenceOrPlaceholder,
   useMaybeRoomContext,
   useMediaDeviceSelect,
-} from "@livekit/components-react";
+  type TrackReferenceOrPlaceholder,
+} from "#/shared/livekit";
 import { type VariantProps, cva } from "class-variance-authority";
-import { LocalAudioTrack, LocalVideoTrack } from "livekit-client";
+import type { LocalAudioTrack, LocalVideoTrack } from "#/shared/livekit";
 
 import { AgentAudioVisualizerBar } from "@/components/agents-ui/agent-audio-visualizer-bar";
 import { AgentTrackToggle } from "@/components/agents-ui/agent-track-toggle";

@@ -5,8 +5,8 @@ import {
   useRemoteParticipants,
   useRoomContext,
   useSessionContext,
-} from "@livekit/components-react";
-import { ParticipantKind, RpcError } from "livekit-client";
+} from "#/shared/livekit";
+import { ParticipantKind, RpcError } from "#/shared/livekit";
 
 export type PrediagnosticsPttState = "idle" | "recording" | "processing" | "agent_speaking";
 

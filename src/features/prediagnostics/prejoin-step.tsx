@@ -3,9 +3,9 @@ import {
   useMediaDevices,
   usePersistentUserChoices,
   usePreviewTracks,
+  Track,
   type LocalUserChoices,
-} from "@livekit/components-react";
-import { Track } from "livekit-client";
+} from "#/shared/livekit";
 import { LoaderCircle, Mic, RefreshCcw } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { LiveWaveform } from "#/components/ui/live-waveform";

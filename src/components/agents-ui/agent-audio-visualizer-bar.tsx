@@ -10,12 +10,12 @@ import React, {
   type ReactNode,
 } from "react";
 import {
+  useMultibandTrackVolume,
   type AgentState,
   type TrackReferenceOrPlaceholder,
-  useMultibandTrackVolume,
-} from "@livekit/components-react";
+} from "#/shared/livekit";
 import { type VariantProps, cva } from "class-variance-authority";
-import { type LocalAudioTrack, type RemoteAudioTrack } from "livekit-client";
+import { type LocalAudioTrack, type RemoteAudioTrack } from "#/shared/livekit";
 
 import { useAgentAudioVisualizerBarAnimator } from "@/hooks/agents-ui/use-agent-audio-visualizer-bar";
 import { cn } from "@/lib/utils";

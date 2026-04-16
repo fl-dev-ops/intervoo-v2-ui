@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type ComponentProps } from "react";
-import { useChat } from "@livekit/components-react";
+import { useChat } from "#/shared/livekit";
 import { motion, type MotionProps } from "motion/react";
-import { Track } from "livekit-client";
+import { Track } from "#/shared/livekit";
 import { Loader, MessageSquareTextIcon, SendHorizontal } from "lucide-react";
 
 import { AgentDisconnectButton } from "@/components/agents-ui/agent-disconnect-button";

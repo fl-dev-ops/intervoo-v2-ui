@@ -19,6 +19,7 @@ import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
 import { Route as ApiPrediagnosticsTranscriptRouteImport } from './routes/api/prediagnostics/transcript'
 import { Route as ApiPrediagnosticsStartRouteImport } from './routes/api/prediagnostics/start'
 import { Route as ApiPrediagnosticsReportStatusRouteImport } from './routes/api/prediagnostics/report-status'
+import { Route as ApiPrediagnosticsRefreshTokenRouteImport } from './routes/api/prediagnostics/refresh-token'
 import { Route as ApiPrediagnosticsGenerateReportRouteImport } from './routes/api/prediagnostics/generate-report'
 import { Route as ApiPrediagnosticsCompleteRouteImport } from './routes/api/prediagnostics/complete'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -75,6 +76,12 @@ const ApiPrediagnosticsReportStatusRoute =
     path: '/api/prediagnostics/report-status',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPrediagnosticsRefreshTokenRoute =
+  ApiPrediagnosticsRefreshTokenRouteImport.update({
+    id: '/api/prediagnostics/refresh-token',
+    path: '/api/prediagnostics/refresh-token',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPrediagnosticsGenerateReportRoute =
   ApiPrediagnosticsGenerateReportRouteImport.update({
     id: '/api/prediagnostics/generate-report',
@@ -103,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/prediagnostics/complete': typeof ApiPrediagnosticsCompleteRoute
   '/api/prediagnostics/generate-report': typeof ApiPrediagnosticsGenerateReportRoute
+  '/api/prediagnostics/refresh-token': typeof ApiPrediagnosticsRefreshTokenRoute
   '/api/prediagnostics/report-status': typeof ApiPrediagnosticsReportStatusRoute
   '/api/prediagnostics/start': typeof ApiPrediagnosticsStartRoute
   '/api/prediagnostics/transcript': typeof ApiPrediagnosticsTranscriptRoute
@@ -118,6 +126,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/prediagnostics/complete': typeof ApiPrediagnosticsCompleteRoute
   '/api/prediagnostics/generate-report': typeof ApiPrediagnosticsGenerateReportRoute
+  '/api/prediagnostics/refresh-token': typeof ApiPrediagnosticsRefreshTokenRoute
   '/api/prediagnostics/report-status': typeof ApiPrediagnosticsReportStatusRoute
   '/api/prediagnostics/start': typeof ApiPrediagnosticsStartRoute
   '/api/prediagnostics/transcript': typeof ApiPrediagnosticsTranscriptRoute
@@ -134,6 +143,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/prediagnostics/complete': typeof ApiPrediagnosticsCompleteRoute
   '/api/prediagnostics/generate-report': typeof ApiPrediagnosticsGenerateReportRoute
+  '/api/prediagnostics/refresh-token': typeof ApiPrediagnosticsRefreshTokenRoute
   '/api/prediagnostics/report-status': typeof ApiPrediagnosticsReportStatusRoute
   '/api/prediagnostics/start': typeof ApiPrediagnosticsStartRoute
   '/api/prediagnostics/transcript': typeof ApiPrediagnosticsTranscriptRoute
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/prediagnostics/complete'
     | '/api/prediagnostics/generate-report'
+    | '/api/prediagnostics/refresh-token'
     | '/api/prediagnostics/report-status'
     | '/api/prediagnostics/start'
     | '/api/prediagnostics/transcript'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/prediagnostics/complete'
     | '/api/prediagnostics/generate-report'
+    | '/api/prediagnostics/refresh-token'
     | '/api/prediagnostics/report-status'
     | '/api/prediagnostics/start'
     | '/api/prediagnostics/transcript'
@@ -181,6 +193,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/prediagnostics/complete'
     | '/api/prediagnostics/generate-report'
+    | '/api/prediagnostics/refresh-token'
     | '/api/prediagnostics/report-status'
     | '/api/prediagnostics/start'
     | '/api/prediagnostics/transcript'
@@ -197,6 +210,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiPrediagnosticsCompleteRoute: typeof ApiPrediagnosticsCompleteRoute
   ApiPrediagnosticsGenerateReportRoute: typeof ApiPrediagnosticsGenerateReportRoute
+  ApiPrediagnosticsRefreshTokenRoute: typeof ApiPrediagnosticsRefreshTokenRoute
   ApiPrediagnosticsReportStatusRoute: typeof ApiPrediagnosticsReportStatusRoute
   ApiPrediagnosticsStartRoute: typeof ApiPrediagnosticsStartRoute
   ApiPrediagnosticsTranscriptRoute: typeof ApiPrediagnosticsTranscriptRoute
@@ -275,6 +289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPrediagnosticsReportStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/prediagnostics/refresh-token': {
+      id: '/api/prediagnostics/refresh-token'
+      path: '/api/prediagnostics/refresh-token'
+      fullPath: '/api/prediagnostics/refresh-token'
+      preLoaderRoute: typeof ApiPrediagnosticsRefreshTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/prediagnostics/generate-report': {
       id: '/api/prediagnostics/generate-report'
       path: '/api/prediagnostics/generate-report'
@@ -309,6 +330,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiPrediagnosticsCompleteRoute: ApiPrediagnosticsCompleteRoute,
   ApiPrediagnosticsGenerateReportRoute: ApiPrediagnosticsGenerateReportRoute,
+  ApiPrediagnosticsRefreshTokenRoute: ApiPrediagnosticsRefreshTokenRoute,
   ApiPrediagnosticsReportStatusRoute: ApiPrediagnosticsReportStatusRoute,
   ApiPrediagnosticsStartRoute: ApiPrediagnosticsStartRoute,
   ApiPrediagnosticsTranscriptRoute: ApiPrediagnosticsTranscriptRoute,

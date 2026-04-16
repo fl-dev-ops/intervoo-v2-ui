@@ -1,6 +1,5 @@
 import { type ComponentProps } from "react";
-import { useEnsureRoom, useStartAudio } from "@livekit/components-react";
-import { Room } from "livekit-client";
+import { useEnsureRoom, useStartAudio, Room } from "#/shared/livekit";
 
 import { Button } from "@/components/ui/button";
 

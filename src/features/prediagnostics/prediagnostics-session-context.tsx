@@ -1,12 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+
 import {
   useAgent,
   useConnectionState,
   usePersistentUserChoices,
   useSessionContext,
   type UseSessionReturn,
-} from "@livekit/components-react";
-import { ConnectionState as LiveKitConnectionState } from "livekit-client";
+} from "#/shared/livekit";
+import { ConnectionState as LiveKitConnectionState } from "#/shared/livekit";
 
 import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
 import type { PrediagnosticsSessionTranscript } from "#/lib/prediagnostics/transcript";
@@ -17,43 +27,58 @@ import {
 import { usePrediagnosticsPushToTalk } from "#/features/prediagnostics/hooks/use-push-to-talk";
 import { usePrediagnosticsTranscript } from "#/features/prediagnostics/hooks/use-prediagnostics-transcript";
 
-type UsePrediagnosticsSessionAdapterProps = {
+export type PrediagnosticsSessionContextValue = {
   connectionDetails: PrediagnosticsConnectionDetails;
-  initialMessages?: PrediagnosticsMessage[];
-  session: UseSessionReturn;
   sessionId: string;
-  onFinished: (payload: { sessionId: string }) => void;
-};
 
-type PrediagnosticsSessionAdapter = {
+  // Session state
   agentState: string | undefined;
   agentIsSpeaking: boolean;
   agentIsThinking: boolean;
   agentCanListen: boolean;
   agentIsFinished: boolean;
-  connectionState: LiveKitConnectionState;
   displayMessages: PrediagnosticsMessage[];
   endError: string | null;
-  getTranscript: () => PrediagnosticsSessionTranscript;
-  requestDisconnect: () => Promise<void>;
   hasAgentGreeted: boolean;
-  isSessionConnected: boolean;
+  isConnected: boolean;
   isEnding: boolean;
   isReconnecting: boolean;
   sessionHasStarted: boolean;
   userCanSpeak: boolean;
-  ptt: ReturnType<typeof usePrediagnosticsPushToTalk>;
   showAgentPendingBubble: boolean;
   showUserPendingBubble: boolean;
-  userChoices: ReturnType<typeof usePersistentUserChoices>["userChoices"];
+
+  // Actions
+  onEnd: () => void;
+  getTranscript: () => PrediagnosticsSessionTranscript;
+  ptt: ReturnType<typeof usePrediagnosticsPushToTalk>;
 };
 
-export function usePrediagnosticsSessionAdapter(
-  props: UsePrediagnosticsSessionAdapterProps,
-): PrediagnosticsSessionAdapter {
+type PrediagnosticsSessionProviderProps = {
+  children: ReactNode;
+  connectionDetails: PrediagnosticsConnectionDetails;
+  initialMessages?: PrediagnosticsMessage[];
+  sessionId: string;
+  session: UseSessionReturn;
+  onFinished: (payload: { sessionId: string }) => void;
+};
+
+const PrediagnosticsSessionContext = createContext<PrediagnosticsSessionContextValue | null>(null);
+
+export function usePrediagnosticsSessionContext() {
+  const context = useContext(PrediagnosticsSessionContext);
+  if (!context) {
+    throw new Error(
+      "usePrediagnosticsSessionContext must be used within a PrediagnosticsSessionProvider",
+    );
+  }
+  return context;
+}
+
+export function PrediagnosticsSessionProvider(props: PrediagnosticsSessionProviderProps) {
   const { end, start } = useSessionContext();
   const connectionState = useConnectionState(props.session.room);
-  const isSessionConnected = connectionState === LiveKitConnectionState.Connected;
+  const isConnected = connectionState === LiveKitConnectionState.Connected;
   const agent = useAgent(props.session);
   const messages = usePrediagnosticsMessages(props.session, props.initialMessages);
   const ptt = usePrediagnosticsPushToTalk();
@@ -190,7 +215,7 @@ export function usePrediagnosticsSessionAdapter(
   }, []);
 
   useEffect(() => {
-    if (hasStartBeenRequested || isSessionConnected) {
+    if (hasStartBeenRequested || isConnected) {
       return;
     }
 
@@ -202,19 +227,19 @@ export function usePrediagnosticsSessionAdapter(
         },
       },
     });
-  }, [hasStartBeenRequested, isSessionConnected, props.connectionDetails.interactionMode, start]);
+  }, [hasStartBeenRequested, isConnected, props.connectionDetails.interactionMode, start]);
 
   useEffect(() => {
-    if (sessionHasStarted || !isSessionConnected) {
+    if (sessionHasStarted || !isConnected) {
       return;
     }
 
-    console.log(`[agent-debug] session started, isSessionConnected=${isSessionConnected}`);
+    console.log(`[agent-debug] session started, isConnected=${isConnected}`);
     setSessionHasStarted(true);
-  }, [isSessionConnected, sessionHasStarted]);
+  }, [isConnected, sessionHasStarted]);
 
   useEffect(() => {
-    if (!isSessionConnected) {
+    if (!isConnected) {
       return;
     }
 
@@ -233,7 +258,7 @@ export function usePrediagnosticsSessionAdapter(
         .switchActiveDevice("audioinput", preferredAudioDeviceId, false)
         .catch(() => {});
     });
-  }, [isSessionConnected, props.session.room, userChoices.audioDeviceId]);
+  }, [isConnected, props.session.room, userChoices.audioDeviceId]);
 
   useEffect(() => {
     if (props.connectionDetails.interactionMode !== "ptt") {
@@ -366,7 +391,6 @@ export function usePrediagnosticsSessionAdapter(
               ? payload.error
               : "Failed to finalize pre-diagnostic session";
 
-          // Session already completed — mark as done to prevent retry loop
           if (response.status === 409) {
             hasCompletedSessionRef.current = true;
           }
@@ -402,32 +426,60 @@ export function usePrediagnosticsSessionAdapter(
     }
   }, [agentIsFinished, finalizeAndEndSession, getTranscript, sessionHasStarted]);
 
-  const requestDisconnect = useCallback(async () => {
+  const onEnd = useCallback(async () => {
     await finalizeAndEndSession(getTranscript());
   }, [finalizeAndEndSession, getTranscript]);
 
-  const isReconnecting = connectionState === LiveKitConnectionState.Reconnecting;
+  const value = useMemo<PrediagnosticsSessionContextValue>(
+    () => ({
+      connectionDetails: props.connectionDetails,
+      sessionId: props.sessionId,
+      agentState: agent.state,
+      agentIsSpeaking,
+      agentIsThinking,
+      agentCanListen,
+      agentIsFinished,
+      displayMessages,
+      endError,
+      getTranscript,
+      hasAgentGreeted,
+      isConnected,
+      isEnding,
+      isReconnecting: connectionState === LiveKitConnectionState.Reconnecting,
+      sessionHasStarted,
+      userCanSpeak,
+      onEnd,
+      ptt,
+      showAgentPendingBubble,
+      showUserPendingBubble,
+    }),
+    [
+      agent.state,
+      agentCanListen,
+      agentIsFinished,
+      agentIsSpeaking,
+      agentIsThinking,
+      connectionState,
+      displayMessages,
+      endError,
+      getTranscript,
+      hasAgentGreeted,
+      isConnected,
+      isEnding,
+      onEnd,
+      props.connectionDetails,
+      props.sessionId,
+      ptt,
+      sessionHasStarted,
+      showAgentPendingBubble,
+      showUserPendingBubble,
+      userCanSpeak,
+    ],
+  );
 
-  return {
-    agentState: agent.state,
-    agentIsSpeaking,
-    agentIsThinking,
-    agentCanListen,
-    agentIsFinished,
-    connectionState,
-    displayMessages,
-    endError,
-    getTranscript,
-    requestDisconnect,
-    hasAgentGreeted,
-    isSessionConnected,
-    isEnding,
-    isReconnecting,
-    sessionHasStarted,
-    userCanSpeak,
-    ptt,
-    showAgentPendingBubble,
-    showUserPendingBubble,
-    userChoices,
-  };
+  return (
+    <PrediagnosticsSessionContext.Provider value={value}>
+      {props.children}
+    </PrediagnosticsSessionContext.Provider>
+  );
 }

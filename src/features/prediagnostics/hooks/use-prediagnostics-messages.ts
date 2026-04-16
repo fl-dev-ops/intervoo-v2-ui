@@ -1,6 +1,10 @@
 import { useMemo, useRef } from "react";
-import { useChat, useSessionContext, useSessionMessages } from "@livekit/components-react";
-import type { UseSessionReturn } from "@livekit/components-react";
+import {
+  useChat,
+  useSessionContext,
+  useSessionMessages,
+  type UseSessionReturn,
+} from "#/shared/livekit";
 
 export type PrediagnosticsMessage = {
   id: string;

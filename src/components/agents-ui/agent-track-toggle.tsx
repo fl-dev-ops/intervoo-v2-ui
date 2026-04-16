@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState, type ComponentProps } from "react";
 import { type VariantProps, cva } from "class-variance-authority";
-import { Track } from "livekit-client";
+import { Track } from "#/shared/livekit";
 import {
   LoaderIcon,
   MicIcon,
