@@ -8,7 +8,10 @@ import {
 import { Track } from "livekit-client";
 import { LoaderCircle, Mic, RefreshCcw } from "lucide-react";
 import { Button } from "#/components/ui/button";
+import { LiveWaveform } from "#/components/ui/live-waveform";
+import { MicSelector, type AudioDevice } from "#/components/ui/mic-selector";
 import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
+import type { PrediagnosticsMessage } from "#/features/prediagnostics/hooks/use-prediagnostics-messages";
 
 type MicPermissionState = "checking" | "prompt" | "granted" | "denied";
 
@@ -21,20 +24,34 @@ const DEFAULT_USER_CHOICES: Partial<LocalUserChoices> = {
 };
 
 type PrediagnosticsPrejoinStepProps = {
+  resumableSession: {
+    sessionId: string;
+    initialMessages: PrediagnosticsMessage[];
+  } | null;
   onStarted: (payload: {
     sessionId: string;
     connectionDetails: PrediagnosticsConnectionDetails;
+    initialMessages?: PrediagnosticsMessage[];
   }) => void;
 };
 
-async function startPrediagnosticsSession(): Promise<PrediagnosticsConnectionDetails> {
+async function startPrediagnosticsSession(
+  sessionId?: string,
+): Promise<PrediagnosticsConnectionDetails> {
   const response = await fetch("/api/prediagnostics/start", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({}),
+    body: JSON.stringify(sessionId ? { sessionId } : {}),
   });
+
+  if (response.status === 409) {
+    window.localStorage.removeItem("prediagnostics.activeSessionId");
+    window.localStorage.removeItem("prediagnostics.connectionDetails");
+    window.location.href = "/prediagnostics?reason=session_expired";
+    throw new Error("Session expired");
+  }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
@@ -66,6 +83,15 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
   const audioDevices = useMediaDevices({ kind: "audioinput" });
   const selectedDeviceId = userChoices.audioDeviceId || "default";
   const audioEnabled = userChoices.audioEnabled ?? true;
+  const selectorDevices = useMemo<AudioDevice[]>(
+    () =>
+      audioDevices.map((device, index) => ({
+        deviceId: device.deviceId,
+        label: device.label || `Microphone ${index + 1}`,
+        groupId: device.groupId,
+      })),
+    [audioDevices],
+  );
 
   const previewTracks = usePreviewTracks(
     {
@@ -180,8 +206,7 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
   }, [saveAudioInputEnabled, selectedDeviceId]);
 
   const handleDeviceChange = useCallback(
-    async (event: React.ChangeEvent<HTMLSelectElement>) => {
-      const nextDeviceId = event.target.value;
+    async (nextDeviceId: string) => {
       saveAudioInputDeviceId(nextDeviceId);
       setDeviceError(null);
 
@@ -212,10 +237,11 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
     setJoinError(null);
 
     try {
-      const connectionDetails = await startPrediagnosticsSession();
+      const connectionDetails = await startPrediagnosticsSession(props.resumableSession?.sessionId);
       props.onStarted({
         sessionId: connectionDetails.sessionId,
         connectionDetails,
+        initialMessages: props.resumableSession?.initialMessages,
       });
     } catch (error) {
       setJoinError(
@@ -249,7 +275,7 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
             }}
           />
           <div className="relative z-10 w-full max-w-105 overflow-hidden rounded-[26px] bg-white shadow-[0_28px_60px_rgba(74,57,143,0.12)]">
-            <div className="flex h-190 flex-col justify-between px-8 py-10">
+            <div className="flex h-190 flex-col justify-between p-4 pt-6">
               <div>
                 <h1 className="text-2xl font-semibold tracking-[-0.03em] text-[#2b2233]">
                   Get ready to join the session
@@ -262,12 +288,11 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
 
               <div className="mt-8 space-y-4">
                 <PrejoinDeviceSelector
-                  audioDevices={audioDevices}
                   disabled={permissionState !== "granted" || audioDevices.length === 0}
+                  devices={selectorDevices}
                   permissionState={permissionState}
                   selectedDeviceAvailable={selectedDeviceAvailable}
                   selectedDeviceId={selectedDeviceId}
-                  selectId="prediagnostics-audio-device-desktop"
                   onChange={handleDeviceChange}
                 />
 
@@ -289,7 +314,7 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
 
       <div className="md:hidden">
         <div className="mx-auto flex min-h-screen md:min-h-[calc(100dvh-4rem)] w-full flex-col items-center justify-between">
-          <section className="w-full max-w-xl rounded-4xl p-6 sm:p-8">
+          <section className="w-full max-w-xl rounded-4xl p-4 sm:p-4">
             <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-[#2b2233]">
               Get ready to join the session
             </h1>
@@ -299,15 +324,14 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
               you&apos;re ready.
             </p>
           </section>
-          <div className="w-full mt-8 p-6 sm:p-8">
+          <div className="w-full mt-8 p-4 sm:p-8">
             <div className="mt-5 space-y-4">
               <PrejoinDeviceSelector
-                audioDevices={audioDevices}
                 disabled={permissionState !== "granted" || audioDevices.length === 0}
+                devices={selectorDevices}
                 permissionState={permissionState}
                 selectedDeviceAvailable={selectedDeviceAvailable}
                 selectedDeviceId={selectedDeviceId}
-                selectId="prediagnostics-audio-device"
                 onChange={handleDeviceChange}
               />
 
@@ -330,39 +354,54 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
 }
 
 function PrejoinDeviceSelector(props: {
-  audioDevices: MediaDeviceInfo[];
   disabled: boolean;
+  devices: AudioDevice[];
   permissionState: MicPermissionState;
-  selectId: string;
   selectedDeviceAvailable: boolean;
   selectedDeviceId: string;
-  onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
+  onChange: (deviceId: string) => void;
 }) {
+  const selectorValue = props.selectedDeviceAvailable
+    ? props.selectedDeviceId
+    : (props.devices[0]?.deviceId ?? "default");
+  const waveformActive = props.permissionState === "granted" && !props.disabled;
+
   return (
-    <div>
+    <div className="space-y-3">
       <div className="mb-2 flex justify-between">
-        <label className="mb-2 block text-sm font-medium text-[#2b2233]" htmlFor={props.selectId}>
-          Device
-        </label>
+        <label className="mb-2 block text-sm font-medium text-[#2b2233]">Device</label>
         <PermissionBadge permissionState={props.permissionState} />
       </div>
-      <select
-        className="h-12 w-full rounded-2xl border border-[#dcd4e7] bg-white px-4 text-sm text-[#2b2233] outline-none transition focus:border-[#5a42cc] disabled:cursor-not-allowed disabled:bg-[#f6f3fa] disabled:text-[#9b92ad]"
-        disabled={props.disabled}
-        id={props.selectId}
-        value={
-          props.selectedDeviceAvailable
-            ? props.selectedDeviceId
-            : (props.audioDevices[0]?.deviceId ?? "default")
-        }
-        onChange={props.onChange}
-      >
-        {props.audioDevices.map((device, index) => (
-          <option key={device.deviceId || `${device.label}-${index}`} value={device.deviceId}>
-            {device.label || `Microphone ${index + 1}`}
-          </option>
-        ))}
-      </select>
+
+      <div className="overflow-hidden rounded-xl border border-[#e4d8f1] bg-white shadow-[0_8px_24px_rgba(111,82,184,0.06)]">
+        {props.permissionState === "granted" ? (
+          <div className="bg-[#faf7fd] px-5 py-4">
+            <LiveWaveform
+              active={waveformActive}
+              deviceId={selectorValue === "default" ? undefined : selectorValue}
+              mode="scrolling"
+              height={44}
+              barWidth={3}
+              barGap={2}
+              className="w-full"
+            />
+          </div>
+        ) : null}
+        <div className="mx-5 border-t border-[#ede3f6]" />
+        <div className="p-2">
+          <MicSelector
+            value={selectorValue}
+            devices={props.devices}
+            disabled={props.disabled}
+            loading={false}
+            error={null}
+            showMuteControl={false}
+            showWaveformPreview={false}
+            className="h-13 w-full justify-start rounded-[22px] border-0 bg-transparent px-3 text-sm text-[#2b2233] shadow-none hover:bg-[#f8f5fc]"
+            onValueChange={props.onChange}
+          />
+        </div>
+      </div>
     </div>
   );
 }

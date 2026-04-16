@@ -45,6 +45,7 @@ vi.mock("../../../rubrics/pre-call.md?raw", () => ({
 import {
   finalizePreDiagnosticSession,
   getPreDiagnosticSessionStatus,
+  persistPreDiagnosticSessionTranscript,
   triggerPreDiagnosticSessionEvaluation,
 } from "#/lib/prediagnostics/report.server";
 
@@ -163,6 +164,74 @@ describe("prediagnostics report server flow", () => {
       }),
     });
     expect(result?.transcriptMessageCount).toBe(1);
+  });
+
+  test("persistPreDiagnosticSessionTranscript merges new transcript messages without completing the session", async () => {
+    preDiagnosticSessionFindUniqueMock.mockResolvedValue({
+      id: "diag-session-1",
+      userId: "user-1",
+      status: "STARTED",
+      transcript: {
+        source: "livekit_prediagnostics_client",
+        updatedAt: "2026-04-07T12:00:01.000Z",
+        messages: [
+          {
+            id: "m-existing",
+            role: "user",
+            text: "Existing transcript message",
+            timestamp: "2026-04-07T12:00:00.000Z",
+          },
+        ],
+      },
+    });
+
+    const result = await persistPreDiagnosticSessionTranscript({
+      sessionId: "diag-session-1",
+      userId: "user-1",
+      transcript: {
+        source: "livekit_prediagnostics_client",
+        updatedAt: "2026-04-07T12:00:05.000Z",
+        messages: [
+          {
+            id: "m-new",
+            role: "agent",
+            text: "Tell me more about your goal.",
+            timestamp: "2026-04-07T12:00:04.000Z",
+          },
+        ],
+      },
+    });
+
+    expect(preDiagnosticSessionUpdateMock).toHaveBeenCalledWith({
+      where: { id: "diag-session-1" },
+      data: {
+        transcript: expect.objectContaining({
+          source: "livekit_prediagnostics_client",
+          messages: [
+            expect.objectContaining({ id: "m-existing" }),
+            expect.objectContaining({ id: "m-new" }),
+          ],
+        }),
+      },
+    });
+    expect(result).toEqual({
+      sessionId: "diag-session-1",
+      transcriptMessageCount: 2,
+      transcriptMessages: [
+        {
+          id: "m-existing",
+          role: "user",
+          text: "Existing transcript message",
+          timestamp: "2026-04-07T12:00:00.000Z",
+        },
+        {
+          id: "m-new",
+          role: "agent",
+          text: "Tell me more about your goal.",
+          timestamp: "2026-04-07T12:00:04.000Z",
+        },
+      ],
+    });
   });
 
   test("triggerPreDiagnosticSessionEvaluation stores the generated structured report object", async () => {
@@ -364,6 +433,18 @@ describe("prediagnostics report server flow", () => {
       roomName: "prediag_room",
       startedAt: new Date("2026-04-07T12:00:00.000Z"),
       endedAt: new Date("2026-04-07T12:10:00.000Z"),
+      transcript: {
+        source: "livekit_prediagnostics_client",
+        updatedAt: "2026-04-07T12:09:00.000Z",
+        messages: [
+          {
+            id: "m1",
+            role: "user",
+            text: "I want to become a data scientist",
+            timestamp: "2026-04-07T12:00:00.000Z",
+          },
+        ],
+      },
       report: {
         id: "report-1",
         status: "READY",
@@ -398,6 +479,14 @@ describe("prediagnostics report server flow", () => {
     });
 
     expect(result?.session.status).toBe("REPORT_READY");
+    expect(result?.session.transcript?.messages).toEqual([
+      {
+        id: "m1",
+        role: "user",
+        text: "I want to become a data scientist",
+        timestamp: "2026-04-07T12:00:00.000Z",
+      },
+    ]);
     expect(result?.report?.status).toBe("READY");
     expect(result?.report?.reportJson?.dream_job).toBe("Data Science Manager");
   });

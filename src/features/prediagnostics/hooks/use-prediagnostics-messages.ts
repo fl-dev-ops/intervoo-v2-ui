@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useChat, useSessionContext, useSessionMessages } from "@livekit/components-react";
 import type { UseSessionReturn } from "@livekit/components-react";
 
@@ -27,10 +27,36 @@ function getTimestampValue(value: unknown): number {
   return 0;
 }
 
-export function usePrediagnosticsMessages(session: UseSessionReturn) {
+export function mergePrediagnosticsMessages(
+  persistedMessages: PrediagnosticsMessage[],
+  incomingMessages: PrediagnosticsMessage[],
+) {
+  const nextMessages = [...persistedMessages];
+  const indexById = new Map(nextMessages.map((message, index) => [message.id, index]));
+
+  for (const message of incomingMessages) {
+    const existingIndex = indexById.get(message.id);
+
+    if (existingIndex === undefined) {
+      indexById.set(message.id, nextMessages.length);
+      nextMessages.push(message);
+      continue;
+    }
+
+    nextMessages[existingIndex] = message;
+  }
+
+  return nextMessages;
+}
+
+export function usePrediagnosticsMessages(
+  session: UseSessionReturn,
+  initialMessages: PrediagnosticsMessage[] = [],
+) {
   const { room } = useSessionContext();
   const { messages } = useSessionMessages(session);
   const { chatMessages } = useChat();
+  const persistedRef = useRef<PrediagnosticsMessage[]>([...initialMessages]);
 
   return useMemo(() => {
     const transcriptMessages = messages
@@ -54,8 +80,15 @@ export function usePrediagnosticsMessages(session: UseSessionReturn) {
       timestamp: getTimestampValue(message.timestamp),
     }));
 
-    return [...transcriptMessages, ...normalizedChatMessages].toSorted(
-      (left, right) => left.timestamp - right.timestamp,
+    const merged = [...transcriptMessages, ...normalizedChatMessages];
+
+    // Keep prior messages across reconnects, but allow LiveKit to replace
+    // transcript segments as partial/final text arrives for the same id.
+    persistedRef.current = mergePrediagnosticsMessages(persistedRef.current, merged);
+
+    return [...persistedRef.current].toSorted(
+      (left: PrediagnosticsMessage, right: PrediagnosticsMessage) =>
+        left.timestamp - right.timestamp,
     );
   }, [chatMessages, messages, room.localParticipant.identity]);
 }

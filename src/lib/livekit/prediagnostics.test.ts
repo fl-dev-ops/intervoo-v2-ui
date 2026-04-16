@@ -31,6 +31,9 @@ vi.mock("livekit-server-sdk", () => {
 
   class MockRoomServiceClient {
     public static createRoomMock = vi.fn<(input: Record<string, unknown>) => Promise<void>>();
+    public static listRoomsMock = vi.fn<() => Promise<Array<{ name: string }>>>();
+    public static listParticipantsMock =
+      vi.fn<(roomName: string) => Promise<Array<Record<string, unknown>>>>();
 
     constructor(
       public serverUrl: string,
@@ -40,6 +43,14 @@ vi.mock("livekit-server-sdk", () => {
 
     async createRoom(input: Record<string, unknown>) {
       return MockRoomServiceClient.createRoomMock(input);
+    }
+
+    async listRooms() {
+      return MockRoomServiceClient.listRoomsMock();
+    }
+
+    async listParticipants(roomName: string) {
+      return MockRoomServiceClient.listParticipantsMock(roomName);
     }
   }
 
@@ -80,11 +91,15 @@ describe("prediagnostics LiveKit helpers", () => {
     process.env.LIVEKIT_URL = originalEnv.url;
     vi.clearAllMocks();
     (AccessToken as unknown as { created: unknown[] }).created.length = 0;
+    mockedRoomServiceClient().listRoomsMock.mockResolvedValue([]);
+    mockedRoomServiceClient().listParticipantsMock.mockResolvedValue([]);
   });
 
   function mockedRoomServiceClient() {
     return RoomServiceClient as unknown as typeof RoomServiceClient & {
       createRoomMock: ReturnType<typeof vi.fn>;
+      listRoomsMock: ReturnType<typeof vi.fn>;
+      listParticipantsMock: ReturnType<typeof vi.fn>;
     };
   }
 
@@ -102,12 +117,12 @@ describe("prediagnostics LiveKit helpers", () => {
 
   it("builds unique participant identities with a stable prefix", () => {
     const identity = buildPrediagnosticsParticipantIdentity("User-123");
-    expect(identity).toMatch(/^prediag_user_user123_/);
+    expect(identity).toBe("prediag_user_user123");
   });
 
   it("builds unique room names with a stable prefix", () => {
     const roomName = buildPrediagnosticsRoomName("User-123");
-    expect(roomName).toMatch(/^prediag_user123_/);
+    expect(roomName).toBe("prediag_user123");
   });
 
   it("defaults prediagnostics interaction mode to push to talk", () => {
@@ -147,7 +162,8 @@ describe("prediagnostics LiveKit helpers", () => {
         prompt_context: { userName: "Student One" },
         config: { voice: "ishita", speakingSpeed: 1 },
       }),
-      emptyTimeout: 600,
+      emptyTimeout: 300,
+      departureTimeout: 300,
       maxParticipants: 10,
     });
     expect(mockedAgentDispatchClient().createDispatchMock).toHaveBeenCalledWith(

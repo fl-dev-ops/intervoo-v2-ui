@@ -11,6 +11,14 @@ import {
   createPrediagnosticsConnectionDetails,
 } from "#/lib/livekit/prediagnostics";
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
 export async function postHandler({ request }: { request: Request }) {
   const session = await auth.api.getSession({ headers: request.headers });
 
@@ -30,13 +38,16 @@ export async function postHandler({ request }: { request: Request }) {
   try {
     const requestBody = (await request.json().catch(() => ({}))) as {
       interactionMode?: unknown;
+      sessionId?: unknown;
     };
+    const requestedSessionId =
+      typeof requestBody.sessionId === "string" && requestBody.sessionId.trim().length > 0
+        ? requestBody.sessionId.trim()
+        : null;
     const interactionMode: PrediagnosticsInteractionMode =
       requestBody.interactionMode === "auto" || requestBody.interactionMode === "ptt"
         ? requestBody.interactionMode
         : DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE;
-    const roomName = buildPrediagnosticsRoomName(user.id);
-    const participantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
     const participantName = buildPrediagnosticsParticipantName(user.name);
 
     const speakingSpeedInt =
@@ -75,49 +86,159 @@ export async function postHandler({ request }: { request: Request }) {
       speakingSpeed: speakingSpeedInt,
     };
 
-    const preDiagnosticSession = await prisma.preDiagnosticSession.create({
-      data: {
-        userId: user.id,
-        status: "STARTED",
-        roomName,
-        sessionMetadata: {
-          feature: "prediagnostics",
-          participantIdentity,
-          participantName,
-          interactionMode,
-          studentProfile,
-        },
-      },
-    });
+    let roomName: string;
+    let dbSessionId: string;
+    let storedParticipantIdentity: string;
+    let storedParticipantName: string;
+    let storedInteractionMode: PrediagnosticsInteractionMode;
+    let storedCoach: "sana" | "arjun";
+
+    if (requestedSessionId) {
+      const existingSession = await prisma.preDiagnosticSession.findUnique({
+        where: { id: requestedSessionId },
+      });
+
+      if (
+        existingSession &&
+        existingSession.userId === user.id &&
+        existingSession.status === "STARTED"
+      ) {
+        const sessionMetadata = asObject(existingSession.sessionMetadata);
+        storedInteractionMode =
+          sessionMetadata?.interactionMode === "auto" || sessionMetadata?.interactionMode === "ptt"
+            ? sessionMetadata.interactionMode
+            : interactionMode;
+        storedParticipantIdentity =
+          typeof sessionMetadata?.participantIdentity === "string" &&
+          sessionMetadata.participantIdentity.trim().length > 0
+            ? sessionMetadata.participantIdentity
+            : buildPrediagnosticsParticipantIdentity(user.id);
+        storedParticipantName =
+          typeof sessionMetadata?.participantName === "string" &&
+          sessionMetadata.participantName.trim().length > 0
+            ? sessionMetadata.participantName
+            : participantName;
+        storedCoach =
+          sessionMetadata?.coach === "arjun" || sessionMetadata?.coach === "sana"
+            ? sessionMetadata.coach
+            : coach;
+
+        roomName = existingSession.roomName;
+        dbSessionId = existingSession.id;
+      } else {
+        const baseRoomName = buildPrediagnosticsRoomName(user.id);
+        const newRoomName = `${baseRoomName}_${Date.now()}`;
+
+        const preDiagnosticSession = await prisma.preDiagnosticSession.create({
+          data: {
+            userId: user.id,
+            status: "STARTED",
+            roomName: newRoomName,
+            sessionMetadata: {
+              feature: "prediagnostics",
+              participantIdentity: buildPrediagnosticsParticipantIdentity(user.id),
+              participantName,
+              interactionMode,
+              coach,
+              studentProfile,
+            },
+          },
+        });
+
+        storedInteractionMode = interactionMode;
+        storedParticipantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
+        storedParticipantName = participantName;
+        storedCoach = coach;
+        roomName = newRoomName;
+        dbSessionId = preDiagnosticSession.id;
+      }
+    } else {
+      const baseRoomName = buildPrediagnosticsRoomName(user.id);
+      const participantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
+
+      const existingRoomSession = await prisma.preDiagnosticSession.findFirst({
+        where: { roomName: baseRoomName },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (existingRoomSession && existingRoomSession.status === "STARTED") {
+        const sessionMetadata = asObject(existingRoomSession.sessionMetadata);
+        storedInteractionMode =
+          sessionMetadata?.interactionMode === "auto" || sessionMetadata?.interactionMode === "ptt"
+            ? sessionMetadata.interactionMode
+            : interactionMode;
+        storedParticipantIdentity =
+          typeof sessionMetadata?.participantIdentity === "string" &&
+          sessionMetadata.participantIdentity.trim().length > 0
+            ? sessionMetadata.participantIdentity
+            : participantIdentity;
+        storedParticipantName =
+          typeof sessionMetadata?.participantName === "string" &&
+          sessionMetadata.participantName.trim().length > 0
+            ? sessionMetadata.participantName
+            : participantName;
+        storedCoach =
+          sessionMetadata?.coach === "arjun" || sessionMetadata?.coach === "sana"
+            ? sessionMetadata.coach
+            : coach;
+
+        roomName = existingRoomSession.roomName;
+        dbSessionId = existingRoomSession.id;
+      } else {
+        const newRoomName = `${baseRoomName}_${Date.now()}`;
+        const preDiagnosticSession = await prisma.preDiagnosticSession.create({
+          data: {
+            userId: user.id,
+            status: "STARTED",
+            roomName: newRoomName,
+            sessionMetadata: {
+              feature: "prediagnostics",
+              participantIdentity: buildPrediagnosticsParticipantIdentity(user.id),
+              participantName,
+              interactionMode,
+              coach,
+              studentProfile,
+            },
+          },
+        });
+
+        storedInteractionMode = interactionMode;
+        storedParticipantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
+        storedParticipantName = participantName;
+        storedCoach = coach;
+        roomName = newRoomName;
+        dbSessionId = preDiagnosticSession.id;
+      }
+    }
 
     const connectionDetails = await createPrediagnosticsConnectionDetails({
-      sessionId: preDiagnosticSession.id,
+      sessionId: dbSessionId,
       roomName,
-      participantIdentity,
-      participantName,
+      participantIdentity: storedParticipantIdentity,
+      participantName: storedParticipantName,
       participantMetadata: JSON.stringify({
         userId: user.id,
         email: user.email,
-        sessionId: preDiagnosticSession.id,
-        interaction_mode: interactionMode,
+        sessionId: dbSessionId,
+        interaction_mode: storedInteractionMode,
       }),
       roomMetadata: JSON.stringify({
-        sessionId: preDiagnosticSession.id,
+        sessionId: dbSessionId,
         userId: user.id,
-        interaction_mode: interactionMode,
+        interaction_mode: storedInteractionMode,
         prompt_context: promptContext,
         config: agentConfig,
       }),
       agentName: env.LIVEKIT_AGENT_NAME,
       agentMetadata: JSON.stringify({
-        sessionId: preDiagnosticSession.id,
+        sessionId: dbSessionId,
         studentId: user.id,
-        interaction_mode: interactionMode,
+        interaction_mode: storedInteractionMode,
         prompt_context: promptContext,
         config: agentConfig,
       }),
-      interactionMode,
-      coach,
+      interactionMode: storedInteractionMode,
+      coach: storedCoach,
     });
 
     return Response.json(connectionDetails, { status: 200 });
