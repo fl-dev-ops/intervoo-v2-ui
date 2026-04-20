@@ -35,6 +35,8 @@ function buildEvaluationMetadata(input: {
   });
 }
 
+const inFlightPreDiagnosticSessionEvaluations = new Map<string, Promise<void>>();
+
 async function acquirePreDiagnosticSessionReportForEvaluation(
   sessionId: string,
   options?: { force?: boolean },
@@ -150,132 +152,153 @@ export async function triggerPreDiagnosticSessionEvaluation(
   sessionId: string,
   options?: { force?: boolean; transcriptMessages?: PrediagnosticsTranscriptMessage[] },
 ) {
-  const session = await prisma.preDiagnosticSession.findUnique({
-    where: { id: sessionId },
-    include: {
-      report: true,
-      user: {
-        include: {
-          profile: true,
+  if (!options?.force) {
+    const inFlightEvaluation = inFlightPreDiagnosticSessionEvaluations.get(sessionId);
+
+    if (inFlightEvaluation) {
+      await inFlightEvaluation;
+      return;
+    }
+  }
+
+  const evaluationPromise = (async () => {
+    const session = await prisma.preDiagnosticSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        report: true,
+        user: {
+          include: {
+            profile: true,
+          },
         },
       },
-    },
-  });
-
-  if (!session) {
-    throw new Error("Pre-diagnostic session not found");
-  }
-
-  const claimed = await acquirePreDiagnosticSessionReportForEvaluation(session.id, {
-    force: options?.force,
-  });
-
-  if (!claimed.shouldProcess) {
-    return;
-  }
-
-  if (!process.env.OPENROUTER_API_KEY) {
-    await prisma.preDiagnosticSessionReport.update({
-      where: { id: claimed.report.id },
-      data: {
-        status: "FAILED",
-        errorMessage: "OPENROUTER_API_KEY is not configured",
-        metadata: toJsonValue(
-          mergeJsonObject(claimed.report.metadata, {
-            evaluationState: "FAILED",
-            error: "OPENROUTER_API_KEY is not configured",
-          }),
-        ),
-      },
     });
-    return;
-  }
 
-  const transcriptMessages = options?.transcriptMessages?.length
-    ? sanitizePrediagnosticsTranscriptMessages(options.transcriptMessages)
-    : getPrediagnosticsSessionTranscriptMessages(session.transcript);
-  const transcriptPromptText = buildPrediagnosticsTranscriptPromptText(transcriptMessages);
-  const { prompt, promptVersion } = await buildPrediagnosticsPrompt({
-    name: session.user.profile?.preferredName || session.user.name,
-    college: session.user.profile?.institution ?? null,
-    degree: session.user.profile?.degree ?? null,
-    stream: session.user.profile?.stream ?? null,
-    year: session.user.profile?.yearOfStudy ?? null,
-  });
-
-  try {
-    if (!transcriptMessages.length || !transcriptPromptText) {
-      throw new Error("No transcript is available for this session yet");
+    if (!session) {
+      throw new Error("Pre-diagnostic session not found");
     }
 
-    const result = await generateEvaluationObject({
-      temperature: 0,
-      schema: prediagnosticsReportSchema,
-      userContent: [
-        {
-          type: "text",
-          text: `${prompt}
+    const claimed = await acquirePreDiagnosticSessionReportForEvaluation(session.id, {
+      force: options?.force,
+    });
+
+    if (!claimed.shouldProcess) {
+      return;
+    }
+
+    if (!process.env.OPENROUTER_API_KEY) {
+      await prisma.preDiagnosticSessionReport.update({
+        where: { id: claimed.report.id },
+        data: {
+          status: "FAILED",
+          errorMessage: "OPENROUTER_API_KEY is not configured",
+          metadata: toJsonValue(
+            mergeJsonObject(claimed.report.metadata, {
+              evaluationState: "FAILED",
+              error: "OPENROUTER_API_KEY is not configured",
+            }),
+          ),
+        },
+      });
+      return;
+    }
+
+    const transcriptMessages = options?.transcriptMessages?.length
+      ? sanitizePrediagnosticsTranscriptMessages(options.transcriptMessages)
+      : getPrediagnosticsSessionTranscriptMessages(session.transcript);
+    const transcriptPromptText = buildPrediagnosticsTranscriptPromptText(transcriptMessages);
+    const { prompt, promptVersion } = await buildPrediagnosticsPrompt({
+      name: session.user.profile?.preferredName || session.user.name,
+      college: session.user.profile?.institution ?? null,
+      degree: session.user.profile?.degree ?? null,
+      stream: session.user.profile?.stream ?? null,
+      year: session.user.profile?.yearOfStudy ?? null,
+    });
+
+    try {
+      if (!transcriptMessages.length || !transcriptPromptText) {
+        throw new Error("No transcript is available for this session yet");
+      }
+
+      const result = await generateEvaluationObject({
+        temperature: 0,
+        schema: prediagnosticsReportSchema,
+        userContent: [
+          {
+            type: "text",
+            text: `${prompt}
 
 Conversation transcript (ordered, includes student and agent):
 ${transcriptPromptText}`,
+          },
+        ],
+      });
+
+      const reportJson = result.object;
+      const reportMetadata = buildEvaluationMetadata({
+        existing: claimed.report.metadata,
+        model: EVALUATION_MODEL_ID,
+        evaluationState: "READY",
+        promptVersion,
+        transcriptMessageCount: transcriptMessages.length,
+        transcriptCharacterCount: transcriptPromptText.length,
+        error: null,
+      });
+
+      await prisma.preDiagnosticSessionReport.update({
+        where: { id: claimed.report.id },
+        data: {
+          status: "READY",
+          promptVersion,
+          fileUri: null,
+          reportJson: toJsonValue(reportJson),
+          errorMessage: null,
+          metadata: toJsonValue({
+            ...reportMetadata,
+            structuredObject: reportJson,
+          }),
         },
-      ],
-    });
+      });
 
-    const reportJson = result.object;
-    const reportMetadata = buildEvaluationMetadata({
-      existing: claimed.report.metadata,
-      model: EVALUATION_MODEL_ID,
-      evaluationState: "READY",
-      promptVersion,
-      transcriptMessageCount: transcriptMessages.length,
-      transcriptCharacterCount: transcriptPromptText.length,
-      error: null,
-    });
-
-    await prisma.preDiagnosticSessionReport.update({
-      where: { id: claimed.report.id },
-      data: {
-        status: "READY",
+      await prisma.preDiagnosticSession.update({
+        where: { id: session.id },
+        data: {
+          status: "REPORT_READY",
+        },
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to evaluate pre-diagnostic session";
+      const failedMetadata = buildEvaluationMetadata({
+        existing: claimed.report.metadata,
+        model: EVALUATION_MODEL_ID,
+        evaluationState: "FAILED",
         promptVersion,
-        fileUri: null,
-        reportJson: toJsonValue(reportJson),
-        errorMessage: null,
-        metadata: toJsonValue({
-          ...reportMetadata,
-          structuredObject: reportJson,
-        }),
-      },
-    });
+        transcriptMessageCount: transcriptMessages.length,
+        transcriptCharacterCount: transcriptPromptText.length,
+        error: message,
+      });
 
-    await prisma.preDiagnosticSession.update({
-      where: { id: session.id },
-      data: {
-        status: "REPORT_READY",
-      },
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to evaluate pre-diagnostic session";
-    const failedMetadata = buildEvaluationMetadata({
-      existing: claimed.report.metadata,
-      model: EVALUATION_MODEL_ID,
-      evaluationState: "FAILED",
-      promptVersion,
-      transcriptMessageCount: transcriptMessages.length,
-      transcriptCharacterCount: transcriptPromptText.length,
-      error: message,
-    });
+      await prisma.preDiagnosticSessionReport.update({
+        where: { id: claimed.report.id },
+        data: {
+          status: "FAILED",
+          promptVersion,
+          errorMessage: message,
+          metadata: toJsonValue(failedMetadata),
+        },
+      });
+    }
+  })();
 
-    await prisma.preDiagnosticSessionReport.update({
-      where: { id: claimed.report.id },
-      data: {
-        status: "FAILED",
-        promptVersion,
-        errorMessage: message,
-        metadata: toJsonValue(failedMetadata),
-      },
-    });
+  inFlightPreDiagnosticSessionEvaluations.set(sessionId, evaluationPromise);
+
+  try {
+    await evaluationPromise;
+  } finally {
+    if (inFlightPreDiagnosticSessionEvaluations.get(sessionId) === evaluationPromise) {
+      inFlightPreDiagnosticSessionEvaluations.delete(sessionId);
+    }
   }
 }
 
@@ -341,6 +364,7 @@ function mapSessionToStatusResponse(session: {
   roomName: string;
   startedAt: Date;
   endedAt: Date | null;
+  transcript: unknown;
   report: {
     id: string;
     status: string;
@@ -358,6 +382,11 @@ function mapSessionToStatusResponse(session: {
       roomName: session.roomName,
       startedAt: session.startedAt.toISOString(),
       endedAt: session.endedAt?.toISOString() ?? null,
+      transcript: session.transcript
+        ? buildPrediagnosticsSessionTranscript(
+            getPrediagnosticsSessionTranscriptMessages(session.transcript),
+          )
+        : null,
     },
     report: session.report
       ? {

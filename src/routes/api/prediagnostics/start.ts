@@ -35,9 +35,10 @@ export async function postHandler({ request }: { request: Request }) {
       requestBody.interactionMode === "auto" || requestBody.interactionMode === "ptt"
         ? requestBody.interactionMode
         : DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE;
-    const roomName = buildPrediagnosticsRoomName(user.id);
-    const participantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
     const participantName = buildPrediagnosticsParticipantName(user.name);
+    const participantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
+    const baseRoomName = buildPrediagnosticsRoomName(user.id);
+    const roomName = `${baseRoomName}_${Date.now()}`;
 
     const speakingSpeedInt =
       user.profile?.speakingSpeed === "normal"
@@ -85,6 +86,7 @@ export async function postHandler({ request }: { request: Request }) {
           participantIdentity,
           participantName,
           interactionMode,
+          coach,
           studentProfile,
         },
       },
@@ -116,7 +118,7 @@ export async function postHandler({ request }: { request: Request }) {
         prompt_context: promptContext,
         config: agentConfig,
       }),
-      interactionMode,
+      interactionMode: interactionMode,
       coach,
     });
 

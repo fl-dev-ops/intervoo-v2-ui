@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { createBundledTemplateLoader } from "#/lib/prediagnostics/bundled-template";
+import type { PrediagnosticsSessionTranscript } from "#/lib/prediagnostics/transcript";
 import preScreenPromptTemplateRaw from "../../../rubrics/pre-call.md?raw";
 
 const awarenessCategorySchema = z.enum(["Unclear", "Clear", "Strong"]);
@@ -46,6 +47,7 @@ export type PrediagnosticsReportStatusResponse = {
     roomName: string;
     startedAt: string;
     endedAt: string | null;
+    transcript: PrediagnosticsSessionTranscript | null;
   };
   report: null | {
     id: string;

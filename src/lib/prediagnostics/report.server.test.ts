@@ -364,6 +364,18 @@ describe("prediagnostics report server flow", () => {
       roomName: "prediag_room",
       startedAt: new Date("2026-04-07T12:00:00.000Z"),
       endedAt: new Date("2026-04-07T12:10:00.000Z"),
+      transcript: {
+        source: "livekit_prediagnostics_client",
+        updatedAt: "2026-04-07T12:09:00.000Z",
+        messages: [
+          {
+            id: "m1",
+            role: "user",
+            text: "I want to become a data scientist",
+            timestamp: "2026-04-07T12:00:00.000Z",
+          },
+        ],
+      },
       report: {
         id: "report-1",
         status: "READY",
@@ -398,6 +410,14 @@ describe("prediagnostics report server flow", () => {
     });
 
     expect(result?.session.status).toBe("REPORT_READY");
+    expect(result?.session.transcript?.messages).toEqual([
+      {
+        id: "m1",
+        role: "user",
+        text: "I want to become a data scientist",
+        timestamp: "2026-04-07T12:00:00.000Z",
+      },
+    ]);
     expect(result?.report?.status).toBe("READY");
     expect(result?.report?.reportJson?.dream_job).toBe("Data Science Manager");
   });
