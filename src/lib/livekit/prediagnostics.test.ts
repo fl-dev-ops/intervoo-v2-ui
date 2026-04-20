@@ -142,13 +142,13 @@ describe("prediagnostics LiveKit helpers", () => {
       participantMetadata: JSON.stringify({ userId: "user-1" }),
       roomMetadata: JSON.stringify({
         interaction_mode: "ptt",
-        prompt_context: { userName: "Student One" },
+        prompt_context: { userName: "Student One", comfortableLanguage: "hindi" },
         config: { voice: "ishita", speakingSpeed: 1 },
       }),
       agentName: "pre-screen-agent",
       agentMetadata: JSON.stringify({
         studentId: "user-1",
-        prompt_context: { userName: "Student One" },
+        prompt_context: { userName: "Student One", comfortableLanguage: "hindi" },
         config: { voice: "ishita", speakingSpeed: 1 },
       }),
       interactionMode: "ptt",
@@ -159,7 +159,7 @@ describe("prediagnostics LiveKit helpers", () => {
       name: "prediag_room",
       metadata: JSON.stringify({
         interaction_mode: "ptt",
-        prompt_context: { userName: "Student One" },
+        prompt_context: { userName: "Student One", comfortableLanguage: "hindi" },
         config: { voice: "ishita", speakingSpeed: 1 },
       }),
       emptyTimeout: 300,
@@ -172,7 +172,7 @@ describe("prediagnostics LiveKit helpers", () => {
       {
         metadata: JSON.stringify({
           studentId: "user-1",
-          prompt_context: { userName: "Student One" },
+          prompt_context: { userName: "Student One", comfortableLanguage: "hindi" },
           config: { voice: "ishita", speakingSpeed: 1 },
         }),
       },
