@@ -11,14 +11,6 @@ import {
   createPrediagnosticsConnectionDetails,
 } from "#/lib/livekit/prediagnostics";
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  return value as Record<string, unknown>;
-}
-
 export async function postHandler({ request }: { request: Request }) {
   const session = await auth.api.getSession({ headers: request.headers });
 
@@ -38,17 +30,15 @@ export async function postHandler({ request }: { request: Request }) {
   try {
     const requestBody = (await request.json().catch(() => ({}))) as {
       interactionMode?: unknown;
-      sessionId?: unknown;
     };
-    const requestedSessionId =
-      typeof requestBody.sessionId === "string" && requestBody.sessionId.trim().length > 0
-        ? requestBody.sessionId.trim()
-        : null;
     const interactionMode: PrediagnosticsInteractionMode =
       requestBody.interactionMode === "auto" || requestBody.interactionMode === "ptt"
         ? requestBody.interactionMode
         : DEFAULT_PREDIAGNOSTICS_INTERACTION_MODE;
     const participantName = buildPrediagnosticsParticipantName(user.name);
+    const participantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
+    const baseRoomName = buildPrediagnosticsRoomName(user.id);
+    const roomName = `${baseRoomName}_${Date.now()}`;
 
     const speakingSpeedInt =
       user.profile?.speakingSpeed === "normal"
@@ -86,159 +76,50 @@ export async function postHandler({ request }: { request: Request }) {
       speakingSpeed: speakingSpeedInt,
     };
 
-    let roomName: string;
-    let dbSessionId: string;
-    let storedParticipantIdentity: string;
-    let storedParticipantName: string;
-    let storedInteractionMode: PrediagnosticsInteractionMode;
-    let storedCoach: "sana" | "arjun";
-
-    if (requestedSessionId) {
-      const existingSession = await prisma.preDiagnosticSession.findUnique({
-        where: { id: requestedSessionId },
-      });
-
-      if (
-        existingSession &&
-        existingSession.userId === user.id &&
-        existingSession.status === "STARTED"
-      ) {
-        const sessionMetadata = asObject(existingSession.sessionMetadata);
-        storedInteractionMode =
-          sessionMetadata?.interactionMode === "auto" || sessionMetadata?.interactionMode === "ptt"
-            ? sessionMetadata.interactionMode
-            : interactionMode;
-        storedParticipantIdentity =
-          typeof sessionMetadata?.participantIdentity === "string" &&
-          sessionMetadata.participantIdentity.trim().length > 0
-            ? sessionMetadata.participantIdentity
-            : buildPrediagnosticsParticipantIdentity(user.id);
-        storedParticipantName =
-          typeof sessionMetadata?.participantName === "string" &&
-          sessionMetadata.participantName.trim().length > 0
-            ? sessionMetadata.participantName
-            : participantName;
-        storedCoach =
-          sessionMetadata?.coach === "arjun" || sessionMetadata?.coach === "sana"
-            ? sessionMetadata.coach
-            : coach;
-
-        roomName = existingSession.roomName;
-        dbSessionId = existingSession.id;
-      } else {
-        const baseRoomName = buildPrediagnosticsRoomName(user.id);
-        const newRoomName = `${baseRoomName}_${Date.now()}`;
-
-        const preDiagnosticSession = await prisma.preDiagnosticSession.create({
-          data: {
-            userId: user.id,
-            status: "STARTED",
-            roomName: newRoomName,
-            sessionMetadata: {
-              feature: "prediagnostics",
-              participantIdentity: buildPrediagnosticsParticipantIdentity(user.id),
-              participantName,
-              interactionMode,
-              coach,
-              studentProfile,
-            },
-          },
-        });
-
-        storedInteractionMode = interactionMode;
-        storedParticipantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
-        storedParticipantName = participantName;
-        storedCoach = coach;
-        roomName = newRoomName;
-        dbSessionId = preDiagnosticSession.id;
-      }
-    } else {
-      const baseRoomName = buildPrediagnosticsRoomName(user.id);
-      const participantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
-
-      const existingRoomSession = await prisma.preDiagnosticSession.findFirst({
-        where: { roomName: baseRoomName },
-        orderBy: { createdAt: "desc" },
-      });
-
-      if (existingRoomSession && existingRoomSession.status === "STARTED") {
-        const sessionMetadata = asObject(existingRoomSession.sessionMetadata);
-        storedInteractionMode =
-          sessionMetadata?.interactionMode === "auto" || sessionMetadata?.interactionMode === "ptt"
-            ? sessionMetadata.interactionMode
-            : interactionMode;
-        storedParticipantIdentity =
-          typeof sessionMetadata?.participantIdentity === "string" &&
-          sessionMetadata.participantIdentity.trim().length > 0
-            ? sessionMetadata.participantIdentity
-            : participantIdentity;
-        storedParticipantName =
-          typeof sessionMetadata?.participantName === "string" &&
-          sessionMetadata.participantName.trim().length > 0
-            ? sessionMetadata.participantName
-            : participantName;
-        storedCoach =
-          sessionMetadata?.coach === "arjun" || sessionMetadata?.coach === "sana"
-            ? sessionMetadata.coach
-            : coach;
-
-        roomName = existingRoomSession.roomName;
-        dbSessionId = existingRoomSession.id;
-      } else {
-        const newRoomName = `${baseRoomName}_${Date.now()}`;
-        const preDiagnosticSession = await prisma.preDiagnosticSession.create({
-          data: {
-            userId: user.id,
-            status: "STARTED",
-            roomName: newRoomName,
-            sessionMetadata: {
-              feature: "prediagnostics",
-              participantIdentity: buildPrediagnosticsParticipantIdentity(user.id),
-              participantName,
-              interactionMode,
-              coach,
-              studentProfile,
-            },
-          },
-        });
-
-        storedInteractionMode = interactionMode;
-        storedParticipantIdentity = buildPrediagnosticsParticipantIdentity(user.id);
-        storedParticipantName = participantName;
-        storedCoach = coach;
-        roomName = newRoomName;
-        dbSessionId = preDiagnosticSession.id;
-      }
-    }
+    const preDiagnosticSession = await prisma.preDiagnosticSession.create({
+      data: {
+        userId: user.id,
+        status: "STARTED",
+        roomName,
+        sessionMetadata: {
+          feature: "prediagnostics",
+          participantIdentity,
+          participantName,
+          interactionMode,
+          coach,
+          studentProfile,
+        },
+      },
+    });
 
     const connectionDetails = await createPrediagnosticsConnectionDetails({
-      sessionId: dbSessionId,
+      sessionId: preDiagnosticSession.id,
       roomName,
-      participantIdentity: storedParticipantIdentity,
-      participantName: storedParticipantName,
+      participantIdentity,
+      participantName,
       participantMetadata: JSON.stringify({
         userId: user.id,
         email: user.email,
-        sessionId: dbSessionId,
-        interaction_mode: storedInteractionMode,
+        sessionId: preDiagnosticSession.id,
+        interaction_mode: interactionMode,
       }),
       roomMetadata: JSON.stringify({
-        sessionId: dbSessionId,
+        sessionId: preDiagnosticSession.id,
         userId: user.id,
-        interaction_mode: storedInteractionMode,
+        interaction_mode: interactionMode,
         prompt_context: promptContext,
         config: agentConfig,
       }),
       agentName: env.LIVEKIT_AGENT_NAME,
       agentMetadata: JSON.stringify({
-        sessionId: dbSessionId,
+        sessionId: preDiagnosticSession.id,
         studentId: user.id,
-        interaction_mode: storedInteractionMode,
+        interaction_mode: interactionMode,
         prompt_context: promptContext,
         config: agentConfig,
       }),
-      interactionMode: storedInteractionMode,
-      coach: storedCoach,
+      interactionMode: interactionMode,
+      coach,
     });
 
     return Response.json(connectionDetails, { status: 200 });

@@ -57,7 +57,6 @@ export type PrediagnosticsSessionContextValue = {
 type PrediagnosticsSessionProviderProps = {
   children: ReactNode;
   connectionDetails: PrediagnosticsConnectionDetails;
-  initialMessages?: PrediagnosticsMessage[];
   sessionId: string;
   session: UseSessionReturn;
   onFinished: (payload: { sessionId: string }) => void;
@@ -80,7 +79,7 @@ export function PrediagnosticsSessionProvider(props: PrediagnosticsSessionProvid
   const connectionState = useConnectionState(props.session.room);
   const isConnected = connectionState === LiveKitConnectionState.Connected;
   const agent = useAgent(props.session);
-  const messages = usePrediagnosticsMessages(props.session, props.initialMessages);
+  const messages = usePrediagnosticsMessages(props.session);
   const ptt = usePrediagnosticsPushToTalk();
   const { userChoices } = usePersistentUserChoices({ preventSave: true });
   const [hasStartBeenRequested, setHasStartBeenRequested] = useState(false);
@@ -94,8 +93,6 @@ export function PrediagnosticsSessionProvider(props: PrediagnosticsSessionProvid
   const activeTurnStartIndexRef = useRef<number | null>(null);
   const isEndingRef = useRef(false);
   const hasCompletedSessionRef = useRef(false);
-  const isPageUnloadingRef = useRef(false);
-  const lastPersistedTranscriptRef = useRef<string | null>(null);
   const hasAgentBeenActiveInSessionRef = useRef(false);
 
   useEffect(() => {
@@ -155,17 +152,6 @@ export function PrediagnosticsSessionProvider(props: PrediagnosticsSessionProvid
     };
   }, [props.connectionDetails.interactionMode, ptt.isProcessing, userVoiceTranscriptMessages]);
 
-  const restoredUserVoiceMessages = useMemo(
-    () =>
-      props.connectionDetails.interactionMode === "ptt"
-        ? (props.initialMessages ?? []).filter(
-            (message: PrediagnosticsMessage) =>
-              message.role === "user" && message.kind === "transcript",
-          )
-        : [],
-    [props.connectionDetails.interactionMode, props.initialMessages],
-  );
-
   const displayMessages = useMemo(() => {
     if (props.connectionDetails.interactionMode !== "ptt") {
       return messages;
@@ -178,7 +164,6 @@ export function PrediagnosticsSessionProvider(props: PrediagnosticsSessionProvid
 
     return [
       ...visibleMessages,
-      ...restoredUserVoiceMessages,
       ...committedUserVoiceMessages,
       ...(activeTurnMessage ? [activeTurnMessage] : []),
     ].toSorted(
@@ -190,7 +175,6 @@ export function PrediagnosticsSessionProvider(props: PrediagnosticsSessionProvid
     committedUserVoiceMessages,
     messages,
     props.connectionDetails.interactionMode,
-    restoredUserVoiceMessages,
   ]);
 
   const { getTranscript } = usePrediagnosticsTranscript(displayMessages);
@@ -199,20 +183,6 @@ export function PrediagnosticsSessionProvider(props: PrediagnosticsSessionProvid
     props.connectionDetails.interactionMode === "ptt" && ptt.isRecording;
   const showAgentPendingBubble =
     props.connectionDetails.interactionMode === "ptt" && agentIsThinking;
-
-  useEffect(() => {
-    const markPageAsUnloading = () => {
-      isPageUnloadingRef.current = true;
-    };
-
-    window.addEventListener("beforeunload", markPageAsUnloading);
-    window.addEventListener("pagehide", markPageAsUnloading);
-
-    return () => {
-      window.removeEventListener("beforeunload", markPageAsUnloading);
-      window.removeEventListener("pagehide", markPageAsUnloading);
-    };
-  }, []);
 
   useEffect(() => {
     if (hasStartBeenRequested || isConnected) {
@@ -308,55 +278,6 @@ export function PrediagnosticsSessionProvider(props: PrediagnosticsSessionProvid
     previousPttStateRef.current = ptt.state;
   }, [props.connectionDetails.interactionMode, ptt.state, userVoiceTranscriptMessages]);
 
-  useEffect(() => {
-    if (
-      !sessionHasStarted ||
-      isEnding ||
-      isPageUnloadingRef.current ||
-      displayMessages.length === 0 ||
-      agentIsSpeaking
-    ) {
-      return;
-    }
-
-    const transcript = getTranscript();
-    const serializedTranscript = JSON.stringify(transcript.messages);
-
-    if (lastPersistedTranscriptRef.current === serializedTranscript) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      void fetch("/api/prediagnostics/transcript", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sessionId: props.sessionId,
-          transcript,
-        }),
-      })
-        .then((response) => {
-          if (response.ok) {
-            lastPersistedTranscriptRef.current = serializedTranscript;
-          }
-        })
-        .catch(() => {});
-    }, 750);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [
-    agentIsSpeaking,
-    displayMessages.length,
-    getTranscript,
-    isEnding,
-    props.sessionId,
-    sessionHasStarted,
-  ]);
-
   const finalizeAndEndSession = useCallback(
     async (preCapturedTranscript?: PrediagnosticsSessionTranscript) => {
       if (isEndingRef.current || hasCompletedSessionRef.current) {
@@ -414,10 +335,6 @@ export function PrediagnosticsSessionProvider(props: PrediagnosticsSessionProvid
   );
 
   useEffect(() => {
-    if (isPageUnloadingRef.current) {
-      return;
-    }
-
     if (sessionHasStarted && hasAgentBeenActiveInSessionRef.current && agentIsFinished) {
       console.log(
         `[agent-debug] auto-finalize firing | sessionHasStarted=${sessionHasStarted} hasAgentActive=${hasAgentBeenActiveInSessionRef.current} agentIsFinished=${agentIsFinished}`,

@@ -17,7 +17,6 @@ import {
 import { LiveWaveform } from "#/components/ui/live-waveform";
 import { Message, MessageContent } from "#/components/ui/message";
 import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
-import type { PrediagnosticsMessage } from "#/features/prediagnostics/hooks/use-prediagnostics-messages";
 import {
   PrediagnosticsSessionProvider,
   usePrediagnosticsSessionContext,
@@ -36,7 +35,6 @@ const coachHeaderMeta = {
 
 type PrediagnosticsSessionStepProps = {
   connectionDetails: PrediagnosticsConnectionDetails;
-  initialMessages?: PrediagnosticsMessage[];
   sessionId: string;
   onFinished: (payload: { sessionId: string }) => void;
 };
@@ -76,7 +74,6 @@ function PrediagnosticsLiveKitSessionContent(
   return (
     <PrediagnosticsSessionProvider
       connectionDetails={props.connectionDetails}
-      initialMessages={props.initialMessages}
       session={props.session}
       sessionId={props.sessionId}
       onFinished={props.onFinished}
@@ -319,9 +316,15 @@ function PttSessionFooter() {
   }, [chatMessage, isInputDisabled, send]);
 
   const handleVoiceToggle = useCallback(() => {
-    // Voice toggle logic would need adapter access
-    // For now, this is a placeholder
-  }, []);
+    if (ctx.ptt.isRecording) {
+      void ctx.ptt.endTurn();
+      return;
+    }
+
+    if (ctx.ptt.isAvailable && !ctx.ptt.isProcessing) {
+      void ctx.ptt.startTurn();
+    }
+  }, [ctx.ptt]);
 
   return (
     <div className="mx-4 my-4">

@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { auth } from "#/lib/auth.server";
-import { getPreDiagnosticSessionStatus } from "#/lib/prediagnostics/report.server";
+import {
+  getLatestPreDiagnosticSessionStatus,
+  getPreDiagnosticSessionStatus,
+} from "#/lib/prediagnostics/report.server";
 
 export async function getHandler({ request }: { request: Request }) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -13,7 +16,13 @@ export async function getHandler({ request }: { request: Request }) {
   const sessionId = url.searchParams.get("sessionId");
 
   if (!sessionId) {
-    return Response.json({ error: "Missing sessionId" }, { status: 400 });
+    const latest = await getLatestPreDiagnosticSessionStatus(session.user.id);
+
+    if (!latest) {
+      return Response.json({ error: "Pre-diagnostic session not found" }, { status: 404 });
+    }
+
+    return Response.json(latest, { status: 200 });
   }
 
   const result = await getPreDiagnosticSessionStatus({

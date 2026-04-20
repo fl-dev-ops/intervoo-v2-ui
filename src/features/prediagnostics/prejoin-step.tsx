@@ -11,7 +11,6 @@ import { Button } from "#/components/ui/button";
 import { LiveWaveform } from "#/components/ui/live-waveform";
 import { MicSelector, type AudioDevice } from "#/components/ui/mic-selector";
 import type { PrediagnosticsConnectionDetails } from "#/lib/livekit/prediagnostics";
-import type { PrediagnosticsMessage } from "#/features/prediagnostics/hooks/use-prediagnostics-messages";
 
 type MicPermissionState = "checking" | "prompt" | "granted" | "denied";
 
@@ -24,34 +23,20 @@ const DEFAULT_USER_CHOICES: Partial<LocalUserChoices> = {
 };
 
 type PrediagnosticsPrejoinStepProps = {
-  resumableSession: {
-    sessionId: string;
-    initialMessages: PrediagnosticsMessage[];
-  } | null;
   onStarted: (payload: {
     sessionId: string;
     connectionDetails: PrediagnosticsConnectionDetails;
-    initialMessages?: PrediagnosticsMessage[];
   }) => void;
 };
 
-async function startPrediagnosticsSession(
-  sessionId?: string,
-): Promise<PrediagnosticsConnectionDetails> {
+async function startPrediagnosticsSession(): Promise<PrediagnosticsConnectionDetails> {
   const response = await fetch("/api/prediagnostics/start", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(sessionId ? { sessionId } : {}),
+    body: JSON.stringify({}),
   });
-
-  if (response.status === 409) {
-    window.localStorage.removeItem("prediagnostics.activeSessionId");
-    window.localStorage.removeItem("prediagnostics.connectionDetails");
-    window.location.href = "/prediagnostics?reason=session_expired";
-    throw new Error("Session expired");
-  }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
@@ -237,11 +222,10 @@ export function PrediagnosticsPrejoinStep(props: PrediagnosticsPrejoinStepProps)
     setJoinError(null);
 
     try {
-      const connectionDetails = await startPrediagnosticsSession(props.resumableSession?.sessionId);
+      const connectionDetails = await startPrediagnosticsSession();
       props.onStarted({
         sessionId: connectionDetails.sessionId,
         connectionDetails,
-        initialMessages: props.resumableSession?.initialMessages,
       });
     } catch (error) {
       setJoinError(
