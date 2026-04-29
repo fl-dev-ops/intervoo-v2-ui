@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/onboarding" });
     }
 
-    throw redirect({ to: "/prediagnostics" });
+    throw redirect({ to: "/prediagnostics", search: { redo: false } });
   },
   component: () => null,
 });

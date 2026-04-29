@@ -171,13 +171,16 @@ function PrediagnosticsReportPreview({
 
             <section className="my-12 rounded-xl px-5 text-center">
               <h2 className="text-[1.35rem] font-semibold tracking-[-0.02em] text-[#2b2233]">
-                Diagnostic interview coming soon
+                Ready for your diagnostic interview?
               </h2>
               <p className="mt-2 text-sm leading-6 text-[#6f667d]">
-                We&apos;re preparing the next step. Your report is ready, and the full diagnostic
-                interview experience will be available soon.
+                Choose the job band you want to practice for and start a full video diagnostic
+                interview.
               </p>
               <Button asChild size={"lg"} className="mt-6">
+                <Link to="/diagnostics">Start Diagnostic Interview</Link>
+              </Button>
+              <Button asChild size={"lg"} variant="outline" className="mt-3">
                 <Link to="/prediagnostics" search={{ redo: true }}>
                   Retake Pre Diagnostics
                 </Link>

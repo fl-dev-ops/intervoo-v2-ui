@@ -13,8 +13,12 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PrediagnosticsIndexRouteImport } from './routes/prediagnostics/index'
+import { Route as DiagnosticsIndexRouteImport } from './routes/diagnostics/index'
 import { Route as PrediagnosticsSessionRouteImport } from './routes/prediagnostics/session'
 import { Route as PrediagnosticsReportRouteImport } from './routes/prediagnostics/report'
+import { Route as DiagnosticsSessionRouteImport } from './routes/diagnostics/session'
+import { Route as DiagnosticsReportRouteImport } from './routes/diagnostics/report'
+import { Route as DiagnosticsPrejoinRouteImport } from './routes/diagnostics/prejoin'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
 import { Route as ApiPrediagnosticsStartRouteImport } from './routes/api/prediagnostics/start'
 import { Route as ApiPrediagnosticsReportStatusRouteImport } from './routes/api/prediagnostics/report-status'
@@ -42,6 +46,11 @@ const PrediagnosticsIndexRoute = PrediagnosticsIndexRouteImport.update({
   path: '/prediagnostics/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiagnosticsIndexRoute = DiagnosticsIndexRouteImport.update({
+  id: '/diagnostics/',
+  path: '/diagnostics/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrediagnosticsSessionRoute = PrediagnosticsSessionRouteImport.update({
   id: '/prediagnostics/session',
   path: '/prediagnostics/session',
@@ -50,6 +59,21 @@ const PrediagnosticsSessionRoute = PrediagnosticsSessionRouteImport.update({
 const PrediagnosticsReportRoute = PrediagnosticsReportRouteImport.update({
   id: '/prediagnostics/report',
   path: '/prediagnostics/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticsSessionRoute = DiagnosticsSessionRouteImport.update({
+  id: '/diagnostics/session',
+  path: '/diagnostics/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticsReportRoute = DiagnosticsReportRouteImport.update({
+  id: '/diagnostics/report',
+  path: '/diagnostics/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticsPrejoinRoute = DiagnosticsPrejoinRouteImport.update({
+  id: '/diagnostics/prejoin',
+  path: '/diagnostics/prejoin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
@@ -90,8 +114,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/diagnostics/prejoin': typeof DiagnosticsPrejoinRoute
+  '/diagnostics/report': typeof DiagnosticsReportRoute
+  '/diagnostics/session': typeof DiagnosticsSessionRoute
   '/prediagnostics/report': typeof PrediagnosticsReportRoute
   '/prediagnostics/session': typeof PrediagnosticsSessionRoute
+  '/diagnostics/': typeof DiagnosticsIndexRoute
   '/prediagnostics/': typeof PrediagnosticsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/prediagnostics/complete': typeof ApiPrediagnosticsCompleteRoute
@@ -104,8 +132,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/diagnostics/prejoin': typeof DiagnosticsPrejoinRoute
+  '/diagnostics/report': typeof DiagnosticsReportRoute
+  '/diagnostics/session': typeof DiagnosticsSessionRoute
   '/prediagnostics/report': typeof PrediagnosticsReportRoute
   '/prediagnostics/session': typeof PrediagnosticsSessionRoute
+  '/diagnostics': typeof DiagnosticsIndexRoute
   '/prediagnostics': typeof PrediagnosticsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/prediagnostics/complete': typeof ApiPrediagnosticsCompleteRoute
@@ -119,8 +151,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/diagnostics/prejoin': typeof DiagnosticsPrejoinRoute
+  '/diagnostics/report': typeof DiagnosticsReportRoute
+  '/diagnostics/session': typeof DiagnosticsSessionRoute
   '/prediagnostics/report': typeof PrediagnosticsReportRoute
   '/prediagnostics/session': typeof PrediagnosticsSessionRoute
+  '/diagnostics/': typeof DiagnosticsIndexRoute
   '/prediagnostics/': typeof PrediagnosticsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/prediagnostics/complete': typeof ApiPrediagnosticsCompleteRoute
@@ -135,8 +171,12 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/register'
+    | '/diagnostics/prejoin'
+    | '/diagnostics/report'
+    | '/diagnostics/session'
     | '/prediagnostics/report'
     | '/prediagnostics/session'
+    | '/diagnostics/'
     | '/prediagnostics/'
     | '/api/auth/$'
     | '/api/prediagnostics/complete'
@@ -149,8 +189,12 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/register'
+    | '/diagnostics/prejoin'
+    | '/diagnostics/report'
+    | '/diagnostics/session'
     | '/prediagnostics/report'
     | '/prediagnostics/session'
+    | '/diagnostics'
     | '/prediagnostics'
     | '/api/auth/$'
     | '/api/prediagnostics/complete'
@@ -163,8 +207,12 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/register'
+    | '/diagnostics/prejoin'
+    | '/diagnostics/report'
+    | '/diagnostics/session'
     | '/prediagnostics/report'
     | '/prediagnostics/session'
+    | '/diagnostics/'
     | '/prediagnostics/'
     | '/api/auth/$'
     | '/api/prediagnostics/complete'
@@ -178,8 +226,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OnboardingRoute: typeof OnboardingRoute
   RegisterRoute: typeof RegisterRoute
+  DiagnosticsPrejoinRoute: typeof DiagnosticsPrejoinRoute
+  DiagnosticsReportRoute: typeof DiagnosticsReportRoute
+  DiagnosticsSessionRoute: typeof DiagnosticsSessionRoute
   PrediagnosticsReportRoute: typeof PrediagnosticsReportRoute
   PrediagnosticsSessionRoute: typeof PrediagnosticsSessionRoute
+  DiagnosticsIndexRoute: typeof DiagnosticsIndexRoute
   PrediagnosticsIndexRoute: typeof PrediagnosticsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiPrediagnosticsCompleteRoute: typeof ApiPrediagnosticsCompleteRoute
@@ -219,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrediagnosticsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/diagnostics/': {
+      id: '/diagnostics/'
+      path: '/diagnostics'
+      fullPath: '/diagnostics/'
+      preLoaderRoute: typeof DiagnosticsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/prediagnostics/session': {
       id: '/prediagnostics/session'
       path: '/prediagnostics/session'
@@ -231,6 +290,27 @@ declare module '@tanstack/react-router' {
       path: '/prediagnostics/report'
       fullPath: '/prediagnostics/report'
       preLoaderRoute: typeof PrediagnosticsReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostics/session': {
+      id: '/diagnostics/session'
+      path: '/diagnostics/session'
+      fullPath: '/diagnostics/session'
+      preLoaderRoute: typeof DiagnosticsSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostics/report': {
+      id: '/diagnostics/report'
+      path: '/diagnostics/report'
+      fullPath: '/diagnostics/report'
+      preLoaderRoute: typeof DiagnosticsReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostics/prejoin': {
+      id: '/diagnostics/prejoin'
+      path: '/diagnostics/prejoin'
+      fullPath: '/diagnostics/prejoin'
+      preLoaderRoute: typeof DiagnosticsPrejoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/trpc/$': {
@@ -282,8 +362,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,
+  DiagnosticsPrejoinRoute: DiagnosticsPrejoinRoute,
+  DiagnosticsReportRoute: DiagnosticsReportRoute,
+  DiagnosticsSessionRoute: DiagnosticsSessionRoute,
   PrediagnosticsReportRoute: PrediagnosticsReportRoute,
   PrediagnosticsSessionRoute: PrediagnosticsSessionRoute,
+  DiagnosticsIndexRoute: DiagnosticsIndexRoute,
   PrediagnosticsIndexRoute: PrediagnosticsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiPrediagnosticsCompleteRoute: ApiPrediagnosticsCompleteRoute,
