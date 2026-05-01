@@ -47,7 +47,7 @@ export function DiagnosticsSelectionPage(props: DiagnosticsSelectionPageProps) {
       <section className="mx-auto -mt-24 w-full max-w-6xl px-4 pb-10">
         <div className="rounded-[2rem] bg-[#f7f4ff] px-5 py-8 shadow-[0_30px_70px_rgba(40,28,82,0.16)] sm:px-8 lg:px-12">
           <header className="text-center">
-            <img alt="Intervoo" className="mx-auto h-16 w-16 invert" src="/infinity.svg" />
+            <img alt="Intervoo" className="mx-auto h-16 w-28" src="/intervoo-logo.svg" />
             <h1 className="mt-4 text-3xl font-semibold text-[#16111d]">Intervoo.ai</h1>
             <p className="mx-auto mt-5 max-w-md text-lg leading-7 text-[#2f2938]">
               Speak better. Interview better. With India-trained voice AI.

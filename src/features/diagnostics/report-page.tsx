@@ -125,7 +125,7 @@ export function DiagnosticsReportPage(props: DiagnosticsReportPageProps) {
   return (
     <main className="min-h-screen bg-[#F5F3F7]">
       <div className="bg-[linear-gradient(180deg,#100725_0%,#3C2390_100%)] px-4 pt-12 pb-28 text-center text-white">
-        <img alt="Intervoo" className="mx-auto h-18 w-18" src="/infinity.svg" />
+        <img alt="Intervoo" className="mx-auto h-18 w-32 invert" src="/intervoo-logo.svg" />
         <h1 className="mt-4 text-2xl font-bold">Diagnostic Report</h1>
       </div>
 

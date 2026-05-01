@@ -146,7 +146,7 @@ function PrediagnosticsGenerationProcessingState(props: { completedSteps: number
         <div className="w-full" />
 
         <div className="flex w-full flex-1 flex-col items-center">
-          <img alt="Intervoo infinity mark" className="h-40 w-40" src="/infinity.svg" />
+          <img alt="Intervoo" className="h-40 w-50" src="/intervoo-logo.svg" />
 
           <h1 className="mt-8 text-3xl font-semibold leading-none text-[#16111d]">
             Congratulations!

@@ -1,16 +1,10 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ButtonHTMLAttributes,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { LayoutGrid, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
+import { ArrowLeft, MicOff, PhoneOff, VideoOff } from "lucide-react";
+import { AgentAudioVisualizerAura } from "#/components/agents-ui/agent-audio-visualizer-aura";
+import { AgentAudioVisualizerBar } from "#/components/agents-ui/agent-audio-visualizer-bar";
 import { Button } from "#/components/ui/button";
-import { LiveWaveform } from "#/components/ui/live-waveform";
-import { Track, usePreviewTracks, useTrackToggle } from "#/shared/livekit";
+import { Track, usePreviewTracks } from "#/shared/livekit";
 import {
   getDiagnosticJobOption,
   type DiagnosticBand,
@@ -22,56 +16,16 @@ type DiagnosticsSessionPageProps = {
   options: DiagnosticJobOption[];
 };
 
-const MOCK_TRANSCRIPT = [
-  {
-    id: "agent-1",
-    role: "agent",
-    text: "Tell me about a product problem you solved and how you approached it.",
-  },
-  {
-    id: "user-1",
-    role: "user",
-    text: "I started by understanding the user issue, then broke it into smaller parts before proposing a solution.",
-  },
-  {
-    id: "agent-2",
-    role: "agent",
-    text: "Good. What tradeoff did you consider while choosing that solution?",
-  },
-  {
-    id: "user-2",
-    role: "user",
-    text: "The main tradeoff was speed versus reliability. I chose reliability because the feature affected repeat users.",
-  },
-  {
-    id: "agent-3",
-    role: "agent",
-    text: "Now explain how you would measure whether the solution worked.",
-  },
-  {
-    id: "user-3",
-    role: "user",
-    text: "I would track completion rate, drop-off points, and feedback from users after the change.",
-  },
-] as const;
+const MOCK_USER_ANSWER =
+  "I built a full-stack application where I handled both frontend and backend. I designed the APIs, worked with the";
 
 export function DiagnosticsSessionPage(props: DiagnosticsSessionPageProps) {
   const selectedOption = getDiagnosticJobOption(props.options, props.band);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [sidePanelOpen, setSidePanelOpen] = useState(true);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const microphoneToggle = useTrackToggle({
-    source: Track.Source.Microphone,
-    initialState: true,
-  });
-  const cameraToggle = useTrackToggle({
-    source: Track.Source.Camera,
-    initialState: true,
-  });
-  const micEnabled = microphoneToggle.enabled;
-  const cameraEnabled = cameraToggle.enabled;
+  const [elapsedSeconds, setElapsedSeconds] = useState(5 * 60 + 45);
+  const [cameraEnabled, setCameraEnabled] = useState(true);
   const previewTracks = usePreviewTracks({
-    audio: micEnabled,
+    audio: true,
     video: cameraEnabled,
   });
 
@@ -102,216 +56,111 @@ export function DiagnosticsSessionPage(props: DiagnosticsSessionPageProps) {
   }, [previewVideoTrack]);
 
   return (
-    <main className="h-screen max-h-screen overflow-hidden bg-[#111111] text-white">
-      <div className="flex h-full max-h-screen flex-col">
-        <header className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
-          <div>
-            <p className="text-xs text-white/55">Diagnostic interview</p>
-            <h1 className="line-clamp-1 text-base font-semibold sm:text-lg">
-              {selectedOption?.title ?? "Selected job"}
-            </h1>
-          </div>
-          <div className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium">
-            {formatDuration(elapsedSeconds)}
-          </div>
-        </header>
+    <main className="h-screen max-h-screen overflow-hidden bg-[#150d38] text-white">
+      <div className="relative flex h-full flex-col overflow-hidden bg-[radial-gradient(circle_at_center,#211052_0%,#160c3a_44%,#11072c_100%)]">
+        <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:radial-gradient(circle,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:14px_14px]" />
 
-        <section
-          className={`grid min-h-0 flex-1 gap-4 p-4 transition-[grid-template-columns] lg:p-6 ${
-            sidePanelOpen ? "lg:grid-cols-[1fr_22rem]" : "lg:grid-cols-1"
-          }`}
-        >
-          <div className="relative min-h-0">
-            <MeetingTile label="You" muted={!micEnabled} className="h-full min-h-0">
-              {cameraEnabled ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="h-full w-full scale-x-[-1] object-cover"
-                />
-              ) : (
-                <div className="grid h-full min-h-full w-full place-items-center bg-[#17131f]">
-                  <div className="flex flex-col items-center gap-3 text-white/70">
-                    <VideoOff className="h-10 w-10" />
-                    <span>Camera is off</span>
-                  </div>
-                </div>
-              )}
-            </MeetingTile>
-
-            <div className="absolute right-4 bottom-4 z-10 w-38 origin-bottom-right scale-[0.85] overflow-hidden rounded-2xl border border-white/15 bg-[radial-gradient(circle_at_top,#352076,#0d0a16_58%)] shadow-[0_20px_45px_rgba(0,0,0,0.35)] sm:w-52">
-              <div className="aspect-video grid place-items-center px-3 py-4">
-                <img
-                  alt="AI interviewer"
-                  className="h-14 w-14 rounded-full object-cover ring-2 ring-white/15 sm:h-18 sm:w-18"
-                  src="/sara.png"
-                />
-              </div>
-            </div>
-          </div>
-
-          {sidePanelOpen ? (
-            <aside className="relative min-h-0 rounded-[1.5rem] border border-white/10 bg-white/8">
-              <div className="flex h-full min-h-0 flex-col p-5 pr-4">
-                <p className="text-sm font-semibold text-white/70">Current band</p>
-                <h2 className="mt-2 text-xl font-bold">{selectedOption?.label ?? "Diagnostic"}</h2>
-                <p className="mt-2 text-sm leading-6 text-white/62">
-                  {selectedOption?.description}
-                </p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {selectedOption?.companies.slice(0, 5).map((company) => (
-                    <span key={company} className="rounded-full bg-white/10 px-3 py-1 text-xs">
-                      {company}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="mt-6 border-t border-white/10 pt-5">
-                  <p className="text-sm font-semibold text-white/70">Transcript</p>
-                </div>
-                <div className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 [scrollbar-width:thin]">
-                  {MOCK_TRANSCRIPT.map((message) => (
-                    <TranscriptBubble key={message.id} {...message} />
-                  ))}
-                </div>
-              </div>
-            </aside>
-          ) : null}
-        </section>
-
-        <footer className="grid grid-cols-[1fr_auto_1fr] items-center border-t border-white/10 px-4 py-4">
-          <div />
-          <div className="flex items-center justify-center gap-3">
-            <ControlButton
-              active={micEnabled}
-              activeIcon={
-                <LiveWaveform
-                  active
-                  mode="static"
-                  barWidth={5}
-                  barGap={4}
-                  barRadius={5}
-                  barColor="#8d76cf"
-                  fadeEdges={false}
-                  height={28}
-                  historySize={3}
-                  fftSize={64}
-                  updateRate={24}
-                  className="w-[29px]"
-                />
-              }
-              inactiveIcon={<MicOff className="h-5 w-5" />}
-              label={micEnabled ? "Mute" : "Unmute"}
-              buttonProps={microphoneToggle.buttonProps}
-            />
-            <ControlButton
-              active={cameraEnabled}
-              activeIcon={<Video className="h-5 w-5" />}
-              inactiveIcon={<VideoOff className="h-5 w-5" />}
-              label={cameraEnabled ? "Stop video" : "Start video"}
-              buttonProps={cameraToggle.buttonProps}
-            />
+        <header className="relative z-10 flex items-center justify-between px-6 py-5">
+          <div className="flex min-w-0 items-center gap-4">
             <Button
               asChild
-              variant="destructive"
-              size="icon-lg"
-              className="h-14 w-14 bg-[#e5484d] text-white shadow-none hover:bg-[#d93d42]"
+              aria-label="Back to diagnostics"
+              className="h-9 w-9 bg-transparent text-white shadow-none hover:bg-white/10"
+              size="icon"
+              variant="ghost"
             >
-              <Link to="/diagnostics/report" search={{ band: selectedOption?.band ?? props.band }}>
-                <PhoneOff className="h-6 w-6" />
+              <Link to="/diagnostics/prejoin" search={{ band: selectedOption?.band ?? props.band }}>
+                <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
+            <h1 className="line-clamp-1 text-base font-semibold tracking-[-0.01em] text-white">
+              Diagnostic Interview - {selectedOption?.title ?? "Selected job"}
+            </h1>
           </div>
+
           <Button
-            type="button"
-            variant="secondary"
-            size="icon-lg"
-            className="ml-auto h-14 w-14 bg-white/10 text-white shadow-none hover:bg-white/15"
-            title={sidePanelOpen ? "Collapse panel" : "Expand panel"}
-            onClick={() => setSidePanelOpen((value) => !value)}
+            asChild
+            variant={"destructive"}
+            aria-label="End interview"
+            className="h-13 w-28 rounded-full bg-[#f26f6f]! text-white shadow-none hover:bg-[#ea6262]!"
+            size="icon"
           >
-            <LayoutGrid className="h-5 w-5" />
+            <Link to="/diagnostics/report" search={{ band: selectedOption?.band ?? props.band }}>
+              <PhoneOff className="h-6 w-6" />
+            </Link>
           </Button>
-        </footer>
+        </header>
+
+        <button
+          aria-label={cameraEnabled ? "Turn camera off" : "Turn camera on"}
+          className="group absolute top-28 right-8 z-20 w-64 overflow-hidden rounded-[1.25rem] bg-black shadow-[0_18px_45px_rgba(0,0,0,0.28)] lg:right-10"
+          type="button"
+          onClick={() => setCameraEnabled((value) => !value)}
+        >
+          <div className="relative aspect-[1.34]">
+            {cameraEnabled ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="h-full w-full scale-x-[-1] object-cover"
+              />
+            ) : (
+              <div className="grid h-full place-items-center bg-black text-white/75">
+                <p className="text-sm font-semibold">Camera is off</p>
+              </div>
+            )}
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/65 to-transparent px-5 py-4">
+              <span className="text-base font-semibold">You</span>
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-white/12 text-white backdrop-blur-md transition group-hover:bg-white/20">
+                <VideoOff className="h-5 w-5" />
+              </span>
+            </div>
+          </div>
+        </button>
+
+        <section className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-22 text-center">
+          <div className="flex flex-col items-center">
+            <AgentAudioVisualizerAura
+              size="md"
+              state="speaking"
+              themeMode="dark"
+              color="#72E58A"
+              colorShift={0.24}
+              className="h-32"
+            />
+            <h2 className="mt-5 text-xl font-bold tracking-[-0.02em]">Sara</h2>
+            <p className="mt-1 text-sm font-medium text-white/42">Interview partner</p>
+          </div>
+
+          <p className="mt-14 max-w-130 text-center text-base leading-7 font-medium text-white/88">
+            {MOCK_USER_ANSWER}
+          </p>
+        </section>
+
+        <p className="absolute bottom-10 left-8 z-10 text-base font-bold tracking-[-0.01em] text-white/62">
+          {formatDuration(elapsedSeconds)}
+        </p>
+
+        <div className="absolute inset-x-0 bottom-10 z-10 flex justify-center">
+          <div className="flex min-w-48 items-center justify-center gap-5 rounded-full border border-white/8 bg-white/12 px-6 py-3 text-white/82 shadow-[0_14px_42px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+            <span className="text-sm font-bold">Sara Speaking</span>
+            <AgentAudioVisualizerBar
+              size="icon"
+              state="thinking"
+              barCount={5}
+              color="#b9b0d6"
+              className="h-5"
+            />
+          </div>
+        </div>
+
+        <div className="absolute right-8 bottom-10 z-10 hidden text-white/40 lg:block">
+          <MicOff className="h-4 w-4" />
+        </div>
       </div>
     </main>
-  );
-}
-
-function MeetingTile(props: {
-  children: ReactNode;
-  label: string;
-  active?: boolean;
-  muted?: boolean;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`relative min-h-64 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#17131f] ${props.className ?? ""}`}
-    >
-      <div className="h-full min-h-64 w-full">{props.children}</div>
-      <div className="absolute right-4 bottom-4 left-4 flex items-center justify-between">
-        <span className="rounded-full bg-black/45 px-3 py-1.5 text-sm backdrop-blur">
-          {props.label}
-        </span>
-        {props.muted ? (
-          <span className="rounded-full bg-black/45 p-2 backdrop-blur">
-            <MicOff className="h-4 w-4" />
-          </span>
-        ) : null}
-        {props.active ? (
-          <span className="rounded-full border border-[#5dcc83]/40 bg-[#5dcc83]/20 px-3 py-1.5 text-xs text-[#8df0a8]">
-            Speaking
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function TranscriptBubble(props: { role: "agent" | "user"; text: string }) {
-  const isUser = props.role === "user";
-
-  return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm leading-5 ${
-          isUser ? "bg-[#6A4DF5] text-white" : "bg-white/10 text-white/82"
-        }`}
-      >
-        <div className="mb-1 text-[11px] font-semibold text-white/55">
-          {isUser ? "You" : "Sana"}
-        </div>
-        {props.text}
-      </div>
-    </div>
-  );
-}
-
-function ControlButton(props: {
-  active: boolean;
-  activeIcon: ReactNode;
-  inactiveIcon: ReactNode;
-  label: string;
-  buttonProps: ButtonHTMLAttributes<HTMLButtonElement>;
-}) {
-  return (
-    <Button
-      {...props.buttonProps}
-      type="button"
-      size="icon-lg"
-      variant={props.active ? "secondary" : "destructive"}
-      className={
-        props.active
-          ? "h-14 w-14 bg-white text-[#2b2233] shadow-none hover:bg-white/90"
-          : "h-14 w-14 bg-[#e5484d] text-white shadow-none hover:bg-[#d93d42]"
-      }
-      title={props.label}
-    >
-      {props.active ? props.activeIcon : props.inactiveIcon}
-    </Button>
   );
 }
 

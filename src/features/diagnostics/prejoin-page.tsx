@@ -1,6 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Camera, LoaderCircle, Mic, Video, VideoOff } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CameraOff,
+  CheckCircle2,
+  LoaderCircle,
+  Mic,
+  MicOff,
+  Play,
+  Video,
+} from "lucide-react";
 import { Button } from "#/components/ui/button";
 import {
   getDiagnosticJobOption,
@@ -23,8 +33,6 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(true);
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState("default");
   const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState("default");
 
@@ -34,8 +42,6 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const nextAudioDevices = devices.filter((device) => device.kind === "audioinput");
     const nextVideoDevices = devices.filter((device) => device.kind === "videoinput");
-    setAudioDevices(nextAudioDevices);
-    setVideoDevices(nextVideoDevices);
     setSelectedAudioDeviceId((current) => current || nextAudioDevices[0]?.deviceId || "default");
     setSelectedVideoDeviceId((current) => current || nextVideoDevices[0]?.deviceId || "default");
   }
@@ -81,7 +87,10 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
 
       try {
         streamRef.current?.getTracks().forEach((track) => track.stop());
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true,
+        });
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -121,138 +130,150 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
     }
   }, [cameraEnabled]);
 
-  const deviceSummary = useMemo(
-    () => ({
-      microphone:
-        audioDevices.find((device) => device.deviceId === selectedAudioDeviceId)?.label ||
-        "Default microphone",
-      camera:
-        videoDevices.find((device) => device.deviceId === selectedVideoDeviceId)?.label ||
-        "Default camera",
-    }),
-    [audioDevices, selectedAudioDeviceId, selectedVideoDeviceId, videoDevices],
-  );
+  const bandLabel = selectedOption?.label.replace("Job", "Band") ?? "Selected Band";
 
   return (
-    <main className="min-h-screen bg-white px-4 py-6 text-[#201a2c]">
-      <div className="mx-auto flex min-h-[calc(100dvh-3rem)] max-w-6xl flex-col">
-        <header className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-[#7f768f]">Diagnostic interview</p>
-            <h1 className="text-2xl font-semibold">{selectedOption?.title ?? "Selected job"}</h1>
-          </div>
-          <Button asChild variant="secondary">
-            <Link to="/diagnostics">Change job</Link>
-          </Button>
+    <main className="min-h-screen bg-[#f8f6fb] px-4 py-6 text-[#201a2c] sm:px-6 lg:py-8">
+      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-5xl flex-col items-center">
+        <header className="text-center">
+          <img alt="Intervoo" className="mx-auto h-9 w-16" src="/intervoo-logo.svg" />
+          <h1 className="mt-5 text-xl font-bold tracking-[-0.02em] text-[#13101b]">
+            Ready to begin your interview?
+          </h1>
+          <p className="mx-auto mt-2 max-w-xs text-sm leading-5 text-[#777082]">
+            You&apos;ll have a video conversation with Sara, your AI interviewer.
+          </p>
         </header>
 
-        <section className="grid flex-1 items-center gap-6 py-8 lg:grid-cols-[1.35fr_0.65fr]">
-          <div className="overflow-hidden rounded-[1.75rem] border border-[#e5e0ed] bg-black shadow-[0_30px_80px_rgba(73,57,122,0.12)]">
-            <div className="relative aspect-video">
-              {cameraEnabled ? (
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="h-full w-full scale-x-[-1] object-cover"
+        <section className="mt-8 grid w-full max-w-4xl overflow-hidden rounded-[1.5rem] bg-white shadow-[0_20px_60px_rgba(70,55,115,0.1)] lg:grid-cols-[1.05fr_1fr]">
+          <div className="relative min-h-[340px] overflow-hidden bg-black sm:min-h-[420px] lg:min-h-[500px]">
+            <Button
+              asChild
+              aria-label="Back to job selection"
+              className="absolute top-4 left-4 z-10 h-9 w-9 bg-black/20 text-white backdrop-blur-md hover:bg-black/30"
+              size="icon"
+              variant="ghost"
+            >
+              <Link to="/diagnostics">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            {cameraEnabled ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="h-full w-full scale-x-[-1] object-cover"
+              />
+            ) : (
+              <div className="grid h-full min-h-[340px] place-items-center bg-black text-white/80 sm:min-h-[420px] lg:min-h-[500px]">
+                <p className="text-sm font-medium">Camera is off</p>
+              </div>
+            )}
+            <div className="absolute inset-x-0 bottom-5 flex justify-center">
+              <div className="flex items-center gap-2 rounded-full bg-black/35 p-1.5 shadow-[0_12px_30px_rgba(0,0,0,0.2)] backdrop-blur-xl">
+                <MediaToggle
+                  active={cameraEnabled}
+                  activeIcon={<Video className="h-4 w-4" />}
+                  inactiveIcon={<CameraOff className="h-4 w-4" />}
+                  label={cameraEnabled ? "Turn camera off" : "Turn camera on"}
+                  onClick={() => setCameraEnabled((value) => !value)}
                 />
-              ) : (
-                <div className="grid h-full place-items-center bg-[#181126]">
-                  <div className="flex flex-col items-center gap-3 text-white/70">
-                    <VideoOff className="h-10 w-10" />
-                    <span>Camera is off</span>
-                  </div>
-                </div>
-              )}
-              {state === "checking" ? (
-                <div className="absolute inset-0 grid place-items-center bg-black/70">
-                  <LoaderCircle className="h-10 w-10 animate-spin text-white" />
+                <MediaToggle
+                  active={micEnabled}
+                  activeIcon={<Mic className="h-4 w-4" />}
+                  inactiveIcon={<MicOff className="h-4 w-4" />}
+                  label={micEnabled ? "Mute microphone" : "Unmute microphone"}
+                  onClick={() => setMicEnabled((value) => !value)}
+                />
+              </div>
+            </div>
+            {state === "checking" ? (
+              <div className="absolute inset-0 grid place-items-center bg-black/35">
+                <LoaderCircle className="h-8 w-8 animate-spin text-white" />
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="flex flex-col gap-4 p-4 sm:p-5 lg:p-6">
+            <div className="rounded-[1rem] border border-[#e9e4ef] bg-white p-4 shadow-[0_6px_18px_rgba(40,31,55,0.07)]">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[11px] font-bold tracking-[0.14em] text-[#d49a42] uppercase">
+                  {bandLabel}
+                </p>
+                {selectedOption ? (
+                  <span className="rounded-full border border-[#f1e6df] bg-[#fffaf7] px-3 py-1.5 text-sm font-bold text-[#13101b]">
+                    {selectedOption.salary}
+                  </span>
+                ) : null}
+              </div>
+
+              <h2 className="mt-4 text-base font-bold tracking-[-0.01em] text-[#13101b]">
+                {selectedOption?.title ?? "Selected job"}
+              </h2>
+              <p className="mt-2 text-sm leading-5 text-[#777082]">
+                {selectedOption?.description ??
+                  "Your selected diagnostic band will be used for this interview."}
+              </p>
+
+              {selectedOption?.companies.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedOption.companies.map((company) => (
+                    <span
+                      className="rounded-full bg-[#fff4e7] px-2.5 py-1 text-xs font-medium text-[#3b3143]"
+                      key={company}
+                    >
+                      {company}
+                    </span>
+                  ))}
                 </div>
               ) : null}
             </div>
-          </div>
 
-          <aside className="rounded-[1.5rem] border border-[#e5e0ed] bg-[#fbf9ff] p-6 text-[#201a2c] shadow-[0_20px_50px_rgba(73,57,122,0.1)]">
-            <h2 className="text-2xl font-bold">Ready to join?</h2>
-            <p className="mt-3 text-sm leading-6 text-[#70687d]">
-              Check your camera and microphone before entering the diagnostic interview.
-            </p>
+            <div className="rounded-[1rem] border border-[#e9e4ef] bg-white p-4 shadow-[0_6px_18px_rgba(40,31,55,0.07)]">
+              <p className="text-sm font-semibold text-[#777082]">Make sure you will have</p>
+              <div className="mt-3 space-y-2.5">
+                <ChecklistItem>Quiet space</ChecklistItem>
+                <ChecklistItem>Good light</ChecklistItem>
+                <ChecklistItem>Stable internet connectivity</ChecklistItem>
+              </div>
+            </div>
+
+            <div className="rounded-[1rem] border border-[#f2e7aa] bg-[#fffbdf] px-3.5 py-3 text-sm leading-5 text-[#756f62]">
+              <div className="flex gap-2.5">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#d6a929]" />
+                <p>
+                  Session <span className="font-bold text-[#c58a23]">cannot be paused.</span> ~15
+                  mins. Camera stays on throughout. Do not close this tab.
+                </p>
+              </div>
+            </div>
 
             {error ? (
-              <div className="mt-5 rounded-2xl border border-[#f1c4cc] bg-[#fff3f5] px-4 py-3 text-sm text-[#b8394f]">
+              <div className="rounded-[1rem] border border-[#f1c4cc] bg-[#fff3f5] px-3.5 py-3 text-sm text-[#b8394f]">
                 {error}
               </div>
             ) : null}
 
-            <div className="mt-6 space-y-3">
-              <DeviceSelect
-                icon={<Mic className="h-5 w-5" />}
-                label="Microphone"
-                value={selectedAudioDeviceId}
-                devices={audioDevices}
-                fallbackLabel={deviceSummary.microphone}
-                onChange={(deviceId) => {
-                  setSelectedAudioDeviceId(deviceId);
-                  void requestAccess({ audioDeviceId: deviceId });
-                }}
-              />
-              <DeviceSelect
-                icon={<Camera className="h-5 w-5" />}
-                label="Camera"
-                value={selectedVideoDeviceId}
-                devices={videoDevices}
-                fallbackLabel={deviceSummary.camera}
-                onChange={(deviceId) => {
-                  setSelectedVideoDeviceId(deviceId);
-                  void requestAccess({ videoDeviceId: deviceId });
-                }}
-              />
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={micEnabled ? "secondary" : "destructive"}
-                className="w-full"
-                onClick={() => setMicEnabled((value) => !value)}
-              >
-                <Mic className="h-4 w-4" />
-                {micEnabled ? "Mic on" : "Mic off"}
-              </Button>
-              <Button
-                type="button"
-                variant={cameraEnabled ? "secondary" : "destructive"}
-                className="w-full"
-                onClick={() => setCameraEnabled((value) => !value)}
-              >
-                <Video className="h-4 w-4" />
-                {cameraEnabled ? "Camera on" : "Camera off"}
-              </Button>
-            </div>
-
             <Button
               asChild={Boolean(canContinue)}
               disabled={!canContinue}
-              size="lg"
-              className="mt-8 w-full"
+              className="mt-auto h-11 w-full text-sm"
             >
               {canContinue ? (
                 <Link to="/diagnostics/session" search={{ band: selectedOption.band }}>
-                  Join interview
+                  <Play className="h-4 w-4 fill-current" />
+                  Begin Video interview
                 </Link>
               ) : (
-                <span>Join interview</span>
+                <span>Begin Video interview</span>
               )}
             </Button>
+
             {state === "denied" ? (
-              <Button
-                variant="outline"
-                className="mt-3 w-full"
-                type="button"
-                onClick={requestAccess}
-              >
-                Retry access
+              <Button variant="secondary" className="w-full" type="button" onClick={requestAccess}>
+                Retry camera and mic access
               </Button>
             ) : null}
           </aside>
@@ -262,38 +283,34 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
   );
 }
 
-function DeviceSelect(props: {
-  icon: ReactNode;
+function ChecklistItem(props: { children: string }) {
+  return (
+    <div className="flex items-center gap-2.5 text-sm font-semibold text-[#2b2233]">
+      <CheckCircle2 className="h-4.5 w-4.5 shrink-0 fill-[#75d18f] text-white" />
+      <span>{props.children}</span>
+    </div>
+  );
+}
+
+function MediaToggle(props: {
+  active: boolean;
+  activeIcon: ReactNode;
+  inactiveIcon: ReactNode;
   label: string;
-  value: string;
-  devices: MediaDeviceInfo[];
-  fallbackLabel: string;
-  onChange: (value: string) => void;
+  onClick: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-[#ece7f2] bg-[#faf8fd] px-4 py-3">
-      <span className="shrink-0 text-[#6A4DF5]">{props.icon}</span>
-      <label className="min-w-0 flex-1">
-        <span className="block text-xs font-semibold text-[#7f768f]">{props.label}</span>
-        <select
-          className="mt-1 w-full bg-transparent text-sm font-medium text-[#201a2c] outline-none"
-          value={props.value}
-          onChange={(event) => props.onChange(event.target.value)}
-        >
-          <option value="default">Default {props.label.toLowerCase()}</option>
-          {props.devices.length ? (
-            props.devices.map((device, index) => (
-              <option key={device.deviceId || index} value={device.deviceId || "default"}>
-                {device.label || `${props.label} ${index + 1}`}
-              </option>
-            ))
-          ) : (
-            <option disabled value="unavailable">
-              {props.fallbackLabel}
-            </option>
-          )}
-        </select>
-      </label>
-    </div>
+    <button
+      aria-label={props.label}
+      className={
+        props.active
+          ? "grid h-11 w-11 place-items-center rounded-full bg-white text-[#2b2233] shadow-[0_6px_14px_rgba(0,0,0,0.16)] transition hover:bg-[#f8f5fc]"
+          : "grid h-11 w-11 place-items-center rounded-full bg-[#e45658] text-white shadow-[0_6px_14px_rgba(153,35,48,0.22)] transition hover:bg-[#d8474b]"
+      }
+      type="button"
+      onClick={props.onClick}
+    >
+      {props.active ? props.activeIcon : props.inactiveIcon}
+    </button>
   );
 }
