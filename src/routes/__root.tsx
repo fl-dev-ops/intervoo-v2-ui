@@ -25,21 +25,25 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   }),
   component: RootLayout,
   notFoundComponent: () => (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.18),transparent_32%),radial-gradient(circle_at_left_bottom,rgba(56,189,248,0.16),transparent_24%),linear-gradient(180deg,#020617,#0f172a)] px-3 font-['Sora',sans-serif] text-slate-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-105 items-center px-4 py-6 sm:px-0">
-        <div className="w-full rounded-3xl border border-slate-800/90 bg-slate-950/85 p-6 text-slate-100 shadow-[0_28px_60px_rgba(2,6,23,0.55)]">
-          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">
-            Lost in the journey
+    <main className="min-h-screen bg-[#F5F3F7] px-4 text-[#201a2c]">
+      <div className="mx-auto flex min-h-screen w-full max-w-md items-center py-10">
+        <div className="w-full overflow-hidden rounded-[1.5rem] bg-white shadow-[0_20px_56px_rgba(40,28,82,0.12)]">
+          <div className="bg-[linear-gradient(180deg,#100725_0%,#3C2390_100%)] px-6 py-8 text-center">
+            <img alt="Intervoo" className="mx-auto h-12 w-24 invert" src="/intervoo-logo.svg" />
           </div>
-          <h1 className="mt-3 text-xl leading-tight font-semibold text-slate-50">
-            Page not <em className="not-italic text-amber-300">found</em>
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            The page you are looking for is no longer part of this flow.
-          </p>
-          <div className="mt-5">
+
+          <div className="px-6 py-6 text-center">
+            <p className="text-xs font-bold tracking-[0.14em] text-[#6A4DF5] uppercase">
+              Lost in the journey
+            </p>
+            <h1 className="mt-3 text-xl font-semibold tracking-[-0.02em] text-[#16111d]">
+              Page not found
+            </h1>
+            <p className="mx-auto mt-3 max-w-xs text-sm leading-6 text-[#777281]">
+              The page you are looking for is no longer part of this flow.
+            </p>
             <a
-              className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-amber-300/50 bg-amber-400 px-4 text-sm font-semibold text-slate-950 transition hover:bg-amber-300"
+              className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-full bg-[linear-gradient(90deg,#4F33A3_0%,#6A4DF5_100%)] px-5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(93,72,220,0.24)] transition hover:opacity-95"
               href="/"
             >
               Go home

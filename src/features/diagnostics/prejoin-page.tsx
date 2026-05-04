@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -17,10 +16,13 @@ import {
   type DiagnosticBand,
   type DiagnosticJobOption,
 } from "#/lib/diagnostics/job-options";
+import type { DiagnosticsConnectionDetails } from "#/lib/livekit/diagnostics";
 
 type DiagnosticsPrejoinPageProps = {
   band: DiagnosticBand;
   options: DiagnosticJobOption[];
+  onBack: () => void;
+  onStarted: (connectionDetails: DiagnosticsConnectionDetails) => void;
 };
 
 type PermissionState = "idle" | "checking" | "ready" | "denied";
@@ -33,6 +35,7 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(true);
+  const [isStarting, setIsStarting] = useState(false);
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState("default");
   const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState("default");
 
@@ -132,12 +135,52 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
 
   const bandLabel = selectedOption?.label.replace("Job", "Band") ?? "Selected Band";
 
+  async function startSession() {
+    if (!selectedOption || isStarting) {
+      return;
+    }
+
+    setIsStarting(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/diagnostics/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ band: selectedOption.band }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | DiagnosticsConnectionDetails
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(
+          payload && "error" in payload && payload.error
+            ? payload.error
+            : "Failed to start diagnostic session.",
+        );
+      }
+
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      props.onStarted(payload as DiagnosticsConnectionDetails);
+    } catch (startError) {
+      setError(
+        startError instanceof Error ? startError.message : "Failed to start diagnostic session.",
+      );
+    } finally {
+      setIsStarting(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f8f6fb] px-4 py-6 text-[#201a2c] sm:px-6 lg:py-8">
       <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-5xl flex-col items-center">
         <header className="text-center">
-          <img alt="Intervoo" className="mx-auto h-9 w-16" src="/intervoo-logo.svg" />
-          <h1 className="mt-5 text-xl font-bold tracking-[-0.02em] text-[#13101b]">
+          <img alt="Intervoo" className="mx-auto h-12 w-24" src="/intervoo-logo.svg" />
+          <h1 className="mt-5 text-xl font-semibold tracking-[-0.02em] text-[#13101b]">
             Ready to begin your interview?
           </h1>
           <p className="mx-auto mt-2 max-w-xs text-sm leading-5 text-[#777082]">
@@ -148,15 +191,14 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
         <section className="mt-8 grid w-full max-w-4xl overflow-hidden rounded-[1.5rem] bg-white shadow-[0_20px_60px_rgba(70,55,115,0.1)] lg:grid-cols-[1.05fr_1fr]">
           <div className="relative min-h-[340px] overflow-hidden bg-black sm:min-h-[420px] lg:min-h-[500px]">
             <Button
-              asChild
               aria-label="Back to job selection"
               className="absolute top-4 left-4 z-10 h-9 w-9 bg-black/20 text-white backdrop-blur-md hover:bg-black/30"
               size="icon"
+              type="button"
               variant="ghost"
+              onClick={props.onBack}
             >
-              <Link to="/diagnostics">
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             {cameraEnabled ? (
               <video
@@ -168,7 +210,7 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
               />
             ) : (
               <div className="grid h-full min-h-[340px] place-items-center bg-black text-white/80 sm:min-h-[420px] lg:min-h-[500px]">
-                <p className="text-sm font-medium">Camera is off</p>
+                <p className="text-sm">Camera is off</p>
               </div>
             )}
             <div className="absolute inset-x-0 bottom-5 flex justify-center">
@@ -199,17 +241,17 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
           <aside className="flex flex-col gap-4 p-4 sm:p-5 lg:p-6">
             <div className="rounded-[1rem] border border-[#e9e4ef] bg-white p-4 shadow-[0_6px_18px_rgba(40,31,55,0.07)]">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-[11px] font-bold tracking-[0.14em] text-[#d49a42] uppercase">
+                <p className="text-[11px] font-semibold tracking-[0.14em] text-[#d49a42] uppercase">
                   {bandLabel}
                 </p>
                 {selectedOption ? (
-                  <span className="rounded-full border border-[#f1e6df] bg-[#fffaf7] px-3 py-1.5 text-sm font-bold text-[#13101b]">
+                  <span className="rounded-full border border-[#f1e6df] bg-[#fffaf7] px-3 py-1.5 text-sm font-semibold text-[#13101b]">
                     {selectedOption.salary}
                   </span>
                 ) : null}
               </div>
 
-              <h2 className="mt-4 text-base font-bold tracking-[-0.01em] text-[#13101b]">
+              <h2 className="mt-4 text-base font-semibold tracking-[-0.01em] text-[#13101b]">
                 {selectedOption?.title ?? "Selected job"}
               </h2>
               <p className="mt-2 text-sm leading-5 text-[#777082]">
@@ -221,7 +263,7 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {selectedOption.companies.map((company) => (
                     <span
-                      className="rounded-full bg-[#fff4e7] px-2.5 py-1 text-xs font-medium text-[#3b3143]"
+                      className="rounded-full bg-[#fff4e7] px-2.5 py-1 text-xs text-[#3b3143]"
                       key={company}
                     >
                       {company}
@@ -232,7 +274,7 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
             </div>
 
             <div className="rounded-[1rem] border border-[#e9e4ef] bg-white p-4 shadow-[0_6px_18px_rgba(40,31,55,0.07)]">
-              <p className="text-sm font-semibold text-[#777082]">Make sure you will have</p>
+              <p className="text-sm font-medium text-[#777082]">Make sure you will have</p>
               <div className="mt-3 space-y-2.5">
                 <ChecklistItem>Quiet space</ChecklistItem>
                 <ChecklistItem>Good light</ChecklistItem>
@@ -244,8 +286,8 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
               <div className="flex gap-2.5">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#d6a929]" />
                 <p>
-                  Session <span className="font-bold text-[#c58a23]">cannot be paused.</span> ~15
-                  mins. Camera stays on throughout. Do not close this tab.
+                  Session <span className="font-semibold text-[#c58a23]">cannot be paused.</span>{" "}
+                  ~15 mins. Camera stays on throughout. Do not close this tab.
                 </p>
               </div>
             </div>
@@ -257,18 +299,17 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
             ) : null}
 
             <Button
-              asChild={Boolean(canContinue)}
-              disabled={!canContinue}
+              disabled={!canContinue || isStarting}
               className="mt-auto h-11 w-full text-sm"
+              type="button"
+              onClick={startSession}
             >
-              {canContinue ? (
-                <Link to="/diagnostics/session" search={{ band: selectedOption.band }}>
-                  <Play className="h-4 w-4 fill-current" />
-                  Begin Video interview
-                </Link>
+              {isStarting ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
               ) : (
-                <span>Begin Video interview</span>
+                <Play className="h-4 w-4 fill-current" />
               )}
+              {isStarting ? "Starting..." : "Begin Video interview"}
             </Button>
 
             {state === "denied" ? (
@@ -285,7 +326,7 @@ export function DiagnosticsPrejoinPage(props: DiagnosticsPrejoinPageProps) {
 
 function ChecklistItem(props: { children: string }) {
   return (
-    <div className="flex items-center gap-2.5 text-sm font-semibold text-[#2b2233]">
+    <div className="flex items-center gap-2.5 text-sm font-medium text-[#2b2233]">
       <CheckCircle2 className="h-4.5 w-4.5 shrink-0 fill-[#75d18f] text-white" />
       <span>{props.children}</span>
     </div>
