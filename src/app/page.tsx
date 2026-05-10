@@ -26,6 +26,10 @@ export default async function Home() {
     redirect("/diagnostics");
   }
 
+  if (stage === "COMPLETED") {
+    redirect("/diagnostics/final-report");
+  }
+
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background p-6 text-center">
       <h1 className="text-xl font-bold">Diagnostics | Intervoo.ai</h1>

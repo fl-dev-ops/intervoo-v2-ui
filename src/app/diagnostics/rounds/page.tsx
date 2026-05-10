@@ -1,25 +1,18 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DiagnosticsRoundsClient } from "@/components/diagnostics/rounds-client";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   buildDiagnosticJobOptions,
   getDiagnosticJobOption,
   parseDiagnosticBand,
 } from "@/lib/diagnostics/job-options";
+import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsRoundsPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const { user } = await requirePageStage(["DIAGNOSTICS", "COMPLETED"]);
 
   const diagnostic = await prisma.diagnostic.findFirst({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
     include: {
       rounds: {
         include: {
@@ -65,12 +58,6 @@ export default async function DiagnosticsRoundsPage() {
 
   return (
     <DiagnosticsRoundsClient
-      diagnostic={{
-        id: diagnostic.id,
-        status: diagnostic.status,
-        finalReport: diagnostic.finalReport,
-        finalReportShareToken: diagnostic.finalReportShareToken,
-      }}
       initialRounds={rounds}
       selectedJob={selectedJob}
       allCompleted={allCompleted}

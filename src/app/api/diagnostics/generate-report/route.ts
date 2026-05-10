@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getUserStage } from "@/lib/progress";
 import { generateSessionReport } from "@/lib/report-generation/session-report";
 
 export async function POST(request: NextRequest) {
@@ -12,6 +13,14 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const stage = await getUserStage(session.user.id);
+    if (stage !== "DIAGNOSTICS" && stage !== "COMPLETED") {
+      return NextResponse.json(
+        { error: "Diagnostics are not available for this user stage" },
+        { status: 409 },
+      );
     }
 
     const body = (await request.json()) as { sessionId?: string };

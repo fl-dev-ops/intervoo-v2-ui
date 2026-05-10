@@ -1,22 +1,15 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const { user } = await requirePageStage(["DIAGNOSTICS", "COMPLETED"]);
 
   const diagnostic = await prisma.diagnostic.findFirst({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
     include: {
       rounds: {
-        select: { status: true },
+        include: { session: { include: { report: true } } },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -31,9 +24,11 @@ export default async function DiagnosticsPage() {
     (r) => r.status === "COMPLETED" || r.status === "REPORT_READY",
   ).length;
 
-  const allRoundsDone = completedRounds === 4;
   const finalReportReady =
-    allRoundsDone && diagnostic.finalReport && diagnostic.finalReportShareToken;
+    completedRounds === 4 &&
+    diagnostic.rounds.every(
+      (round) => round.session?.report?.status === "READY",
+    );
 
   if (finalReportReady) {
     redirect("/diagnostics/final-report");

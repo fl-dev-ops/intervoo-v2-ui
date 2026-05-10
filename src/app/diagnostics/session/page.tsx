@@ -1,7 +1,6 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DiagnosticsVideoSessionClient } from "@/components/diagnostics/video-session-client";
-import { auth } from "@/lib/auth";
+import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsSessionPage({
   searchParams,
@@ -20,13 +19,7 @@ export default async function DiagnosticsSessionPage({
     session_id: sessionId,
   } = await searchParams;
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  await requirePageStage(["DIAGNOSTICS"]);
 
   if (!token || !serverUrl || !roomName || !sessionId) {
     redirect("/diagnostics/rounds");

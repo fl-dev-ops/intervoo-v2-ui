@@ -1,8 +1,7 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { CustomPreJoin } from "@/components/prediagnostics/custom-prejoin";
-import { auth } from "@/lib/auth";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
+import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsPrejoinPage({
   searchParams,
@@ -11,13 +10,7 @@ export default async function DiagnosticsPrejoinPage({
 }) {
   const { round: roundId } = await searchParams;
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  await requirePageStage(["DIAGNOSTICS"]);
 
   if (!roundId || !getRoundConfig(roundId)) {
     redirect("/diagnostics/rounds");

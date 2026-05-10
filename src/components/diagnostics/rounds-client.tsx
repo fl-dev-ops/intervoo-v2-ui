@@ -14,15 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
 import type { DiagnosticJobOption } from "@/lib/diagnostics/job-options";
 import {
   DIAGNOSTIC_ROUNDS,
@@ -37,17 +29,6 @@ const ICON_MAP: Record<string, ReactNode> = {
   Users: <Users className="h-5 w-5" />,
 };
 
-const readinessChartData = [
-  { label: "readiness", noHire: 50, hold: 20, hire: 20, strongHire: 10 },
-];
-
-const readinessChartConfig = {
-  noHire: { label: "No Hire", color: "#e4e4e7" },
-  hold: { label: "Hold", color: "#d4d4d8" },
-  hire: { label: "Hire", color: "#c4b5fd" },
-  strongHire: { label: "Strong Hire", color: "#8b5cf6" },
-} satisfies ChartConfig;
-
 type RoundData = {
   id: string;
   roundType: string;
@@ -59,19 +40,12 @@ type RoundData = {
 };
 
 export function DiagnosticsRoundsClient({
-  diagnostic,
   initialRounds,
   selectedJob,
   allCompleted,
   completedCount,
   reportsReadyCount,
 }: {
-  diagnostic: {
-    id: string;
-    status: string;
-    finalReport: unknown;
-    finalReportShareToken: string | null;
-  };
   initialRounds: RoundData[];
   selectedJob: DiagnosticJobOption;
   allCompleted: boolean;
@@ -82,7 +56,6 @@ export function DiagnosticsRoundsClient({
   const [generatingReports, setGeneratingReports] = useState<Set<string>>(
     new Set(),
   );
-  const [generatingFinal, setGeneratingFinal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -91,7 +64,7 @@ export function DiagnosticsRoundsClient({
         round.reportStatus === "PENDING" || round.reportStatus === "PROCESSING",
     );
 
-    if (!hasPendingReports && !generatingFinal) {
+    if (!hasPendingReports) {
       return;
     }
 
@@ -100,7 +73,7 @@ export function DiagnosticsRoundsClient({
     }, 3000);
 
     return () => window.clearInterval(intervalId);
-  }, [initialRounds, generatingFinal, router]);
+  }, [initialRounds, router]);
 
   async function handleGenerateReport(sessionId: string) {
     setError(null);
@@ -136,37 +109,6 @@ export function DiagnosticsRoundsClient({
     }
   }
 
-  async function handleGenerateFinalReport() {
-    setError(null);
-    setGeneratingFinal(true);
-
-    try {
-      const response = await fetch("/api/diagnostics/final-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ diagnosticId: diagnostic.id }),
-      });
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Failed to generate final report.");
-      }
-
-      router.push("/diagnostics/final-report");
-      router.refresh();
-    } catch (finalError) {
-      setError(
-        finalError instanceof Error
-          ? finalError.message
-          : "Failed to generate final report.",
-      );
-    } finally {
-      setGeneratingFinal(false);
-    }
-  }
-
   const activeRoundNumber = Math.min(
     completedCount + 1,
     DIAGNOSTIC_ROUNDS.length,
@@ -195,8 +137,6 @@ export function DiagnosticsRoundsClient({
               </span>
             </div>
           </div>
-
-          {/*<ReadinessScoreCard />*/}
         </div>
 
         <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card px-4 py-6 shadow-sm sm:px-6">
@@ -248,10 +188,7 @@ export function DiagnosticsRoundsClient({
 
         <FinalReportPanel
           allCompleted={allCompleted}
-          finalReportReady={Boolean(diagnostic.finalReport)}
-          generatingFinal={generatingFinal}
           reportsReadyCount={reportsReadyCount}
-          onGenerateFinal={handleGenerateFinalReport}
         />
 
         {error ? (
@@ -261,106 +198,6 @@ export function DiagnosticsRoundsClient({
         ) : null}
       </section>
     </main>
-  );
-}
-
-function ReadinessScoreCard() {
-  return (
-    <Card className="gap-3 rounded-xl border-border bg-input/30 py-4 shadow-none">
-      <CardHeader className="items-center px-4 pb-0">
-        <CardTitle className="text-base font-semibold text-muted-foreground">
-          Interview Readiness Score
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-0">
-        <ChartContainer
-          config={readinessChartConfig}
-          className="mx-auto aspect-[1.7] w-full max-w-[280px]"
-        >
-          <RadialBarChart
-            data={readinessChartData}
-            endAngle={180}
-            innerRadius={58}
-            outerRadius={86}
-            startAngle={0}
-          >
-            <RadialBar
-              className="stroke-transparent stroke-2"
-              cornerRadius={6}
-              dataKey="noHire"
-              fill="var(--color-noHire)"
-              stackId="a"
-            />
-            <RadialBar
-              className="stroke-transparent stroke-2"
-              cornerRadius={6}
-              dataKey="hold"
-              fill="var(--color-hold)"
-              stackId="a"
-            />
-            <RadialBar
-              className="stroke-transparent stroke-2"
-              cornerRadius={6}
-              dataKey="hire"
-              fill="var(--color-hire)"
-              stackId="a"
-            />
-            <RadialBar
-              className="stroke-transparent stroke-2"
-              cornerRadius={6}
-              dataKey="strongHire"
-              fill="var(--color-strongHire)"
-              stackId="a"
-            />
-            <ChartTooltip
-              content={<ChartTooltipContent hideLabel />}
-              cursor={false}
-            />
-            <PolarRadiusAxis axisLine={false} tick={false} tickLine={false}>
-              <Label
-                content={({ viewBox }) => {
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                    return (
-                      <text textAnchor="middle" x={viewBox.cx} y={viewBox.cy}>
-                        <tspan
-                          className="fill-foreground text-2xl font-semibold"
-                          x={viewBox.cx}
-                          y={(viewBox.cy || 0) - 6}
-                        >
-                          --/100
-                        </tspan>
-                      </text>
-                    );
-                  }
-                }}
-              />
-            </PolarRadiusAxis>
-          </RadialBarChart>
-        </ChartContainer>
-        <div className="-mt-4 grid grid-cols-4 gap-1 text-center text-[0.65rem] leading-4 text-muted-foreground">
-          <span>
-            No Hire
-            <br />
-            0-50
-          </span>
-          <span>
-            Hold
-            <br />
-            51-70
-          </span>
-          <span>
-            Hire
-            <br />
-            71-90
-          </span>
-          <span>
-            Strong
-            <br />
-            91-100
-          </span>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -583,16 +420,10 @@ function RoundAction({
 
 function FinalReportPanel({
   allCompleted,
-  finalReportReady,
-  generatingFinal,
   reportsReadyCount,
-  onGenerateFinal,
 }: {
   allCompleted: boolean;
-  finalReportReady: boolean;
-  generatingFinal: boolean;
   reportsReadyCount: number;
-  onGenerateFinal: () => void;
 }) {
   if (!allCompleted) {
     return null;
@@ -600,7 +431,7 @@ function FinalReportPanel({
 
   return (
     <div className="mt-4 rounded-xl border border-border bg-card p-5 text-center shadow-sm sm:p-6">
-      {finalReportReady ? (
+      {reportsReadyCount === DIAGNOSTIC_ROUNDS.length ? (
         <a
           className={buttonVariants({
             className: "px-6",
@@ -610,23 +441,6 @@ function FinalReportPanel({
         >
           View Final Diagnostic Report
         </a>
-      ) : reportsReadyCount === DIAGNOSTIC_ROUNDS.length ? (
-        <button
-          className={buttonVariants({
-            className: "px-6",
-            size: "lg",
-          })}
-          disabled={generatingFinal}
-          type="button"
-          onClick={onGenerateFinal}
-        >
-          {generatingFinal ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : null}
-          {generatingFinal
-            ? "Generating final report..."
-            : "Generate Final Report"}
-        </button>
       ) : (
         <p className="text-sm leading-6 text-muted-foreground">
           All rounds are complete. {reportsReadyCount} of{" "}

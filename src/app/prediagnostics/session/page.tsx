@@ -1,4 +1,5 @@
 import { SessionPageClient } from "@/components/prediagnostics/session-client";
+import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function PrediagnosticsSessionPage({
   searchParams,
@@ -13,6 +14,8 @@ export default async function PrediagnosticsSessionPage({
   const video = params.video === "true";
   const rawMode = typeof params.mode === "string" ? params.mode : "ptt";
   const interactionMode = rawMode === "auto" ? "auto" : "ptt";
+
+  await requirePageStage(["PREDIAGNOSTICS"]);
 
   if (!token || !url || !room || !session) {
     return (

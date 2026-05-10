@@ -1,28 +1,9 @@
-import { headers } from "next/headers";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
-import { auth } from "@/lib/auth";
-import { getUserStage } from "@/lib/progress";
+import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function PrediagnosticsPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
-
-  const stage = await getUserStage(session.user.id);
-
-  if (stage === "ONBOARDING") {
-    redirect("/onboarding");
-  }
-
-  if (stage === "DIAGNOSTICS") {
-    redirect("/diagnostics");
-  }
+  await requirePageStage(["PREDIAGNOSTICS"]);
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-background px-5 py-8">

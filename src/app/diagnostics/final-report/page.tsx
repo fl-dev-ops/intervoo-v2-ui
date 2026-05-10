@@ -1,69 +1,78 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   type DiagnosticReportPageState,
   DiagnosticReportPreviewPage,
-  type FinalDiagnosticReport,
 } from "@/components/diagnostics/report-preview-page";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import {
+  deriveFinalDiagnosticReport,
+  ensureFinalDiagnosticShareToken,
+} from "@/lib/diagnostics/final-report";
+import { updateUserStage } from "@/lib/progress";
+import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsFinalReportPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user?.id) {
-    redirect("/login");
-  }
+  const { stage, user } = await requirePageStage(["DIAGNOSTICS", "COMPLETED"]);
 
   const diagnostic = await prisma.diagnostic.findFirst({
-    where: { userId: session.user.id },
-    include: { user: { include: { profile: true } } },
+    where: { userId: user.id },
+    include: {
+      rounds: { include: { session: { include: { report: true } } } },
+      user: { include: { profile: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
   if (!diagnostic) {
-    redirect("/diagnostics/selection");
+    return (
+      <DiagnosticReportPreviewPage
+        showActions={false}
+        state={{
+          errorMessage: "No completed diagnostic was found for this account.",
+          status: "unavailable",
+        }}
+      />
+    );
   }
 
-  if (!diagnostic.finalReport) {
+  const report = deriveFinalDiagnosticReport(diagnostic.rounds);
+
+  if (!report) {
+    if (stage === "COMPLETED") {
+      return (
+        <DiagnosticReportPreviewPage
+          showActions={false}
+          state={{
+            errorMessage:
+              "Your final report is not available yet. Please check your diagnostic round reports.",
+            status: "processing",
+          }}
+        />
+      );
+    }
+
     redirect("/diagnostics/rounds");
   }
 
+  const shareToken = await ensureFinalDiagnosticShareToken(diagnostic.id);
+  await updateUserStage(user.id, "COMPLETED");
+  await prisma.userProgress.updateMany({
+    where: { userId: user.id },
+    data: { diagnosticsCompletedAt: new Date() },
+  });
+
   const preferredName = diagnostic.user.profile?.preferredName;
-  const report = toFinalDiagnosticReport(diagnostic.finalReport);
-  const state: DiagnosticReportPageState = report
-    ? { preferredName, report, status: "final-ready" }
-    : {
-        errorMessage: "The final report is ready, but its data is missing.",
-        preferredName,
-        status: "failed",
-      };
+  const state: DiagnosticReportPageState = {
+    preferredName,
+    report,
+    status: "final-ready",
+  };
 
   return (
     <DiagnosticReportPreviewPage
-      publicUrl={
-        diagnostic.finalReportShareToken
-          ? `/d/${diagnostic.finalReportShareToken}`
-          : null
-      }
+      publicUrl={shareToken ? `/d/${shareToken}` : null}
       showActions
       state={state}
     />
   );
-}
-
-function toFinalDiagnosticReport(
-  reportJson: unknown,
-): FinalDiagnosticReport | null {
-  if (
-    !reportJson ||
-    typeof reportJson !== "object" ||
-    Array.isArray(reportJson)
-  ) {
-    return null;
-  }
-
-  return reportJson as FinalDiagnosticReport;
 }

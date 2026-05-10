@@ -7,6 +7,7 @@ import {
 } from "@/components/prediagnostics/report-preview-page";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getUserStage } from "@/lib/progress";
 
 type ReportPageInterviewSession = {
   report: {
@@ -32,6 +33,11 @@ export default async function PrediagnosticsReportPage({
 
   if (!session?.user?.id) {
     redirect("/login");
+  }
+
+  const stage = await getUserStage(session.user.id);
+  if (stage === "ONBOARDING") {
+    redirect("/onboarding");
   }
 
   const interviewSession = sessionId

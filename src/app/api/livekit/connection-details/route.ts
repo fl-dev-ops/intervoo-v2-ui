@@ -19,6 +19,7 @@ import {
   createRoomServiceClient,
   getLiveKitCredentials,
 } from "@/lib/livekit";
+import { getUserStage } from "@/lib/progress";
 
 const LIVEKIT_AGENT_NAME = "intervoo-agent";
 const PREDIAGNOSTIC_AGENT_ID = "pre_screen";
@@ -64,18 +65,33 @@ export async function POST(request: NextRequest) {
 
     const credentials = getLiveKitCredentials();
     const user = await getSessionCreationUser(session.user.id);
+    const stage = await getUserStage(session.user.id);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     if (sessionType === "DIAGNOSTIC_ROUND") {
+      if (stage !== "DIAGNOSTICS") {
+        return NextResponse.json(
+          { error: "Diagnostics are not available for this user stage" },
+          { status: 409 },
+        );
+      }
+
       return await createDiagnosticConnectionDetails({
         body,
         credentials,
         request,
         user,
       });
+    }
+
+    if (stage !== "PREDIAGNOSTICS") {
+      return NextResponse.json(
+        { error: "Pre-diagnostics are not available for this user stage" },
+        { status: 409 },
+      );
     }
 
     return await createPrediagnosticConnectionDetails({

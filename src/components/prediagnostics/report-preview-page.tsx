@@ -404,16 +404,6 @@ function PrediagnosticsReportPreview({
                 >
                   Start Diagnostic Interview
                 </Link>
-                <Link
-                  className={buttonVariants({
-                    className: "mt-3 w-full",
-                    size: "lg",
-                    variant: "outline",
-                  })}
-                  href="/prediagnostics?redo=true"
-                >
-                  Retake Pre Diagnostics
-                </Link>
               </section>
             ) : null}
           </div>

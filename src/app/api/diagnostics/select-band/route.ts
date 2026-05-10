@@ -7,6 +7,7 @@ import {
   getDiagnosticJobOption,
   parseDiagnosticBand,
 } from "@/lib/diagnostics/job-options";
+import { getUserStage } from "@/lib/progress";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,14 @@ export async function POST(request: NextRequest) {
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const stage = await getUserStage(session.user.id);
+    if (stage !== "DIAGNOSTICS") {
+      return NextResponse.json(
+        { error: "Diagnostics are not available for this user stage" },
+        { status: 409 },
+      );
     }
 
     const body = (await request.json()) as { band?: unknown };

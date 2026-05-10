@@ -122,11 +122,14 @@ const initialForm: OnboardingForm = {
   englishLevel: undefined,
 };
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<StepId>("profile");
   const [form, setForm] = useState<OnboardingForm>(initialForm);
   const [isLoading, setIsLoading] = useState(true);
+  const [validationError, setValidationError] = useState("");
   const currentStepIndex = steps.findIndex((item) => item.id === step);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
@@ -134,24 +137,29 @@ export default function OnboardingPage() {
     async function loadProfile() {
       try {
         const response = await fetch("/api/onboarding/me");
+        if (response.status === 401) {
+          router.replace("/login");
+          return;
+        }
+
         if (response.ok) {
           const data = (await response.json()) as Partial<OnboardingForm> & {
             stage?: string;
           };
 
           if (data) {
-            // if (data.stage === "PREDIAGNOSTICS") {
-            //   router.replace("/prediagnostics");
-            //   return;
-            // }
-            // if (data.stage === "DIAGNOSTICS") {
-            //   router.replace("/diagnostics");
-            //   return;
-            // }
-            // if (data.stage === "COMPLETED") {
-            //   router.replace("/");
-            //   return;
-            // }
+            if (data.stage === "PREDIAGNOSTICS") {
+              router.replace("/prediagnostics");
+              return;
+            }
+            if (data.stage === "DIAGNOSTICS") {
+              router.replace("/diagnostics");
+              return;
+            }
+            if (data.stage === "COMPLETED") {
+              router.replace("/diagnostics/final-report");
+              return;
+            }
 
             setForm((prev) => ({
               ...prev,
@@ -171,13 +179,20 @@ export default function OnboardingPage() {
     }
 
     void loadProfile();
-  }, []);
+  }, [router]);
 
   function updateForm(patch: Partial<OnboardingForm>) {
+    setValidationError("");
     setForm((current) => ({ ...current, ...patch }));
   }
 
   function goNext() {
+    const error = validateStep(step, form);
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+
     const nextStep = steps[currentStepIndex + 1];
 
     if (nextStep) {
@@ -230,6 +245,12 @@ export default function OnboardingPage() {
             <ReadyStepContent form={form} />
           )}
         </div>
+
+        {validationError ? (
+          <p className="mt-5 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            {validationError}
+          </p>
+        ) : null}
 
         {step !== "ready" ? (
           <div className="mt-8">
@@ -508,9 +529,17 @@ function ReadyStepContent(props: { form: OnboardingForm }) {
 function ReadyStepButton(props: { form: OnboardingForm }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleStart() {
+    const validationError = validateOnboardingForm(props.form);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsSubmitting(true);
+    setError("");
 
     try {
       const response = await fetch("/api/onboarding/complete", {
@@ -524,13 +553,23 @@ function ReadyStepButton(props: { form: OnboardingForm }) {
       }
 
       router.push("/prediagnostics");
-    } catch {
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Failed to complete onboarding.",
+      );
       setIsSubmitting(false);
     }
   }
 
   return (
     <div className="mt-8">
+      {error ? (
+        <p className="mb-4 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
       <Button
         className="w-full"
         disabled={isSubmitting}
@@ -541,6 +580,57 @@ function ReadyStepButton(props: { form: OnboardingForm }) {
       </Button>
     </div>
   );
+}
+
+function validateStep(step: StepId, form: OnboardingForm) {
+  if (step === "profile") {
+    if (!form.firstName.trim()) return "Enter your first name.";
+    if (!form.preferredName.trim()) return "Enter what we should call you.";
+    if (!EMAIL_PATTERN.test(form.email.trim())) {
+      return "Enter a valid email address.";
+    }
+  }
+
+  if (step === "education") {
+    if (!form.degree.trim()) return "Enter your highest qualification.";
+    if (!form.stream.trim()) return "Enter your stream or branch.";
+    if (!form.institution.trim()) return "Enter your college name.";
+    if (!form.placementPreparation) {
+      return "Select how you are preparing for placements.";
+    }
+    if (
+      form.placementPreparation === "training_academy" &&
+      !form.academySelection
+    ) {
+      return "Select your academy.";
+    }
+    if (
+      form.placementPreparation === "training_academy" &&
+      form.academySelection === "Others" &&
+      !form.academyName.trim()
+    ) {
+      return "Enter your academy name.";
+    }
+  }
+
+  if (step === "language" && !form.nativeLanguage) {
+    return "Select your comfort language.";
+  }
+
+  if (step === "english" && !form.englishLevel) {
+    return "Select your English fluency level.";
+  }
+
+  return "";
+}
+
+function validateOnboardingForm(form: OnboardingForm) {
+  for (const item of steps) {
+    const error = validateStep(item.id, form);
+    if (error) return error;
+  }
+
+  return "";
 }
 
 function MessageBubble({

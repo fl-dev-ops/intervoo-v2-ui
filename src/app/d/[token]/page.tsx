@@ -1,10 +1,10 @@
 import {
   type DiagnosticReportPageState,
   DiagnosticReportPreviewPage,
-  type FinalDiagnosticReport,
 } from "@/components/diagnostics/report-preview-page";
 import { ReportView } from "@/components/diagnostics/report-view";
 import { prisma } from "@/lib/db";
+import { deriveFinalDiagnosticReport } from "@/lib/diagnostics/final-report";
 import { buildDiagnosticJobOptions } from "@/lib/diagnostics/job-options";
 import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
 
@@ -40,7 +40,10 @@ async function getPublicFinalDiagnosticReportState(
 ): Promise<DiagnosticReportPageState> {
   const diagnostic = await prisma.diagnostic.findUnique({
     where: { finalReportShareToken: token },
-    include: { user: { include: { profile: true } } },
+    include: {
+      rounds: { include: { session: { include: { report: true } } } },
+      user: { include: { profile: true } },
+    },
   });
 
   if (!diagnostic) {
@@ -52,7 +55,7 @@ async function getPublicFinalDiagnosticReportState(
   }
 
   const preferredName = diagnostic.user.profile?.preferredName;
-  const report = toFinalDiagnosticReport(diagnostic.finalReport);
+  const report = deriveFinalDiagnosticReport(diagnostic.rounds);
 
   if (!report) {
     return {
@@ -152,18 +155,4 @@ function PublicReportError({ message }: { message: string }) {
       </div>
     </div>
   );
-}
-
-function toFinalDiagnosticReport(
-  reportJson: unknown,
-): FinalDiagnosticReport | null {
-  if (
-    !reportJson ||
-    typeof reportJson !== "object" ||
-    Array.isArray(reportJson)
-  ) {
-    return null;
-  }
-
-  return reportJson as FinalDiagnosticReport;
 }

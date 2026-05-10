@@ -12,30 +12,10 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { buttonVariants } from "@/components/ui/button";
+import type { DerivedFinalDiagnosticReport } from "@/lib/diagnostics/final-report";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 
-export type FinalDiagnosticReport = {
-  overall_score: number;
-  thinking_avg: number;
-  language_avg: number;
-  confidence_avg: number;
-  salary_lpa: number;
-  salary_band: string;
-  salary_percentile: number;
-  holistic_strengths: string[];
-  holistic_improvements: string[];
-  round_summaries: Array<{
-    roundId: string;
-    thinking_level: string;
-    confidence_level: string;
-    language_avg: number;
-    strengths: string[];
-    improvements: string[];
-  }>;
-  education_summary: string;
-  aspiration_statement: string;
-  reality_statement: string;
-};
+export type FinalDiagnosticReport = DerivedFinalDiagnosticReport;
 
 export type DiagnosticReportPageState = {
   preferredName?: string | null;

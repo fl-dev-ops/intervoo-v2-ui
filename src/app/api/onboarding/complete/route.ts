@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getUserStage } from "@/lib/progress";
 
 const onboardingSchema = {
   firstName: "string",
@@ -18,6 +19,8 @@ const onboardingSchema = {
   englishLevel: "string",
 } as const;
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function validateBody(body: unknown): body is Record<string, string> {
   if (typeof body !== "object" || body === null) return false;
 
@@ -32,6 +35,37 @@ function validateBody(body: unknown): body is Record<string, string> {
   return true;
 }
 
+function getValidationError(body: Record<string, string>) {
+  if (!body.firstName?.trim()) return "First name is required";
+  if (!body.preferredName?.trim()) return "Preferred name is required";
+  if (!EMAIL_PATTERN.test(body.email?.trim() ?? "")) {
+    return "A valid email address is required";
+  }
+  if (!body.degree?.trim()) return "Highest qualification is required";
+  if (!body.stream?.trim()) return "Stream or branch is required";
+  if (!body.institution?.trim()) return "College name is required";
+  if (!body.placementPreparation?.trim()) {
+    return "Placement preparation mode is required";
+  }
+  if (!body.nativeLanguage?.trim()) return "Comfort language is required";
+  if (!body.englishLevel?.trim()) return "English level is required";
+  if (
+    body.placementPreparation === "training_academy" &&
+    !body.academySelection?.trim()
+  ) {
+    return "Academy selection is required";
+  }
+  if (
+    body.placementPreparation === "training_academy" &&
+    body.academySelection === "Others" &&
+    !body.academyName?.trim()
+  ) {
+    return "Academy name is required";
+  }
+
+  return "";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
@@ -42,6 +76,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const stage = await getUserStage(session.user.id);
+    if (stage !== "ONBOARDING") {
+      return NextResponse.json(
+        { error: "Onboarding is already complete" },
+        { status: 409 },
+      );
+    }
+
     const body = (await request.json()) as unknown;
 
     if (!validateBody(body)) {
@@ -49,6 +91,11 @@ export async function POST(request: NextRequest) {
         { error: "Invalid onboarding data" },
         { status: 400 },
       );
+    }
+
+    const validationError = getValidationError(body);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     const {
