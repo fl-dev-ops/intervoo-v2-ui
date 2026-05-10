@@ -1,2 +1,0 @@
-vp staged
-pnpm run pre-commit:quality

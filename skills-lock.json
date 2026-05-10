@@ -1,20 +1,17 @@
 {
   "version": 1,
   "skills": {
-    "tanstack-start": {
-      "source": "tanstack-skills/tanstack-skills",
+    "impeccable": {
+      "source": "pbakaus/impeccable",
       "sourceType": "github",
-      "computedHash": "e9d8355fe3e47b118e739081f1123c52aa0ecde57da840722177e1ad5caf9908"
+      "skillPath": "skill/SKILL.md",
+      "computedHash": "8cdf2e788eaca3af7d02026ef9cec55b506100a00d130f938e3fb1ad669c0ad0"
     },
-    "tanstack-start-architecture": {
-      "source": "alpoxdev/hypercore",
+    "livekit-agents": {
+      "source": "livekit/agent-skills",
       "sourceType": "github",
-      "computedHash": "aaf8d0513d144de466ccd9e7d57160776c750dca0366a231cbd4458e1bb0d5a8"
-    },
-    "tanstack-start-best-practices": {
-      "source": "deckardger/tanstack-agent-skills",
-      "sourceType": "github",
-      "computedHash": "8b073187405a10f9997158f9139a9664cc801595d2fe63d542a0bac9bf2152f5"
+      "skillPath": "skills/livekit-agents/SKILL.md",
+      "computedHash": "373669b9a938ced840f301173e838a0046408acd0397c02c03420cc9b6a8cb42"
     }
   }
 }
