@@ -137,7 +137,12 @@ async function createPrediagnosticConnectionDetails({
   const agentName = credentials.agentName || LIVEKIT_AGENT_NAME;
 
   const interactionMode = body.interaction_mode || "ptt";
-  const coach = body.coach === "arjun" ? "arjun" : "sana";
+  const coach =
+    body.coach === "arjun"
+      ? "arjun"
+      : user.profile?.coach === "arjun"
+        ? "arjun"
+        : "sana";
   const agentDetails = COACH_AGENT_DETAILS[coach];
   const speakingSpeed = getSpeakingSpeed(user.profile?.speakingSpeed);
 

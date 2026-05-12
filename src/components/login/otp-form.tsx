@@ -39,10 +39,10 @@ export function OtpForm({
 }: OtpFormProps) {
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1.5 text-center">
-        {/*<h1 className="text-xl font-semibold tracking-tight">
+      <div className="flex flex-col gap-4 text-center">
+        <h1 className="text-xl font-semibold tracking-tight">
           Enter verification code
-        </h1>*/}
+        </h1>
         <p className="text-sm text-muted-foreground">
           We sent a 6-digit code to{" "}
           <button
@@ -91,15 +91,16 @@ export function OtpForm({
             </div>
           </Field>
 
-          {error ? <FieldError>{error}</FieldError> : null}
+          {/*{error ? <FieldError>{error}</FieldError> : null}*/}
 
-          <div className="w-full flex flex-row gap-2">
+          <div className="w-full">
             <Button
+              size={"lg"}
               type="submit"
               disabled={loading || otp.length !== 6}
-              className="h-11 text-sm flex-1"
+              className="w-full bg-button"
             >
-              {loading ? <Spinner /> : "Login"}
+              {loading ? <Spinner /> : "Verify & Continue"}
             </Button>
           </div>
         </FieldGroup>

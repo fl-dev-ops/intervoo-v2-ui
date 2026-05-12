@@ -16,5 +16,12 @@ export default async function DiagnosticsPrejoinPage({
     redirect("/diagnostics/rounds");
   }
 
-  return <CustomPreJoin flow="diagnostics" roundId={roundId} type="video" />;
+  return (
+    <CustomPreJoin
+      flow="diagnostics"
+      hideCoachSelection
+      roundId={roundId}
+      type="video"
+    />
+  );
 }

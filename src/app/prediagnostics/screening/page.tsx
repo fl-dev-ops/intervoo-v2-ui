@@ -4,5 +4,9 @@ import { requirePageStage } from "@/lib/stage-guards";
 export default async function PrediagnosticsScreeningPage() {
   await requirePageStage(["PREDIAGNOSTICS"]);
 
-  return <CustomPreJoin type="audio" />;
+  return (
+    <>
+      <CustomPreJoin hideCoachSelection type="audio" />
+    </>
+  );
 }

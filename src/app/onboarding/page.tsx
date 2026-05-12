@@ -1,9 +1,11 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
@@ -19,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { type CoachOption, coachCards } from "@/lib/coaches";
 import { cn } from "@/lib/utils";
 
 const steps = [
@@ -26,6 +29,7 @@ const steps = [
   { id: "education", label: "Education" },
   { id: "language", label: "Language" },
   { id: "english", label: "English" },
+  { id: "coach", label: "Coach" },
   { id: "ready", label: "Ready" },
 ] as const;
 
@@ -52,7 +56,10 @@ type OnboardingForm = {
   academyName: string;
   nativeLanguage?: NativeLanguage;
   englishLevel?: EnglishLevel;
+  coach?: CoachOption;
 };
+
+type FieldErrors = Partial<Record<keyof OnboardingForm, string>>;
 
 const placementOptions = [
   { value: "through_college", label: "Through my college" },
@@ -120,6 +127,7 @@ const initialForm: OnboardingForm = {
   academyName: "",
   nativeLanguage: undefined,
   englishLevel: undefined,
+  coach: undefined,
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -129,9 +137,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<StepId>("profile");
   const [form, setForm] = useState<OnboardingForm>(initialForm);
   const [isLoading, setIsLoading] = useState(true);
-  const [validationError, setValidationError] = useState("");
+  const [validationErrors, setValidationErrors] = useState<FieldErrors>({});
   const currentStepIndex = steps.findIndex((item) => item.id === step);
-  const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
   useEffect(() => {
     async function loadProfile() {
@@ -143,32 +150,19 @@ export default function OnboardingPage() {
         }
 
         if (response.ok) {
-          const data = (await response.json()) as Partial<OnboardingForm> & {
-            stage?: string;
-          };
+          const data = (await response.json()) as { stage?: string };
 
-          if (data) {
-            if (data.stage === "PREDIAGNOSTICS") {
-              router.replace("/prediagnostics");
-              return;
-            }
-            if (data.stage === "DIAGNOSTICS") {
-              router.replace("/diagnostics");
-              return;
-            }
-            if (data.stage === "COMPLETED") {
-              router.replace("/diagnostics/final-report");
-              return;
-            }
-
-            setForm((prev) => ({
-              ...prev,
-              ...data,
-              // Ensure optional fields are undefined if empty
-              nativeLanguage:
-                data.nativeLanguage || prev.nativeLanguage || undefined,
-              englishLevel: data.englishLevel || prev.englishLevel || undefined,
-            }));
+          if (data.stage === "PREDIAGNOSTICS") {
+            router.replace("/prediagnostics");
+            return;
+          }
+          if (data.stage === "DIAGNOSTICS") {
+            router.replace("/diagnostics");
+            return;
+          }
+          if (data.stage === "COMPLETED") {
+            router.replace("/diagnostics/final-report");
+            return;
           }
         }
       } catch {
@@ -182,14 +176,20 @@ export default function OnboardingPage() {
   }, [router]);
 
   function updateForm(patch: Partial<OnboardingForm>) {
-    setValidationError("");
+    setValidationErrors((current) => {
+      const next = { ...current };
+      for (const key of Object.keys(patch) as Array<keyof OnboardingForm>) {
+        delete next[key];
+      }
+      return next;
+    });
     setForm((current) => ({ ...current, ...patch }));
   }
 
   function goNext() {
-    const error = validateStep(step, form);
-    if (error) {
-      setValidationError(error);
+    const errors = validateStep(step, form);
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       return;
     }
 
@@ -210,58 +210,78 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
+      <main className="flex min-h-screen items-center justify-center p-3 md:p-10">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            Loading your profile...
-          </p>
+          <Spinner className="size-8 text-white" />
+          <p className="text-sm text-white">Loading your profile...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-background">
-      <section className="mx-auto flex w-full max-w-md flex-1 flex-col px-5 py-8">
+    <main className="flex min-h-screen h-screen flex-col text-white p-3 md:p-10">
+      <section className="relative mx-auto flex w-full max-w-md flex-1 flex-col ">
         <OnboardingHeader
           currentStep={currentStepIndex + 1}
           onBack={goBack}
-          progress={progress}
           showBack={currentStepIndex > 0}
           totalSteps={steps.length}
         />
 
-        <div key={step} className="mt-8 flex-1 animate-fade-in">
-          {step === "profile" ? (
-            <ProfileStep form={form} onChange={updateForm} />
-          ) : step === "education" ? (
-            <EducationStep form={form} onChange={updateForm} />
-          ) : step === "language" ? (
-            <LanguageStep form={form} onChange={updateForm} />
-          ) : step === "english" ? (
-            <EnglishStep form={form} onChange={updateForm} />
-          ) : (
-            <ReadyStepContent form={form} />
-          )}
-        </div>
-
-        {validationError ? (
-          <p className="mt-5 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-            {validationError}
-          </p>
-        ) : null}
-
-        {step !== "ready" ? (
-          <div className="mt-8">
-            <Button className="w-full" type="button" onClick={goNext}>
-              Next
-              <ArrowRight className="size-4" />
-            </Button>
+        <Card className="h-full flex-1 p-3 md:p-6 mt-4 md:mt-8">
+          <div key={step} className="pt-2 px-1 md:p-0 flex-1 animate-fade-in">
+            {step === "profile" ? (
+              <ProfileStep
+                errors={validationErrors}
+                form={form}
+                onChange={updateForm}
+              />
+            ) : step === "education" ? (
+              <EducationStep
+                errors={validationErrors}
+                form={form}
+                onChange={updateForm}
+              />
+            ) : step === "language" ? (
+              <LanguageStep
+                errors={validationErrors}
+                form={form}
+                onChange={updateForm}
+              />
+            ) : step === "english" ? (
+              <EnglishStep
+                errors={validationErrors}
+                form={form}
+                onChange={updateForm}
+              />
+            ) : step === "coach" ? (
+              <CoachStep
+                errors={validationErrors}
+                form={form}
+                onChange={updateForm}
+              />
+            ) : (
+              <ReadyStepContent form={form} />
+            )}
           </div>
-        ) : (
-          <ReadyStepButton form={form} />
-        )}
+
+          {step !== "ready" ? (
+            <div className="mt-8">
+              <Button
+                className="w-full bg-button"
+                size={"lg"}
+                type="button"
+                onClick={goNext}
+              >
+                Next
+                <ArrowRight className="size-4" />
+              </Button>
+            </div>
+          ) : (
+            <ReadyStepButton form={form} />
+          )}
+        </Card>
       </section>
     </main>
   );
@@ -270,50 +290,64 @@ export default function OnboardingPage() {
 function OnboardingHeader(props: {
   currentStep: number;
   totalSteps: number;
-  progress: number;
   showBack: boolean;
   onBack: () => void;
 }) {
   return (
-    <header>
+    <header className="text-white px-2 mt-2">
       <div className="flex items-center gap-2 text-sm">
         {props.showBack && (
           <button
-            className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            className="inline-flex items-center justify-center rounded-md p-1 text-muted transition hover:bg-accent hover:text-foreground"
             type="button"
             onClick={props.onBack}
           >
             <ArrowLeft className="size-4" />
           </button>
         )}
-        <span className="font-medium text-foreground">Onboarding</span>
-        <span className="ml-auto tabular-nums text-muted-foreground">
+        <span className="font-medium">Onboarding</span>
+        <span className="ml-auto tabular-nums text-muted">
           {props.currentStep} / {props.totalSteps}
         </span>
       </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-foreground transition-[width] duration-500 ease-out"
-          style={{ width: `${props.progress}%` }}
-        />
+      <div
+        className="mt-3 grid gap-2"
+        style={{
+          gridTemplateColumns: `repeat(${props.totalSteps}, minmax(0, 1fr))`,
+        }}
+      >
+        {Array.from({ length: props.totalSteps }, (_, index) => ({
+          id: `onboarding-step-${index + 1}`,
+          isComplete: index < props.currentStep,
+        })).map((segment) => (
+          <span
+            key={segment.id}
+            className={cn(
+              "h-2 rounded-full transition-colors duration-500 ease-out",
+              segment.isComplete ? "bg-white" : "bg-white/25",
+            )}
+          />
+        ))}
       </div>
     </header>
   );
 }
 
 function ProfileStep(props: {
+  errors: FieldErrors;
   form: OnboardingForm;
   onChange: (patch: Partial<OnboardingForm>) => void;
 }) {
   return (
     <StepContent
       description="Tell us what to call you before your diagnostic starts."
-      title="Your basics"
+      title="Basic Details"
     >
       <FieldGroup className="gap-6">
         <div className="grid grid-cols-2 gap-3">
           <TextField
             autoComplete="given-name"
+            error={props.errors.firstName}
             label="First name"
             required={true}
             value={props.form.firstName}
@@ -321,12 +355,15 @@ function ProfileStep(props: {
           />
           <TextField
             autoComplete="family-name"
+            error={props.errors.lastName}
             label="Last name"
+            required={true}
             value={props.form.lastName}
             onChange={(value) => props.onChange({ lastName: value })}
           />
         </div>
         <TextField
+          error={props.errors.preferredName}
           label="How should we call you?"
           required={true}
           value={props.form.preferredName}
@@ -334,6 +371,7 @@ function ProfileStep(props: {
         />
         <TextField
           autoComplete="email"
+          error={props.errors.email}
           label="Email address"
           required={true}
           type="email"
@@ -346,6 +384,7 @@ function ProfileStep(props: {
 }
 
 function EducationStep(props: {
+  errors: FieldErrors;
   form: OnboardingForm;
   onChange: (patch: Partial<OnboardingForm>) => void;
 }) {
@@ -356,22 +395,25 @@ function EducationStep(props: {
   return (
     <StepContent
       description="This helps us personalize interview prompts around your placement context."
-      title="Education and prep"
+      title="Education Background"
     >
       <FieldGroup className="gap-6">
         <TextField
+          error={props.errors.degree}
           label="Highest qualification"
           required={true}
           value={props.form.degree}
           onChange={(value) => props.onChange({ degree: value })}
         />
         <TextField
+          error={props.errors.stream}
           label="Stream / Branch"
           required={true}
           value={props.form.stream}
           onChange={(value) => props.onChange({ stream: value })}
         />
         <TextField
+          error={props.errors.institution}
           label="College name"
           required={true}
           value={props.form.institution}
@@ -393,7 +435,11 @@ function EducationStep(props: {
               })
             }
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger
+              aria-invalid={Boolean(props.errors.placementPreparation)}
+              aria-required="true"
+              className="w-full"
+            >
               <SelectValue placeholder="Select preparation mode">
                 {placementOptions.find(
                   (o) => o.value === props.form.placementPreparation,
@@ -408,9 +454,15 @@ function EducationStep(props: {
               ))}
             </SelectContent>
           </Select>
-          <FieldDescription>
-            Required for better interview personalization.
-          </FieldDescription>
+          {props.errors.placementPreparation ? (
+            <FieldDescription className="text-destructive">
+              {props.errors.placementPreparation}
+            </FieldDescription>
+          ) : (
+            <FieldDescription>
+              Required for better interview personalization.
+            </FieldDescription>
+          )}
         </Field>
         {isTrainingAcademy ? (
           <Field>
@@ -424,7 +476,11 @@ function EducationStep(props: {
                 })
               }
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                aria-invalid={Boolean(props.errors.academySelection)}
+                aria-required="true"
+                className="w-full"
+              >
                 <SelectValue placeholder="Select academy">
                   {academyOptions.find(
                     (o) => o.value === props.form.academySelection,
@@ -439,10 +495,16 @@ function EducationStep(props: {
                 ))}
               </SelectContent>
             </Select>
+            {props.errors.academySelection ? (
+              <FieldDescription className="text-destructive">
+                {props.errors.academySelection}
+              </FieldDescription>
+            ) : null}
           </Field>
         ) : null}
         {isTrainingAcademy && isOtherAcademy ? (
           <TextField
+            error={props.errors.academyName}
             label="Academy name"
             required={true}
             value={props.form.academyName}
@@ -455,6 +517,7 @@ function EducationStep(props: {
 }
 
 function LanguageStep(props: {
+  errors: FieldErrors;
   form: OnboardingForm;
   onChange: (patch: Partial<OnboardingForm>) => void;
 }) {
@@ -473,12 +536,18 @@ function LanguageStep(props: {
             onClick={() => props.onChange({ nativeLanguage: option.value })}
           />
         ))}
+        {props.errors.nativeLanguage ? (
+          <p className="text-sm text-destructive">
+            {props.errors.nativeLanguage}
+          </p>
+        ) : null}
       </div>
     </StepContent>
   );
 }
 
 function EnglishStep(props: {
+  errors: FieldErrors;
   form: OnboardingForm;
   onChange: (patch: Partial<OnboardingForm>) => void;
 }) {
@@ -497,6 +566,60 @@ function EnglishStep(props: {
             onClick={() => props.onChange({ englishLevel: option.value })}
           />
         ))}
+        {props.errors.englishLevel ? (
+          <p className="text-sm text-destructive">
+            {props.errors.englishLevel}
+          </p>
+        ) : null}
+      </div>
+    </StepContent>
+  );
+}
+
+function CoachStep(props: {
+  errors: FieldErrors;
+  form: OnboardingForm;
+  onChange: (patch: Partial<OnboardingForm>) => void;
+}) {
+  return (
+    <StepContent
+      description="Choose the coach voice that will guide your practice sessions."
+      title="Pick your coach"
+    >
+      <div className="grid grid-cols-2 gap-3">
+        {coachCards.map((coach) => (
+          <button
+            key={coach.value}
+            className={cn(
+              "overflow-hidden rounded-xl border bg-input/30 text-left shadow-sm transition",
+              props.form.coach === coach.value
+                ? "border-[#5E41CF] border-2"
+                : "border-border hover:border-foreground/30",
+            )}
+            type="button"
+            onClick={() => props.onChange({ coach: coach.value })}
+          >
+            <div
+              className="relative aspect-[1.15] overflow-hidden"
+              style={{ backgroundColor: coach.tint }}
+            >
+              <Image
+                alt={coach.title}
+                className="object-cover"
+                fill
+                src={coach.imageSrc}
+              />
+            </div>
+            <div className="p-3 text-center text-sm font-medium">
+              {coach.title}
+            </div>
+          </button>
+        ))}
+        {props.errors.coach ? (
+          <p className="col-span-2 text-sm text-destructive">
+            {props.errors.coach}
+          </p>
+        ) : null}
       </div>
     </StepContent>
   );
@@ -505,13 +628,29 @@ function EnglishStep(props: {
 function ReadyStepContent(props: { form: OnboardingForm }) {
   const name =
     props.form.preferredName.trim() || props.form.firstName.trim() || "there";
+  const selectedCoach = coachCards.find(
+    (coach) => coach.value === props.form.coach,
+  );
 
   return (
     <StepContent
       description="Your profile is complete and ready for the diagnostic session."
       title="You're all set to begin"
     >
-      <div className="flex flex-col gap-6">
+      <div className="-mt-2 flex flex-col gap-3">
+        {selectedCoach ? (
+          <div
+            className="w-full aspect-square relative overflow-hidden rounded-xl"
+            style={{ backgroundColor: selectedCoach.tint }}
+          >
+            <Image
+              alt={selectedCoach.title}
+              className="object-cover"
+              fill
+              src={selectedCoach.imageSrc}
+            />
+          </div>
+        ) : null}
         <div className="space-y-3">
           <MessageBubble>
             Hi {name}, welcome to your personalized interview preparation.
@@ -571,7 +710,8 @@ function ReadyStepButton(props: { form: OnboardingForm }) {
         </p>
       ) : null}
       <Button
-        className="w-full"
+        className="w-full bg-button"
+        size="lg"
         disabled={isSubmitting}
         type="button"
         onClick={handleStart}
@@ -583,51 +723,67 @@ function ReadyStepButton(props: { form: OnboardingForm }) {
 }
 
 function validateStep(step: StepId, form: OnboardingForm) {
+  const errors: FieldErrors = {};
+
   if (step === "profile") {
-    if (!form.firstName.trim()) return "Enter your first name.";
-    if (!form.preferredName.trim()) return "Enter what we should call you.";
+    if (!form.firstName.trim()) errors.firstName = "Enter your first name.";
+    if (!form.lastName.trim()) errors.lastName = "Enter your last name.";
+    if (!form.preferredName.trim()) {
+      errors.preferredName = "Enter what we should call you.";
+    }
     if (!EMAIL_PATTERN.test(form.email.trim())) {
-      return "Enter a valid email address.";
+      errors.email = form.email.trim()
+        ? "Enter a valid email address."
+        : "Enter your email address.";
     }
   }
 
   if (step === "education") {
-    if (!form.degree.trim()) return "Enter your highest qualification.";
-    if (!form.stream.trim()) return "Enter your stream or branch.";
-    if (!form.institution.trim()) return "Enter your college name.";
+    if (!form.degree.trim()) {
+      errors.degree = "Enter your highest qualification.";
+    }
+    if (!form.stream.trim()) errors.stream = "Enter your stream or branch.";
+    if (!form.institution.trim())
+      errors.institution = "Enter your college name.";
     if (!form.placementPreparation) {
-      return "Select how you are preparing for placements.";
+      errors.placementPreparation =
+        "Select how you are preparing for placements.";
     }
     if (
       form.placementPreparation === "training_academy" &&
       !form.academySelection
     ) {
-      return "Select your academy.";
+      errors.academySelection = "Select your academy.";
     }
     if (
       form.placementPreparation === "training_academy" &&
       form.academySelection === "Others" &&
       !form.academyName.trim()
     ) {
-      return "Enter your academy name.";
+      errors.academyName = "Enter your academy name.";
     }
   }
 
   if (step === "language" && !form.nativeLanguage) {
-    return "Select your comfort language.";
+    errors.nativeLanguage = "Select your comfort language.";
   }
 
   if (step === "english" && !form.englishLevel) {
-    return "Select your English fluency level.";
+    errors.englishLevel = "Select your English fluency level.";
   }
 
-  return "";
+  if (step === "coach" && !form.coach) {
+    errors.coach = "Select your coach.";
+  }
+
+  return errors;
 }
 
 function validateOnboardingForm(form: OnboardingForm) {
   for (const item of steps) {
-    const error = validateStep(item.id, form);
-    if (error) return error;
+    const errors = validateStep(item.id, form);
+    const firstError = Object.values(errors)[0];
+    if (firstError) return firstError;
   }
 
   return "";
@@ -663,7 +819,7 @@ function StepContent(props: {
   return (
     <div>
       <h2 className="text-xl font-semibold tracking-tight">{props.title}</h2>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+      <p className="mt-1 text-sm leading-6 text-gray-500">
         {props.description}
       </p>
       <div className="mt-6">{props.children}</div>
@@ -676,6 +832,7 @@ function TextField(props: {
   value: string;
   onChange: (value: string) => void;
   autoComplete?: string;
+  error?: string;
   required?: boolean;
   type?: string;
 }) {
@@ -683,12 +840,18 @@ function TextField(props: {
     <Field>
       <FieldLabel>{props.label}</FieldLabel>
       <Input
+        aria-invalid={Boolean(props.error)}
         autoComplete={props.autoComplete}
         required={props.required}
         type={props.type ?? "text"}
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
       />
+      {props.error ? (
+        <FieldDescription className="text-destructive">
+          {props.error}
+        </FieldDescription>
+      ) : null}
     </Field>
   );
 }
@@ -704,7 +867,7 @@ function OptionButton(props: {
       className={cn(
         "flex w-full items-center justify-between gap-4 rounded-lg border bg-input/30 p-4 text-left transition",
         props.active
-          ? "border-foreground"
+          ? "border-[#5E41CF] border-2"
           : "border-border hover:border-foreground/30",
       )}
       type="button"
@@ -722,11 +885,11 @@ function OptionButton(props: {
         className={cn(
           "flex size-5 shrink-0 items-center justify-center rounded-full border transition",
           props.active
-            ? "border-foreground bg-foreground"
+            ? "border-[#5E41CF] bg-[#5E41CF]"
             : "border-muted-foreground",
         )}
       >
-        {props.active ? <Check className="size-3 text-background" /> : null}
+        {props.active ? <Check className="size-3 text-[background]" /> : null}
       </span>
     </button>
   );

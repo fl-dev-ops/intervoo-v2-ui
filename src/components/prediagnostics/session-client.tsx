@@ -25,6 +25,7 @@ import {
 } from "@/components/prediagnostics/chat-ui";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "../ui/input";
 
 interface SessionPageClientProps {
@@ -276,10 +277,10 @@ function SessionContent({
   }
 
   return (
-    <div className="mx-auto flex h-svh w-full flex-col bg-background">
+    <div className="mx-auto flex h-svh w-full flex-col bg-background p-3 md:p-10">
       {/* Header */}
-      <header className="w-full mx-auto sticky top-0 z-10 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="flex items-center justify-between px-6 py-3">
+      <header className="mx-auto w-full max-w-lg shrink-0 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <div className="flex items-center justify-between px-1 py-2">
           <div className="flex flex-col">
             <h1 className="text-base font-semibold">Pre-Diagnostic Session</h1>
           </div>
@@ -296,9 +297,9 @@ function SessionContent({
       </header>
 
       {/* Messages */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto max-w-lg w-full mx-auto "
+      <ScrollArea
+        viewportRef={scrollRef}
+        className="mx-auto min-h-0 w-full max-w-lg flex-1"
       >
         <div className="space-y-4 px-4 py-6">
           {showConnectingSpinner && messages.length === 0 && (
@@ -329,12 +330,12 @@ function SessionContent({
             <TypingIndicator />
           )}
         </div>
-      </div>
+      </ScrollArea>
 
       {/* Footer input */}
-      <footer className="max-w-lg w-full mx-auto border rounded-lg bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 mb-4">
-        <div className="flex items-center gap-3 p-2 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
-          <div className="flex h-10 flex-1 ">
+      <footer className="mx-auto w-full max-w-lg shrink-0 rounded-lg border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <div className="flex items-center gap-3 p-2 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+          <div className="flex h-10 flex-1">
             {isRecording ? (
               <LiveWaveform
                 active

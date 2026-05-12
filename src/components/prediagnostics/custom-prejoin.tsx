@@ -1,10 +1,26 @@
 "use client";
 
-import { useMediaDeviceSelect } from "@livekit/components-react";
-import { Camera, Mic, Video, VideoOff, Volume2 } from "lucide-react";
+import {
+  useMediaDeviceSelect,
+  usePreviewTracks,
+} from "@livekit/components-react";
+import { type LocalVideoTrack, Track } from "livekit-client";
+import {
+  TriangleAlert,
+  Video,
+  VideoIcon,
+  VideoOff,
+  Volume2,
+} from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
 import {
@@ -14,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { type CoachOption, coachCards } from "@/lib/coaches";
 import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
 
@@ -21,43 +38,35 @@ type PermissionState = "checking" | "prompt" | "granted" | "denied";
 
 type SessionType = "audio" | "video";
 type FlowType = "prediagnostics" | "diagnostics";
-type CoachOption = "sana" | "arjun";
-
-const coachCards = [
-  {
-    value: "sana" as const,
-    title: "Sana",
-    imageSrc: "/agent/sara.png",
-    tint: "#b8b25b",
-  },
-  {
-    value: "arjun" as const,
-    title: "Arjun",
-    imageSrc: "/agent/arjun.png",
-    tint: "#8ea5c4",
-  },
-];
 
 interface CustomPreJoinProps {
   type?: SessionType;
   flow?: FlowType;
   roundId?: string;
+  coach?: CoachOption;
+  hideCoachSelection?: boolean;
 }
 
 export function CustomPreJoin({
+  coach,
   flow = "prediagnostics",
+  hideCoachSelection = false,
   roundId,
-  type = "audio",
 }: CustomPreJoinProps) {
   const router = useRouter();
-  const isVideoMode = type === "video";
 
   const [permissionState, setPermissionState] =
     useState<PermissionState>("checking");
   const [hasRequested, setHasRequested] = useState(false);
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
-  const [selectedCoach, setSelectedCoach] = useState<CoachOption>("sana");
+  const [selectedCoach, setSelectedCoach] = useState<CoachOption | undefined>(
+    coach ?? (hideCoachSelection ? undefined : "sana"),
+  );
+
+  useEffect(() => {
+    setSelectedCoach(coach ?? (hideCoachSelection ? undefined : "sana"));
+  }, [coach, hideCoachSelection]);
 
   // Audio devices
   const {
@@ -66,7 +75,7 @@ export function CustomPreJoin({
     setActiveMediaDevice: setActiveAudioDevice,
   } = useMediaDeviceSelect({
     kind: "audioinput",
-    requestPermissions: false,
+    requestPermissions: permissionState === "granted",
   });
 
   // Video devices
@@ -76,7 +85,7 @@ export function CustomPreJoin({
     setActiveMediaDevice: setActiveVideoDevice,
   } = useMediaDeviceSelect({
     kind: "videoinput",
-    requestPermissions: false,
+    requestPermissions: permissionState === "granted",
   });
 
   // Auto-select first/default device when devices load
@@ -92,73 +101,50 @@ export function CustomPreJoin({
   }, [audioDevices, activeAudioDeviceId, setActiveAudioDevice]);
 
   useEffect(() => {
-    if (isVideoMode && videoDevices.length > 0 && !activeVideoDeviceId) {
-      const defaultDevice = videoDevices.find((d) =>
-        d.deviceId.toLowerCase().includes("default"),
-      );
-      void setActiveVideoDevice(
-        defaultDevice ? defaultDevice.deviceId : videoDevices[0].deviceId,
-      );
+    if (
+      videoDevices.length > 0 &&
+      (activeVideoDeviceId === "default" ||
+        !videoDevices.some((device) => device.deviceId === activeVideoDeviceId))
+    ) {
+      void setActiveVideoDevice(videoDevices[0].deviceId);
     }
-  }, [isVideoMode, videoDevices, activeVideoDeviceId, setActiveVideoDevice]);
+  }, [videoDevices, activeVideoDeviceId, setActiveVideoDevice]);
 
   // Video preview
   const videoRef = useRef<HTMLVideoElement>(null);
-  const videoStreamRef = useRef<MediaStream | null>(null);
+  const handlePreviewError = useCallback((error: Error) => {
+    setDeviceError(error.message);
+  }, []);
+  const previewTracks = usePreviewTracks(
+    {
+      audio: false,
+      video:
+        permissionState === "granted"
+          ? {
+              deviceId:
+                activeVideoDeviceId && activeVideoDeviceId !== "default"
+                  ? activeVideoDeviceId
+                  : undefined,
+            }
+          : false,
+    },
+    handlePreviewError,
+  );
+  const videoTrack = previewTracks?.find(
+    (track) => track.kind === Track.Kind.Video,
+  ) as LocalVideoTrack | undefined;
 
   useEffect(() => {
-    if (!isVideoMode || permissionState !== "granted") {
-      // cleanup
-      if (videoStreamRef.current) {
-        videoStreamRef.current.getTracks().forEach((t) => {
-          t.stop();
-        });
-        videoStreamRef.current = null;
-      }
-      return;
-    }
+    if (!videoRef.current || !videoTrack) return;
 
-    let cancelled = false;
-
-    async function setupVideo() {
-      try {
-        const constraints: MediaStreamConstraints = {
-          video:
-            activeVideoDeviceId && activeVideoDeviceId !== "default"
-              ? { deviceId: { exact: activeVideoDeviceId } }
-              : true,
-        };
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        if (cancelled) {
-          stream.getTracks().forEach((t) => {
-            t.stop();
-          });
-          return;
-        }
-
-        videoStreamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
-      } catch (err) {
-        console.error("Video preview error:", err);
-      }
-    }
-
-    void setupVideo();
+    const videoElement = videoRef.current;
+    videoTrack.unmute();
+    videoTrack.attach(videoElement);
 
     return () => {
-      cancelled = true;
-      if (videoStreamRef.current) {
-        videoStreamRef.current.getTracks().forEach((t) => {
-          t.stop();
-        });
-        videoStreamRef.current = null;
-      }
+      videoTrack.detach(videoElement);
     };
-  }, [isVideoMode, permissionState, activeVideoDeviceId]);
+  }, [videoTrack]);
 
   // Check browser permission state on mount
   useEffect(() => {
@@ -166,14 +152,10 @@ export function CustomPreJoin({
 
     async function check() {
       try {
-        const permissionName = isVideoMode
-          ? ("camera" as PermissionName)
-          : ("microphone" as PermissionName);
-
         if (navigator.permissions) {
           try {
             const status = await navigator.permissions.query({
-              name: permissionName,
+              name: "camera" as PermissionName,
             });
             if (cancelled) return;
 
@@ -209,7 +191,7 @@ export function CustomPreJoin({
     return () => {
       cancelled = true;
     };
-  }, [isVideoMode]);
+  }, []);
 
   // Request microphone (and optionally camera) permission
   const requestPermission = useCallback(async () => {
@@ -222,11 +204,10 @@ export function CustomPreJoin({
           activeAudioDeviceId && activeAudioDeviceId !== "default"
             ? { deviceId: { exact: activeAudioDeviceId } }
             : true,
-        video: isVideoMode
-          ? activeVideoDeviceId && activeVideoDeviceId !== "default"
+        video:
+          activeVideoDeviceId && activeVideoDeviceId !== "default"
             ? { deviceId: { exact: activeVideoDeviceId } }
-            : true
-          : false,
+            : true,
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -238,13 +219,11 @@ export function CustomPreJoin({
       const message =
         error instanceof Error
           ? error.message
-          : isVideoMode
-            ? "We couldn't access your microphone or camera."
-            : "We couldn't access your microphone.";
+          : "We couldn't access your microphone or camera.";
       setDeviceError(message);
       setPermissionState("denied");
     }
-  }, [activeAudioDeviceId, activeVideoDeviceId, isVideoMode]);
+  }, [activeAudioDeviceId, activeVideoDeviceId]);
 
   const handleAudioDeviceChange = useCallback(
     (deviceId: string | null) => {
@@ -275,16 +254,14 @@ export function CustomPreJoin({
             ? {
                 round_id: roundId,
                 type: "DIAGNOSTIC_ROUND",
-                coach: selectedCoach,
+                ...(selectedCoach ? { coach: selectedCoach } : {}),
               }
             : {
                 type: "PREDIAGNOSTIC",
                 device_id: activeAudioDeviceId || "",
-                video_device_id: isVideoMode
-                  ? activeVideoDeviceId || ""
-                  : undefined,
+                video_device_id: activeVideoDeviceId || "",
                 interaction_mode: "ptt",
-                coach: selectedCoach,
+                ...(selectedCoach ? { coach: selectedCoach } : {}),
               },
         ),
       });
@@ -319,9 +296,7 @@ export function CustomPreJoin({
           room: data.room_name,
           session: data.session_id,
         });
-        if (isVideoMode) {
-          params.set("video", "true");
-        }
+        params.set("video", "true");
         if (data.interaction_mode) {
           params.set("mode", data.interaction_mode);
         }
@@ -337,7 +312,6 @@ export function CustomPreJoin({
     activeAudioDeviceId,
     activeVideoDeviceId,
     flow,
-    isVideoMode,
     roundId,
     router,
     selectedCoach,
@@ -357,154 +331,240 @@ export function CustomPreJoin({
         <div className="flex flex-col items-center gap-3">
           <div className="size-8 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
           <p className="text-sm text-muted-foreground">
-            {isVideoMode
-              ? "Checking microphone and camera access..."
-              : "Checking microphone access..."}
+            Checking microphone and camera access...
           </p>
         </div>
       </main>
     );
   }
 
+  if (!hasRequested && permissionState !== "granted") {
+    return <PreJoinPermissionRequest onRequestPermission={requestPermission} />;
+  }
+
+  return (
+    <PreJoinReadyState
+      activeAudioDeviceId={activeAudioDeviceId}
+      activeVideoDeviceId={activeVideoDeviceId}
+      audioDevices={audioDevices}
+      deviceError={deviceError}
+      hideCoachSelection={hideCoachSelection}
+      isJoining={isJoining}
+      permissionState={permissionState}
+      selectedAudioLabel={selectedAudioLabel}
+      selectedCoach={selectedCoach}
+      selectedVideoLabel={selectedVideoLabel}
+      videoDevices={videoDevices}
+      videoRef={videoRef}
+      videoTrack={videoTrack}
+      onAudioDeviceChange={handleAudioDeviceChange}
+      onJoin={handleJoin}
+      onRequestPermission={requestPermission}
+      onSelectedCoachChange={setSelectedCoach}
+      onVideoDeviceChange={handleVideoDeviceChange}
+    />
+  );
+}
+
+function PreJoinPermissionRequest({
+  onRequestPermission,
+}: {
+  onRequestPermission: () => void;
+}) {
+  return (
+    <main className="flex min-h-svh items-center justify-center bg-background px-5 py-8">
+      <section className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-md flex-col justify-center">
+        <div className="flex justify-center">
+          <Image
+            alt="Enable device access"
+            className="h-auto w-full max-w-70"
+            height={287}
+            priority
+            src="/pre-join-access.svg"
+            width={280}
+          />
+        </div>
+
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-xl font-semibold tracking-tight">
+              Allow camera & microphone access
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Your camera and microphone help us conduct the interview and
+              generate accurate feedback.
+            </p>
+          </div>
+
+          <div className="space-y-4 flex">
+            <Button
+              className="mx-auto bg-button rounded-full py-3 h-auto w-full"
+              type="button"
+              onClick={onRequestPermission}
+            >
+              <VideoIcon className="size-4 mr-2" />
+              Enable mic & camera
+            </Button>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-2xl border border-[#EFE8BE] bg-[#FFFBE8] px-5 py-4 text-[#6B6B72]">
+            <TriangleAlert className="mt-1 size-5 shrink-0 text-[#E4BE3D]" />
+            <p className="text-sm">
+              This interview cannot be paused{" "}
+              <span className="font-semibold">(~15 mins)</span> Keep your camera
+              on.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function PreJoinReadyState({
+  activeAudioDeviceId,
+  activeVideoDeviceId,
+  audioDevices,
+  deviceError,
+  hideCoachSelection,
+  isJoining,
+  permissionState,
+  selectedAudioLabel,
+  selectedCoach,
+  selectedVideoLabel,
+  videoDevices,
+  videoRef,
+  videoTrack,
+  onAudioDeviceChange,
+  onJoin,
+  onRequestPermission,
+  onSelectedCoachChange,
+  onVideoDeviceChange,
+}: {
+  activeAudioDeviceId: string | undefined;
+  activeVideoDeviceId: string | undefined;
+  audioDevices: MediaDeviceInfo[];
+  deviceError: string | null;
+  hideCoachSelection: boolean;
+  isJoining: boolean;
+  permissionState: PermissionState;
+  selectedAudioLabel: string;
+  selectedCoach: CoachOption | undefined;
+  selectedVideoLabel: string;
+  videoDevices: MediaDeviceInfo[];
+  videoRef: RefObject<HTMLVideoElement | null>;
+  videoTrack: LocalVideoTrack | undefined;
+  onAudioDeviceChange: (deviceId: string | null) => void;
+  onJoin: () => void;
+  onRequestPermission: () => void;
+  onSelectedCoachChange: (coach: CoachOption) => void;
+  onVideoDeviceChange: (deviceId: string | null) => void;
+}) {
   return (
     <main className="flex min-h-svh items-center justify-center bg-background px-5 py-8">
       <section className="mx-auto w-full max-w-md space-y-6">
         <div className="text-center">
           <h1 className="text-xl font-semibold tracking-tight">
-            Get ready to join
+            Camera & microphone ready
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {isVideoMode
-              ? "Check your microphone and camera, then join when you're ready."
-              : "Check your microphone and join when you're ready."}
+            Make sure your camera and microphone are working well before you
+            join.
           </p>
         </div>
 
         <div className="space-y-4">
-          {/* Permission needed state */}
-          {permissionState !== "granted" && (
-            <div className="flex items-center justify-between rounded-xl border p-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "flex size-10 items-center justify-center rounded-full",
-                    permissionState === "denied"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {isVideoMode ? (
-                    <Video className="size-5" />
-                  ) : (
-                    <Mic className="size-5" />
-                  )}
+          {permissionState !== "granted" ? (
+            <PermissionStatusCard permissionState={permissionState} />
+          ) : null}
+
+          {permissionState === "granted" ? (
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="overflow-hidden rounded-xl border bg-black">
+                  <div className="relative aspect-video w-full">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                    {!videoTrack ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                        <VideoOff className="size-12 text-muted-foreground" />
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">
-                    {isVideoMode ? "Microphone & Camera" : "Microphone"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {permissionState === "denied"
-                      ? "Blocked"
-                      : "Permission needed"}
-                  </p>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Camera</p>
+                  <Select
+                    value={activeVideoDeviceId || ""}
+                    onValueChange={onVideoDeviceChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select camera">
+                        {selectedVideoLabel}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {videoDevices.map((device) => (
+                        <SelectItem
+                          key={device.deviceId}
+                          value={device.deviceId}
+                        >
+                          {device.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <PermissionBadge state={permissionState} />
-            </div>
-          )}
 
-          {/* Ready state: previews + selectors */}
-          {permissionState === "granted" && (
-            <div className="space-y-4">
-              {/* Video setup */}
-              {isVideoMode && (
-                <div className="space-y-3">
-                  <div className="overflow-hidden rounded-xl border bg-black">
-                    <div className="relative aspect-video w-full">
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        muted
-                        playsInline
-                        className="h-full w-full object-cover"
-                      />
-                      {!videoRef.current?.srcObject && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                          <VideoOff className="size-12 text-muted-foreground" />
-                        </div>
-                      )}
+              <div className="space-y-3">
+                {!hideCoachSelection ? (
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm font-medium">Coach voice</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        You can switch coaches before each session.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {coachCards.map((coach) => (
+                        <button
+                          key={coach.value}
+                          className={cn(
+                            "overflow-hidden rounded-xl border bg-input/30 text-left shadow-sm transition",
+                            selectedCoach === coach.value
+                              ? "border-foreground ring-1 ring-foreground"
+                              : "border-border hover:border-foreground/30",
+                          )}
+                          type="button"
+                          onClick={() => onSelectedCoachChange(coach.value)}
+                        >
+                          <div
+                            className="relative aspect-[1.15] overflow-hidden"
+                            style={{ backgroundColor: coach.tint }}
+                          >
+                            <Image
+                              alt={coach.title}
+                              className="object-cover"
+                              fill
+                              src={coach.imageSrc}
+                            />
+                          </div>
+                          <div className="p-3 text-center text-sm font-medium">
+                            {coach.title}
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
+                ) : null}
 
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Camera</p>
-                    <Select
-                      value={activeVideoDeviceId || ""}
-                      onValueChange={handleVideoDeviceChange}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select camera">
-                          {selectedVideoLabel}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {videoDevices.map((device) => (
-                          <SelectItem
-                            key={device.deviceId}
-                            value={device.deviceId}
-                          >
-                            {device.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-
-              {/* Coach voice */}
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-sm font-medium">Coach voice</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      You can switch coaches before each session.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {coachCards.map((coach) => (
-                      <button
-                        key={coach.value}
-                        className={cn(
-                          "overflow-hidden rounded-xl border bg-input/30 text-left shadow-sm transition",
-                          selectedCoach === coach.value
-                            ? "border-foreground ring-1 ring-foreground"
-                            : "border-border hover:border-foreground/30",
-                        )}
-                        type="button"
-                        onClick={() => setSelectedCoach(coach.value)}
-                      >
-                        <div
-                          className="relative aspect-[1.15] overflow-hidden"
-                          style={{ backgroundColor: coach.tint }}
-                        >
-                          <Image
-                            alt={coach.title}
-                            className="object-cover"
-                            fill
-                            src={coach.imageSrc}
-                          />
-                        </div>
-                        <div className="p-3 text-center text-sm font-medium">
-                          {coach.title}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Microphone setup */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">Microphone</p>
@@ -530,7 +590,7 @@ export function CustomPreJoin({
                   </div>
                   <Select
                     value={activeAudioDeviceId || ""}
-                    onValueChange={handleAudioDeviceChange}
+                    onValueChange={onAudioDeviceChange}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select microphone">
@@ -551,7 +611,7 @@ export function CustomPreJoin({
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {deviceError ? (
             <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -559,46 +619,74 @@ export function CustomPreJoin({
             </div>
           ) : null}
 
-          {permissionState === "granted" ? (
-            <Button
-              className="w-full"
-              disabled={isJoining}
-              size="lg"
-              onClick={handleJoin}
-            >
-              {isJoining ? (
-                <>
-                  <Spinner />
-                  Joining...
-                </>
-              ) : (
-                "Join session"
-              )}
-            </Button>
-          ) : (
-            <Button
-              className="w-full"
-              size="lg"
-              type="button"
-              onClick={requestPermission}
-            >
-              {hasRequested ? (
+          <div className="flex items-start gap-3 rounded-2xl border border-[#EFE8BE] bg-[#FFFBE8] px-5 py-4 text-[#6B6B72]">
+            <TriangleAlert className="mt-1 size-5 shrink-0 text-[#E4BE3D]" />
+            <p className="text-sm">
+              This interview cannot be paused{" "}
+              <span className="font-semibold">(~15 mins)</span> Keep your camera
+              on.
+            </p>
+          </div>
+
+          <div className="flex">
+            {permissionState === "granted" ? (
+              <Button
+                className="mx-auto h-auto w-full rounded-full bg-button py-3"
+                disabled={isJoining}
+                onClick={onJoin}
+              >
+                {isJoining ? (
+                  <>
+                    <Spinner />
+                    Joining...
+                  </>
+                ) : (
+                  "Start session"
+                )}
+              </Button>
+            ) : (
+              <Button
+                className="mx-auto h-auto w-full rounded-full bg-button py-3"
+                type="button"
+                onClick={onRequestPermission}
+              >
                 <Spinner className="size-4" />
-              ) : isVideoMode ? (
-                <Camera className="size-4" />
-              ) : (
-                <Mic className="size-4" />
-              )}
-              {hasRequested
-                ? ""
-                : isVideoMode
-                  ? "Enable microphone & camera"
-                  : "Enable microphone"}
-            </Button>
-          )}
+              </Button>
+            )}
+          </div>
         </div>
       </section>
     </main>
+  );
+}
+
+function PermissionStatusCard({
+  permissionState,
+}: {
+  permissionState: PermissionState;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border p-4">
+      <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            "flex size-10 items-center justify-center rounded-full",
+            permissionState === "denied"
+              ? "bg-red-100 text-red-700"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
+          <Video className="size-5" />
+        </div>
+        <div>
+          <p className="text-sm font-medium">Microphone & Camera</p>
+          <p className="text-xs text-muted-foreground">
+            {permissionState === "denied" ? "Blocked" : "Permission needed"}
+          </p>
+        </div>
+      </div>
+      <PermissionBadge state={permissionState} />
+    </div>
   );
 }
 

@@ -17,6 +17,7 @@ const onboardingSchema = {
   academyName: "string",
   nativeLanguage: "string",
   englishLevel: "string",
+  coach: "string",
 } as const;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -49,6 +50,9 @@ function getValidationError(body: Record<string, string>) {
   }
   if (!body.nativeLanguage?.trim()) return "Comfort language is required";
   if (!body.englishLevel?.trim()) return "English level is required";
+  if (body.coach !== "sana" && body.coach !== "arjun") {
+    return "Coach selection is required";
+  }
   if (
     body.placementPreparation === "training_academy" &&
     !body.academySelection?.trim()
@@ -111,6 +115,7 @@ export async function POST(request: NextRequest) {
       academyName,
       nativeLanguage,
       englishLevel,
+      coach,
     } = body;
 
     await prisma.$transaction([
@@ -134,6 +139,7 @@ export async function POST(request: NextRequest) {
           academyName,
           nativeLanguage: nativeLanguage || "",
           englishLevel: englishLevel || "",
+          coach,
           speakingSpeed: "",
           yearOfStudy: "",
         },
@@ -147,6 +153,7 @@ export async function POST(request: NextRequest) {
           academyName,
           nativeLanguage: nativeLanguage || "",
           englishLevel: englishLevel || "",
+          coach,
           speakingSpeed: "",
           yearOfStudy: "",
         },

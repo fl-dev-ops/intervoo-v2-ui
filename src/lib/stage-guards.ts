@@ -26,7 +26,7 @@ export async function requirePageStage(allowedStages: AppStage[]) {
   const stage = await getUserStage(user.id);
 
   if (!allowedStages.includes(stage)) {
-    redirect(getStagePath(stage));
+    // redirect(getStagePath(stage));
   }
 
   return { stage, user };

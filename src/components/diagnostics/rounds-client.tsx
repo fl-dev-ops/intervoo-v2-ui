@@ -1,33 +1,17 @@
 "use client";
 
-import {
-  Brain,
-  Check,
-  Code,
-  FileText,
-  Loader2,
-  Lock,
-  MessageSquare,
-  Play,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, Lock, Play, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { buttonVariants } from "@/components/ui/button";
+import { InterviewReadinessScore } from "@/components/diagnostics/interview-readiness-score";
 import type { DiagnosticJobOption } from "@/lib/diagnostics/job-options";
 import {
   DIAGNOSTIC_ROUNDS,
   type DiagnosticRoundConfig,
 } from "@/lib/diagnostics/rounds-config";
 import { cn } from "@/lib/utils";
-
-const ICON_MAP: Record<string, ReactNode> = {
-  MessageSquare: <MessageSquare className="h-5 w-5" />,
-  Code: <Code className="h-5 w-5" />,
-  Brain: <Brain className="h-5 w-5" />,
-  Users: <Users className="h-5 w-5" />,
-};
+import { Button } from "../ui/button";
 
 type RoundData = {
   id: string;
@@ -115,34 +99,68 @@ export function DiagnosticsRoundsClient({
   );
 
   return (
-    <main className="min-h-svh bg-background px-5 py-8 text-foreground">
-      <section className="mx-auto w-full max-w-4xl">
-        <div className="grid gap-5 rounded-xl border border-border bg-card p-5 shadow-sm lg:grid-cols-[1fr_18rem] lg:p-6">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">
-              Diagnostics
-            </p>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight">
-              {selectedJob.title}
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-              {selectedJob.description}
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <span className="rounded-full border border-border bg-input/30 px-3 py-1.5 text-xs font-medium text-foreground">
-                {selectedJob.salary}
-              </span>
-              <span className="rounded-full border border-border bg-input/30 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                {selectedJob.companies.join(",  ")}
-              </span>
+    <main className="min-h-svh p-3 md:pb-10 bg-lavender">
+      <div className="z-100 p-3 absolute top-0 left-0 shadow md:shadow-none md:relative w-full flex flex-row items-center justify-between pb-4 bg-background md:bg-transparent">
+        {/* Back button */}
+        <button
+          className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          onClick={() => router.push("/diagnostics/selection")}
+          type="button"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <span className="md:hidden shrink-0 rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white">
+          {selectedJob.salary}
+        </span>
+      </div>
+
+      <section className="mx-auto w-full max-w-4xl mt-14 md:mt-0">
+        {/* Header Card */}
+        <div className="rounded-2xl md:border border-border bg-transparent md:bg-card p-2 md:p-6 shadow-none md:shadow-sm">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            {/* Job Info */}
+            <div className="flex-1 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+                    {selectedJob.title}
+                  </h1>
+                  <p className="mt-2 max-w-xl text-sm text-muted-foreground leading-6">
+                    {selectedJob.description}
+                  </p>
+                  <span className="mt-3 w-fit hidden md:block shrink-0 rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white">
+                    {selectedJob.salary}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedJob.companies.map((company) => (
+                  <span
+                    key={company}
+                    className="rounded-full border border-border bg-[#EBE6EF] px-3 py-1 text-xs font-medium text-primary"
+                  >
+                    {company}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Interview Readiness Score */}
+            <div className="shrink-0 lg:pl-6">
+              <InterviewReadinessScore />
             </div>
           </div>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card px-4 py-6 shadow-sm sm:px-6">
+        {/* Rounds Timeline - Dark Purple Container */}
+        <div className="mt-3 rounded-3xl bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] p-4 sm:p-8">
           <div className="relative mx-auto max-w-4xl">
-            <div className="absolute top-14 bottom-20 left-8 hidden w-px bg-border sm:block" />
-            <div className="space-y-5">
+            {/* Vertical connecting line */}
+            <div className="absolute top-12 bottom-12 left-6 hidden w-px bg-white/10 sm:block" />
+
+            <div className="space-y-6">
               {DIAGNOSTIC_ROUNDS.map((roundConfig, index) => {
                 const roundNumber = index + 1;
                 const roundData = initialRounds.find(
@@ -184,12 +202,28 @@ export function DiagnosticsRoundsClient({
               })}
             </div>
           </div>
-        </div>
 
-        <FinalReportPanel
-          allCompleted={allCompleted}
-          reportsReadyCount={reportsReadyCount}
-        />
+          {/* Final Report Panel */}
+          {allCompleted && (
+            <div className="mt-8 text-center">
+              {reportsReadyCount === DIAGNOSTIC_ROUNDS.length ? (
+                <a
+                  className="inline-flex items-center justify-center rounded-full bg-button px-8 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  href="/diagnostics/final-report"
+                >
+                  View Final Diagnostic Report
+                </a>
+              ) : (
+                <p className="text-sm leading-6 text-white/60">
+                  All rounds are complete. {reportsReadyCount} of{" "}
+                  {DIAGNOSTIC_ROUNDS.length} round reports are ready. Generate
+                  or wait for the remaining reports to unlock the final
+                  diagnostic report.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {error ? (
           <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-600 dark:text-red-400">
@@ -224,89 +258,114 @@ function RoundTimelineItem({
   roundData: RoundData | undefined;
   roundNumber: number;
 }) {
-  const muted = isLocked || isStarted;
-
   return (
-    <article className="relative grid gap-4 sm:grid-cols-[3.5rem_1fr]">
-      <div className="hidden sm:block">
+    <article className="relative flex gap-4">
+      {/* Left icon column */}
+      <div className="hidden md:flex relative shrink-0 flex-col items-center">
         <div
           className={cn(
-            "relative z-10 grid h-12 w-12 place-items-center rounded-full border bg-card",
-            isCompleted
-              ? "border-emerald-500/30 text-emerald-600"
-              : isActive
-                ? "border-foreground text-foreground"
-                : "border-border text-muted-foreground",
+            "relative z-10 flex h-12 w-12 items-center justify-center rounded-full border-2",
+            isActive
+              ? "border-purple-500 bg-purple-500 text-white"
+              : isCompleted
+                ? "border-emerald-500 bg-emerald-500 text-white"
+                : "border-white/20 bg-[#1a0b2e] text-white/40",
           )}
         >
-          {isCompleted ? (
-            <Check className="h-6 w-6" />
+          {isActive ? (
+            <User className="h-5 w-5" />
           ) : isLocked ? (
-            <Lock className="h-5 w-5" />
+            <Lock className="h-4 w-4" />
           ) : (
-            ICON_MAP[config.iconName]
+            <User className="h-5 w-5" />
           )}
         </div>
       </div>
 
-      <div className={cn("transition", muted ? "opacity-60" : "opacity-100")}>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-            Round {roundNumber}
-          </div>
-          <span className="rounded-full border border-border bg-input/30 px-3 py-1 text-xs font-medium text-muted-foreground">
+      {/* Content */}
+      <div className={cn("flex-1")}>
+        {/* Round header */}
+        <div className="flex mb-3 items-center justify-between">
+          <span
+            className={cn(
+              "text-xs font-semibold uppercase tracking-[0.12em]",
+              isActive
+                ? "text-purple-400"
+                : isCompleted
+                  ? "text-emerald-400"
+                  : "text-white/40",
+            )}
+          >
+            ROUND {roundNumber}
+          </span>
+          <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white">
             {config.duration}
           </span>
         </div>
 
+        {/* Card */}
         <div
           className={cn(
-            "rounded-xl border p-4 shadow-sm transition sm:p-5",
+            "rounded-2xl border p-5 transition",
             isActive
-              ? "border-foreground bg-background"
-              : "border-border bg-input/30",
+              ? "border-white/10 bg-white shadow-sm"
+              : "border-white/10 bg-white/10",
           )}
         >
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">
-                {config.title}
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-                {config.description}
-              </p>
+          <h2
+            className={cn(
+              "text-lg font-semibold tracking-tight",
+              isActive ? "text-foreground" : "text-white/80",
+            )}
+          >
+            {config.title}
+          </h2>
+          <p
+            className={cn(
+              "mt-2 max-w-3xl text-sm leading-6",
+              isActive ? "text-muted-foreground" : "text-white/50",
+            )}
+          >
+            {config.description}
+          </p>
 
-              {isActive ? (
-                <div className="mt-5">
-                  <p className="text-sm font-medium text-foreground">
-                    Questions may cover
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {config.questions.map((question) => (
-                      <span
-                        key={question}
-                        className="rounded-md border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground"
-                      >
-                        {question}
-                      </span>
-                    ))}
-                  </div>
+          {isActive && (
+            <div className="grid md:grid-cols-3 items-end gap-3">
+              <div className="col-span-2">
+                <p className="mt-4 text-sm font-medium text-foreground">
+                  Questions may cover
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {config.questions.map((question) => (
+                    <span
+                      key={question}
+                      className="rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground"
+                    >
+                      {question}
+                    </span>
+                  ))}
                 </div>
-              ) : null}
-            </div>
+              </div>
 
+              <Button
+                className="w-fit bg-button rounded-full px-10"
+                type="button"
+                onClick={onStart}
+              >
+                <Play className="size-3 fill-current mr-1" />
+                Start Round {roundNumber}
+              </Button>
+            </div>
+          )}
+
+          {isCompleted && roundData && (
             <RoundAction
-              isActive={isActive}
               isCompleted={isCompleted}
               isGenerating={isGenerating}
-              isLocked={isLocked}
-              isStarted={isStarted}
               onGenerateReport={onGenerateReport}
-              onStart={onStart}
               roundData={roundData}
-              roundNumber={roundNumber}
             />
-          </div>
+          )}
         </div>
       </div>
     </article>
@@ -314,78 +373,32 @@ function RoundTimelineItem({
 }
 
 function RoundAction({
-  isActive,
   isCompleted,
   isGenerating,
-  isLocked,
-  isStarted,
   onGenerateReport,
-  onStart,
   roundData,
-  roundNumber,
 }: {
-  isActive: boolean;
   isCompleted: boolean;
   isGenerating: boolean;
-  isLocked: boolean;
-  isStarted: boolean;
   onGenerateReport: () => void;
-  onStart: () => void;
-  roundData: RoundData | undefined;
-  roundNumber: number;
+  roundData: RoundData;
 }) {
-  if (isActive) {
-    return (
-      <button
-        className={buttonVariants({
-          className: "h-10 shrink-0 px-5",
-          size: "lg",
-        })}
-        type="button"
-        onClick={onStart}
-      >
-        <Play className="mr-2 h-4 w-4 fill-current" />
-        Start Round {roundNumber}
-      </button>
-    );
-  }
-
-  if (isLocked) {
-    return (
-      <span className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium text-muted-foreground">
-        <Lock className="mr-2 h-4 w-4" />
-        Locked
-      </span>
-    );
-  }
-
-  if (isStarted) {
-    return (
-      <span className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium text-muted-foreground">
-        Session started
-      </span>
-    );
-  }
-
   if (!isCompleted || !roundData) {
     return null;
   }
 
   if (roundData.reportStatus === "READY" && roundData.reportShareToken) {
     return (
-      <a
-        className={buttonVariants({
-          className: "h-10 shrink-0 px-5",
-          size: "lg",
-          variant: "secondary",
-        })}
-        href={`/d/${roundData.reportShareToken}`}
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        <FileText className="mr-2 h-4 w-4" />
-        View Report
-      </a>
+      <div className="mt-4 flex justify-end">
+        <a
+          className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+          href={`/d/${roundData.reportShareToken}`}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          View Report
+        </a>
+      </div>
     );
   }
 
@@ -394,60 +407,22 @@ function RoundAction({
     roundData.reportStatus === "PROCESSING";
 
   return (
-    <button
-      className={buttonVariants({
-        className: "h-10 shrink-0 px-5",
-        size: "lg",
-        variant: "secondary",
-      })}
-      disabled={isGenerating || isProcessing}
-      type="button"
-      onClick={onGenerateReport}
-    >
-      {isGenerating || isProcessing ? (
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      ) : (
-        <FileText className="mr-2 h-4 w-4" />
-      )}
-      {isProcessing
-        ? "Report processing"
-        : roundData.reportStatus === "FAILED"
-          ? "Retry Report"
-          : "Generate Report"}
-    </button>
-  );
-}
-
-function FinalReportPanel({
-  allCompleted,
-  reportsReadyCount,
-}: {
-  allCompleted: boolean;
-  reportsReadyCount: number;
-}) {
-  if (!allCompleted) {
-    return null;
-  }
-
-  return (
-    <div className="mt-4 rounded-xl border border-border bg-card p-5 text-center shadow-sm sm:p-6">
-      {reportsReadyCount === DIAGNOSTIC_ROUNDS.length ? (
-        <a
-          className={buttonVariants({
-            className: "px-6",
-            size: "lg",
-          })}
-          href="/diagnostics/final-report"
-        >
-          View Final Diagnostic Report
-        </a>
-      ) : (
-        <p className="text-sm leading-6 text-muted-foreground">
-          All rounds are complete. {reportsReadyCount} of{" "}
-          {DIAGNOSTIC_ROUNDS.length} round reports are ready. Generate or wait
-          for the remaining reports to unlock the final diagnostic report.
-        </p>
-      )}
+    <div className="mt-4 flex justify-end">
+      <button
+        className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
+        disabled={isGenerating || isProcessing}
+        type="button"
+        onClick={onGenerateReport}
+      >
+        {isGenerating || isProcessing ? (
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+        ) : null}
+        {isProcessing
+          ? "Report processing"
+          : roundData.reportStatus === "FAILED"
+            ? "Retry Report"
+            : "Generate Report"}
+      </button>
     </div>
   );
 }

@@ -60,6 +60,14 @@
   animation: fade-in 0.3s ease-out forwards;
 }
 
+.bg-button {
+  background: linear-gradient(90deg, #4f33a3 0%, #6a4df5 100%);
+}
+
+.bg-lavender {
+  background-color: #f5f3f7;
+}
+
 :root {
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);

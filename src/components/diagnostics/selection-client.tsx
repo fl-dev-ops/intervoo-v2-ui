@@ -1,6 +1,11 @@
 "use client";
 
-import { AlertTriangle, Check, Circle, LoaderCircle } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  LoaderCircle,
+  TriangleAlert,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,11 +20,15 @@ import { cn } from "@/lib/utils";
 type DiagnosticsSelectionClientProps = {
   initialBand?: string | null;
   options: DiagnosticJobOption[];
+  dreamRole?: string | null;
+  targetSalary?: string | null;
 };
 
 export function DiagnosticsSelectionClient({
   initialBand,
   options,
+  dreamRole,
+  targetSalary,
 }: DiagnosticsSelectionClientProps) {
   const router = useRouter();
   const defaultBand =
@@ -79,34 +88,40 @@ export function DiagnosticsSelectionClient({
     }
   }
 
+  const hasBadges = Boolean(dreamRole) || Boolean(targetSalary);
+
   return (
     <main className="min-h-svh bg-background px-5 py-8 text-foreground">
       <section className="mx-auto w-full max-w-3xl">
         <header className="mx-auto max-w-lg text-center">
-          <p className="text-sm font-medium text-muted-foreground">
-            Diagnostics
-          </p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight">
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
             Software Developer Interview Readiness Assessment
           </h1>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Choose the role band you want to prepare for. This calibrates all
-            four diagnostic rounds before the interview begins.
-          </p>
+
+          {hasBadges ? (
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {dreamRole ? (
+                <SelectionBadge label="Dream" value={dreamRole} />
+              ) : null}
+              {targetSalary ? (
+                <SelectionBadge label="Target" value={targetSalary} />
+              ) : null}
+            </div>
+          ) : null}
         </header>
 
-        <div className="mt-8 rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
+        <div className="mt-6 rounded-2xl bg-[#F4F2FB] p-4 sm:p-6">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">
+            <h2 className="text-base font-semibold tracking-tight sm:text-lg">
               Start with the band you want to prepare for
             </h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
               Each band is designed for different company expectations, salary
               ranges, and interview difficulty levels.
             </p>
           </div>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
             {options.map((option) => (
               <DiagnosticJobCard
                 key={option.id}
@@ -117,29 +132,28 @@ export function DiagnosticsSelectionClient({
             ))}
           </div>
 
-          <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-amber-700 dark:text-amber-300">
-            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300">
-              <AlertTriangle className="h-3.5 w-3.5" />
-            </span>
+          <div className="mt-5 flex items-start gap-3 rounded-xl border border-[#EFE8BE] bg-[#FFFBE8] px-4 py-3 text-[#6B6B72]">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-[#E4BE3D]" />
             <p className="text-sm leading-6">
-              Choose your band carefully. You can't change it once the interview
+              Choose your band wisely. You can't change it once the interview
               begins.
             </p>
           </div>
 
           {error ? (
-            <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+            <div className="mt-3 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-600 dark:text-red-400">
               {error}
             </div>
           ) : null}
 
-          <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm font-medium text-muted-foreground">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground sm:text-sm">
               60-minute interview · 4 rounds · 15 minutes each
             </p>
             <button
               className={buttonVariants({
-                className: "w-full sm:w-auto",
+                className:
+                  "w-full rounded-full bg-button px-5 text-white sm:w-auto",
                 size: "lg",
               })}
               disabled={isSubmitting}
@@ -147,14 +161,31 @@ export function DiagnosticsSelectionClient({
               onClick={handleStart}
             >
               {isSubmitting ? (
-                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              {isSubmitting ? "Starting..." : "Start diagnostic interview"}
+                <>
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                  Starting...
+                </>
+              ) : (
+                <>
+                  Start Diagnostic interview
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </button>
           </div>
         </div>
       </section>
     </main>
+  );
+}
+
+function SelectionBadge({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs">
+      <CheckCircle2 className="h-3.5 w-3.5 fill-emerald-500 text-white" />
+      <span className="text-muted-foreground">{label}:</span>
+      <span className="font-semibold text-foreground">{value}</span>
+    </div>
   );
 }
 
@@ -170,50 +201,62 @@ function DiagnosticJobCard({
   return (
     <button
       type="button"
+      aria-pressed={selected}
       className={cn(
-        "flex min-h-[15rem] flex-col rounded-xl border bg-input/30 p-4 text-left shadow-sm transition hover:border-foreground/30",
-        selected ? "border-foreground ring-1 ring-foreground" : "border-border",
+        "flex flex-col rounded-xl border-2 bg-card p-4 text-left transition",
+        selected
+          ? "border-[#5E41CF]"
+          : "border-transparent hover:border-foreground/15",
       )}
       onClick={onSelect}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
         <div
           className={cn(
-            "flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em]",
+            "flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em]",
             option.accentClassName,
           )}
         >
-          {selected ? (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-background">
-              <Check className="h-3.5 w-3.5" />
-            </span>
-          ) : (
-            <Circle className="h-5 w-5 text-muted-foreground/35" />
-          )}
+          <RadioDot selected={selected} />
           {option.label}
         </div>
-        <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground">
+        <span className="rounded-full bg-muted/60 px-2.5 py-0.5 text-[11px] font-medium text-foreground">
           {option.salary}
         </span>
       </div>
 
-      <h3 className="mt-4 text-base font-semibold tracking-tight">
+      <h3 className="mt-3 text-sm font-semibold tracking-tight text-foreground">
         {option.title}
       </h3>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+      <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
         {option.description}
       </p>
 
-      <div className="mt-auto flex flex-wrap gap-2 pt-6">
+      <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
         {option.companies.map((company) => (
           <span
             key={company}
-            className="rounded-md border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground"
+            className="rounded-full border border-border bg-card px-2 py-0.5 text-[11px] text-foreground"
           >
             {company}
           </span>
         ))}
       </div>
     </button>
+  );
+}
+
+function RadioDot({ selected }: { selected: boolean }) {
+  return (
+    <span
+      className={cn(
+        "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2 transition",
+        selected
+          ? "border-[#5E41CF] bg-[#5E41CF]"
+          : "border-muted-foreground/40",
+      )}
+    >
+      {selected ? <span className="h-1 w-1 rounded-full bg-white" /> : null}
+    </span>
   );
 }

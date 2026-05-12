@@ -11,8 +11,8 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { IntervooLogo } from "@/components/login/intervoo-logo";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const REPORT_GENERATION_STEPS = [
   { label: "Job target captured" },
@@ -22,8 +22,8 @@ const REPORT_GENERATION_STEPS = [
   { label: "JD awareness" },
 ] as const;
 
-const READY_STEP_REVEAL_DELAY_MS = 280;
-const READY_REPORT_DELAY_MS = 500;
+const READY_STEP_REVEAL_DELAY_MS = 320;
+const READY_REPORT_DELAY_MS = 600;
 const REPORT_REFRESH_DELAY_MS = 2500;
 
 type ResearchBreakdownKey =
@@ -150,15 +150,15 @@ function PrediagnosticsGenerationState({
   onComplete?: () => void;
   ready?: boolean;
 }) {
+  const totalSteps = REPORT_GENERATION_STEPS.length;
   const [completedSteps, setCompletedSteps] = useState(0);
 
   useEffect(() => {
     if (!ready) {
-      setCompletedSteps(0);
       return;
     }
 
-    if (completedSteps === REPORT_GENERATION_STEPS.length) {
+    if (completedSteps === totalSteps) {
       const timeoutId = window.setTimeout(() => {
         onComplete?.();
       }, READY_REPORT_DELAY_MS);
@@ -169,62 +169,44 @@ function PrediagnosticsGenerationState({
     }
 
     const timeoutId = window.setTimeout(() => {
-      setCompletedSteps((current) =>
-        Math.min(current + 1, REPORT_GENERATION_STEPS.length),
-      );
+      setCompletedSteps((current) => Math.min(current + 1, totalSteps));
     }, READY_STEP_REVEAL_DELAY_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [completedSteps, onComplete, ready]);
+  }, [completedSteps, onComplete, ready, totalSteps]);
+
+  const activeIndex = completedSteps < totalSteps ? completedSteps : -1;
 
   return (
-    <main className="grid min-h-svh place-items-center bg-background px-5 py-8 text-foreground">
-      <section className="mx-auto w-full max-w-md text-center">
-        <IntervooLogo className="mx-auto h-14 w-auto text-foreground" />
-
-        <div className="mt-8 rounded-xl border border-border bg-card p-5 text-left shadow-sm sm:p-6">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-input/30 text-muted-foreground">
-              {ready ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-              ) : (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              )}
-            </span>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Pre-diagnostic report
-              </p>
-              <h1 className="mt-1 text-xl font-semibold tracking-tight text-foreground">
-                {ready ? "Report is ready" : "Preparing your report"}
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {ready
-                  ? "Final checks are complete. Opening your report now."
-                  : "We are analyzing your conversation. This page refreshes automatically."}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-3 text-left">
-            {REPORT_GENERATION_STEPS.map((step, index) => (
-              <GenerationStepRow
-                complete={index < completedSteps}
-                key={step.label}
-                label={step.label}
-              />
-            ))}
-          </div>
-
-          <p className="mt-5 text-center text-xs text-muted-foreground">
+    <main className="min-h-svh bg-background flex items-center justify-center px-6 py-12">
+      <div className="w-full max-w-md mx-auto space-y-10 animate-fade-in">
+        <div className="text-center space-y-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Pre-diagnostic report
+          </p>
+          <h1 className="text-[26px] font-semibold tracking-tight text-foreground">
+            {ready ? "Your report is ready" : "Preparing your report"}
+          </h1>
+          <p className="mx-auto max-w-xs text-sm leading-6 text-muted-foreground">
             {ready
-              ? "Your report will open automatically."
-              : "Checklist completion starts once the report is ready."}
+              ? "Opening your report now."
+              : "We are analyzing your conversation. This page refreshes automatically."}
           </p>
         </div>
-      </section>
+
+        <ol className="space-y-2.5">
+          {REPORT_GENERATION_STEPS.map((step, index) => (
+            <GenerationStepRow
+              active={index === activeIndex}
+              complete={index < completedSteps}
+              key={step.label}
+              label={step.label}
+            />
+          ))}
+        </ol>
+      </div>
     </main>
   );
 }
@@ -234,24 +216,33 @@ function PrediagnosticsReportErrorState(props: {
   showActions: boolean;
 }) {
   return (
-    <div className="grid min-h-svh place-items-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 text-center shadow-sm">
-        <h2 className="text-xl font-semibold text-foreground">
-          Report unavailable
-        </h2>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          {props.message}
-        </p>
+    <main className="min-h-svh bg-background flex items-center justify-center px-6 py-12">
+      <div className="w-full max-w-md mx-auto space-y-10 text-center animate-fade-in">
+        <div className="space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Pre-diagnostic report
+          </p>
+          <h2 className="text-[26px] font-semibold tracking-tight text-foreground">
+            Report unavailable
+          </h2>
+          <p className="mx-auto max-w-xs text-sm leading-6 text-muted-foreground">
+            {props.message}
+          </p>
+        </div>
+
         {props.showActions ? (
           <Link
-            className={buttonVariants({ className: "mt-6 w-full", size: "lg" })}
+            className={buttonVariants({
+              className: "w-full bg-button rounded-full h-12",
+              size: "lg",
+            })}
             href="/prediagnostics"
           >
             Back to start
           </Link>
         ) : null}
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -483,18 +474,42 @@ function AwarenessRow(props: {
   );
 }
 
-function GenerationStepRow(props: { label: string; complete: boolean }) {
+function GenerationStepRow(props: {
+  label: string;
+  complete: boolean;
+  active?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-3 rounded-md border border-border bg-background px-3 py-2.5">
-      <span className="shrink-0 transition-colors">
+    <li
+      className={cn(
+        "flex items-center gap-3.5 rounded-xl border px-4 py-3.5 transition-all duration-300",
+        props.complete
+          ? "border-emerald-500/25 bg-emerald-500/5"
+          : props.active
+            ? "border-[#5E41CF]/30 bg-[#5E41CF]/5"
+            : "border-border bg-muted/40",
+      )}
+    >
+      <span className="shrink-0">
         {props.complete ? (
           <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+        ) : props.active ? (
+          <Loader2 className="h-5 w-5 animate-spin text-[#5E41CF]" />
         ) : (
           <Circle className="h-5 w-5 text-muted-foreground/35" />
         )}
       </span>
-      <span className="text-sm font-medium text-foreground">{props.label}</span>
-    </div>
+      <span
+        className={cn(
+          "text-sm font-medium transition-colors",
+          props.complete || props.active
+            ? "text-foreground"
+            : "text-muted-foreground",
+        )}
+      >
+        {props.label}
+      </span>
+    </li>
   );
 }
 
