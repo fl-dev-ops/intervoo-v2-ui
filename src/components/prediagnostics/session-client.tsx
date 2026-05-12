@@ -48,6 +48,10 @@ export function SessionPageClient({
   completeEndpoint = "/api/sessions/end",
   redirectUrl,
 }: SessionPageClientProps) {
+  useEffect(() => {
+    window.history.replaceState(null, "", "/prediagnostics/session");
+  }, []);
+
   const tokenSource = useMemo(
     () =>
       TokenSource.literal({

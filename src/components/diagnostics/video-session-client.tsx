@@ -17,8 +17,13 @@ import {
   MicOff,
   PhoneOff,
 } from "lucide-react";
-import type { ReactNode } from "react";
-import { useCallback, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +44,10 @@ export function DiagnosticsVideoSessionClient({
   completeEndpoint,
   redirectUrl,
 }: DiagnosticsVideoSessionClientProps) {
+  useEffect(() => {
+    window.history.replaceState(null, "", "/diagnostics/session");
+  }, []);
+
   return (
     <LiveKitRoom
       audio
