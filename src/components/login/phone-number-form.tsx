@@ -52,7 +52,7 @@ export function PhoneNumberForm({
                 maxLength={10}
                 placeholder="9876543210"
                 required
-                autoFocus={true}
+                autoFocus
                 disabled={loading}
                 value={phone}
                 onChange={(event) => {

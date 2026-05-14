@@ -6,6 +6,8 @@ import {
   getDiagnosticJobOption,
   parseDiagnosticBand,
 } from "@/lib/diagnostics/job-options";
+import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
 import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsRoundsPage() {
@@ -37,32 +39,50 @@ export default async function DiagnosticsRoundsPage() {
     redirect("/diagnostics/selection");
   }
 
-  const rounds = diagnostic.rounds.map((round) => ({
-    id: round.id,
-    roundType: round.roundType,
-    roundNumber: round.roundNumber,
-    status: round.status,
-    sessionId: round.sessionId,
-    reportStatus: round.session?.report?.status ?? null,
-    reportShareToken: round.session?.report?.shareToken ?? null,
-  }));
+  const rounds = diagnostic.rounds.map((round) => {
+    const report = round.session?.report ?? null;
+    const hydratedReport = report?.reportJson
+      ? toHydratedDiagnosticReport(report.reportJson)
+      : null;
 
-  const completedCount = rounds.filter(
-    (r) => r.status === "COMPLETED" || r.status === "REPORT_READY",
-  ).length;
+    return {
+      id: round.id,
+      roundType: round.roundType,
+      roundNumber: round.roundNumber,
+      status: round.status,
+      sessionId: round.sessionId,
+      startedAt: round.session?.startedAt?.toISOString() ?? null,
+      reportStatus: report?.status ?? null,
+      reportShareToken: report?.shareToken ?? null,
+      reportScore: hydratedReport?.assessment_result.total_score ?? null,
+      reportStartedAt: report?.startedAt?.toISOString() ?? null,
+    };
+  });
 
-  const allCompleted = completedCount === 4;
+  const allCompleted = DIAGNOSTIC_ROUNDS.every((config) => {
+    const round = rounds.find((item) => item.roundType === config.id);
+    return round?.status === "COMPLETED" || round?.status === "REPORT_READY";
+  });
+
+  if (allCompleted) {
+    redirect("/diagnostics/final-report");
+  }
+
   const reportsReadyCount = rounds.filter(
     (round) => round.reportStatus === "READY" && round.reportShareToken,
   ).length;
+  const hasCompletedRound = rounds.some(
+    (round) => round.status === "COMPLETED" || round.status === "REPORT_READY",
+  );
 
   return (
     <DiagnosticsRoundsClient
       initialRounds={rounds}
       selectedJob={selectedJob}
       allCompleted={allCompleted}
-      completedCount={completedCount}
+      hasCompletedRound={hasCompletedRound}
       reportsReadyCount={reportsReadyCount}
+      user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );
 }

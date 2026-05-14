@@ -34,12 +34,32 @@ export default async function DiagnosticsSelectionPage() {
     redirect("/diagnostics/rounds");
   }
 
+  // Fetch latest pre-diagnostic report for dream job & salary data
+  const preDiagnosticSession = await prisma.interviewSession.findFirst({
+    where: { userId: user.id, type: "PREDIAGNOSTIC" },
+    include: { report: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const reportJson = preDiagnosticSession?.report?.reportJson;
+  const dreamRole =
+    typeof reportJson === "object" && reportJson !== null
+      ? ((reportJson as Record<string, unknown>).dream_job ??
+        (reportJson as Record<string, unknown>).aiming_for)
+      : null;
+  const targetSalary =
+    typeof reportJson === "object" && reportJson !== null
+      ? (reportJson as Record<string, unknown>).salary_expectation
+      : null;
+
   const options = buildDiagnosticJobOptions();
 
   return (
     <DiagnosticsSelectionClient
+      dreamRole={typeof dreamRole === "string" ? dreamRole : null}
       initialBand={existingDiagnostic?.selectedBand ?? null}
       options={options}
+      targetSalary={typeof targetSalary === "string" ? targetSalary : null}
     />
   );
 }

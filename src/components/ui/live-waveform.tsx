@@ -41,7 +41,7 @@ export const LiveWaveform = ({
   smoothingTimeConstant = 0.8,
   fftSize = 256,
   historySize = 60,
-  updateRate = 30,
+  updateRate = 45,
   mode = "static",
   onError,
   onStreamReady,

@@ -2,13 +2,13 @@
 
 import {
   ArrowRight,
-  CheckCircle2,
+  CheckIcon,
   LoaderCircle,
   TriangleAlert,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   type DiagnosticBand,
   type DiagnosticJobOption,
@@ -44,7 +44,7 @@ export function DiagnosticsSelectionClient({
 
   if (!selectedOption) {
     return (
-      <main className="grid min-h-svh place-items-center px-4">
+      <main className="grid min-h-dvh place-items-center px-4">
         <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 text-center shadow-sm">
           <h1 className="text-xl font-semibold text-foreground">
             No diagnostic jobs found
@@ -90,10 +90,13 @@ export function DiagnosticsSelectionClient({
 
   const hasBadges = Boolean(dreamRole) || Boolean(targetSalary);
 
+  console.log(hasBadges);
+  console.log(dreamRole, targetSalary);
+
   return (
-    <main className="min-h-svh bg-background px-5 py-8 text-foreground">
-      <section className="mx-auto w-full max-w-3xl">
-        <header className="mx-auto max-w-lg text-center">
+    <main className="min-h-dvh bg-lavender px-3 py-8 text-foreground flex items-center justify-center">
+      <section className="mx-auto w-full max-w-4xl ">
+        <header className="mx-auto text-center mb-8">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
             Software Developer Interview Readiness Assessment
           </h1>
@@ -101,21 +104,24 @@ export function DiagnosticsSelectionClient({
           {hasBadges ? (
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {dreamRole ? (
-                <SelectionBadge label="Dream" value={dreamRole} />
+                <SelectionBadge label="Target" value={dreamRole} />
               ) : null}
               {targetSalary ? (
-                <SelectionBadge label="Target" value={targetSalary} />
+                <SelectionBadge
+                  label="Salary Expectation"
+                  value={targetSalary}
+                />
               ) : null}
             </div>
           ) : null}
         </header>
 
-        <div className="mt-6 rounded-2xl bg-[#F4F2FB] p-4 sm:p-6">
+        <div className="rounded-2xl bg-transparent p-3 md:bg-[linear-gradient(180deg,#F3F1FF_0%,#FFFFFF_100%)] md:p-6 md:shadow-[0_0_32px_rgba(35,24,68,0.12)]">
           <div>
-            <h2 className="text-base font-semibold tracking-tight sm:text-lg">
+            <h2 className="text-base text-center md:text-left font-semibold tracking-tight sm:text-lg">
               Start with the band you want to prepare for
             </h2>
-            <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
+            <p className="mt-1.5 text-sm text-center md:text-left leading-6 text-muted-foreground">
               Each band is designed for different company expectations, salary
               ranges, and interview difficulty levels.
             </p>
@@ -147,15 +153,12 @@ export function DiagnosticsSelectionClient({
           ) : null}
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground sm:text-sm">
+            <p className="text-xs text-center md:text-left text-muted-foreground sm:text-sm">
               60-minute interview · 4 rounds · 15 minutes each
             </p>
-            <button
-              className={buttonVariants({
-                className:
-                  "w-full rounded-full bg-button px-5 text-white sm:w-auto",
-                size: "lg",
-              })}
+            <Button
+              className="w-full rounded-full! bg-button px-5 text-white sm:w-auto"
+              size="lg"
               disabled={isSubmitting}
               type="button"
               onClick={handleStart}
@@ -171,7 +174,7 @@ export function DiagnosticsSelectionClient({
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </section>
@@ -181,11 +184,30 @@ export function DiagnosticsSelectionClient({
 
 function SelectionBadge({ label, value }: { label: string; value: string }) {
   return (
-    <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs">
-      <CheckCircle2 className="h-3.5 w-3.5 fill-emerald-500 text-white" />
+    <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm">
+      <GreenCheckBadge className="size-5" iconClassName="size-3" />
       <span className="text-muted-foreground">{label}:</span>
       <span className="font-semibold text-foreground">{value}</span>
     </div>
+  );
+}
+
+function GreenCheckBadge({
+  className,
+  iconClassName,
+}: {
+  className?: string;
+  iconClassName?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-full bg-[#5DBE73] text-white",
+        className,
+      )}
+    >
+      <CheckIcon className={iconClassName} />
+    </span>
   );
 }
 
@@ -204,16 +226,14 @@ function DiagnosticJobCard({
       aria-pressed={selected}
       className={cn(
         "flex flex-col rounded-xl border-2 bg-card p-4 text-left transition",
-        selected
-          ? "border-[#5E41CF]"
-          : "border-transparent hover:border-foreground/15",
+        selected ? "border-[#5E41CF]" : "hover:border-foreground/15",
       )}
       onClick={onSelect}
     >
       <div className="flex items-center justify-between gap-2">
         <div
           className={cn(
-            "flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em]",
+            "flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest",
             option.accentClassName,
           )}
         >

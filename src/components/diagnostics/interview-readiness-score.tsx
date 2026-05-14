@@ -1,172 +1,221 @@
 "use client";
 
+import type { ComponentPropsWithoutRef } from "react";
+import dynamic from "next/dynamic";
+import { IconBrandWhatsapp } from "@tabler/icons-react";
+
 import { cn } from "@/lib/utils";
 
-export type InterviewReadinessScoreProps = {
+const GaugeComponent = dynamic(() => import("react-gauge-component"), {
+  ssr: false,
+});
+
+export type InterviewReadinessScoreProps = ComponentPropsWithoutRef<"div"> & {
   score?: number | null;
   maxScore?: number;
-  className?: string;
 };
+
+type Segment = {
+  key: "noHire" | "hold" | "hire" | "strongHire";
+  label: string;
+  range: string;
+  // Normalized gauge limits (each segment = 25 units) so all arcs are equal size
+  gaugeLimit: number;
+  min: number;
+  max: number;
+  color: string;
+  emoji: string;
+};
+
+const EMPTY_COLOR = "#d1d5db";
+// Gauge operates on 0–100 with 4 equal segments of 25 each
+const GAUGE_MAX = 100;
+
+const SEGMENTS: Segment[] = [
+  {
+    key: "noHire",
+    label: "No Hire",
+    range: "0-50",
+    gaugeLimit: 25,
+    min: 0,
+    max: 50,
+    color: "#ef4444",
+    emoji: "😟",
+  },
+  {
+    key: "hold",
+    label: "Hold",
+    range: "51-70",
+    gaugeLimit: 50,
+    min: 51,
+    max: 70,
+    color: "#f59e0b",
+    emoji: "🤔",
+  },
+  {
+    key: "hire",
+    label: "Hire",
+    range: "71-90",
+    gaugeLimit: 75,
+    min: 71,
+    max: 90,
+    color: "#84cc16",
+    emoji: "🙂",
+  },
+  {
+    key: "strongHire",
+    label: "Strong Hire",
+    range: "91-100",
+    gaugeLimit: 100,
+    min: 91,
+    max: 100,
+    color: "#22c55e",
+    emoji: "🎉",
+  },
+];
+
+function getSegment(score: number): Segment {
+  for (const seg of SEGMENTS) {
+    if (score >= seg.min && score <= seg.max) return seg;
+  }
+  return SEGMENTS[SEGMENTS.length - 1];
+}
+
+// Map real score (0–100) → normalized gauge value (0–100 across 4 equal segments)
+function toGaugeValue(score: number): number {
+  if (score <= 50) return (score / 50) * 25;
+  if (score <= 70) return 25 + ((score - 50) / 20) * 25;
+  if (score <= 90) return 50 + ((score - 70) / 20) * 25;
+  return 75 + ((score - 90) / 10) * 25;
+}
 
 export function InterviewReadinessScore({
   score,
   maxScore = 100,
   className,
+  style,
+  ...props
 }: InterviewReadinessScoreProps) {
   const hasScore = typeof score === "number";
-  const percentage = hasScore ? Math.min(Math.max(score, 0), maxScore) : 0;
-  const normalized = percentage / maxScore;
+  const clampedScore = hasScore ? Math.min(Math.max(score, 0), maxScore) : 0;
+  const segment = hasScore ? getSegment(clampedScore) : null;
+  const gaugeValue = hasScore ? toGaugeValue(clampedScore) : 0;
 
-  // Semi-circle gauge: arc from 180deg to 0deg (left to right)
-  // SVG path for the background arc
-  const radius = 80;
-  const strokeWidth = 12;
-  const centerX = 100;
-  const centerY = 100;
-  const startAngle = 180;
-  const endAngle = 0;
-
-  // Calculate arc path
-  const polarToCartesian = (
-    cx: number,
-    cy: number,
-    r: number,
-    angleDeg: number,
-  ) => {
-    const angleRad = ((angleDeg - 180) * Math.PI) / 180;
-    return {
-      x: cx + r * Math.cos(angleRad),
-      y: cy + r * Math.sin(angleRad),
-    };
-  };
-
-  const describeArc = (
-    cx: number,
-    cy: number,
-    r: number,
-    startAngleDeg: number,
-    endAngleDeg: number,
-  ) => {
-    const start = polarToCartesian(cx, cy, r, endAngleDeg);
-    const end = polarToCartesian(cx, cy, r, startAngleDeg);
-    const largeArcFlag = endAngleDeg - startAngleDeg <= 180 ? "0" : "1";
-    return [
-      "M",
-      start.x,
-      start.y,
-      "A",
-      r,
-      r,
-      0,
-      largeArcFlag,
-      0,
-      end.x,
-      end.y,
-    ].join(" ");
-  };
-
-  const bgArcPath = describeArc(centerX, centerY, radius, startAngle, endAngle);
-
-  // Foreground arc (score)
-  const scoreEndAngle = hasScore
-    ? startAngle - (startAngle - endAngle) * normalized
-    : startAngle;
-  const scoreArcPath = hasScore
-    ? describeArc(centerX, centerY, radius, startAngle, scoreEndAngle)
-    : "";
-
-  // Color based on score
-  const getScoreColor = (s: number) => {
-    if (s >= 91) return "#22c55e"; // green-500
-    if (s >= 71) return "#3b82f6"; // blue-500
-    if (s >= 51) return "#f59e0b"; // amber-500
-    return "#ef4444"; // red-500
-  };
-
-  const scoreColor = hasScore ? getScoreColor(percentage) : "#e5e7eb";
+  const subArcs = SEGMENTS.map((seg) => ({
+    limit: seg.gaugeLimit,
+    color: hasScore ? seg.color : EMPTY_COLOR,
+    showTick: false,
+    tooltip: { text: `${seg.label} (${seg.range})` },
+  }));
 
   return (
-    <div className={cn("flex flex-col items-center", className)}>
-      <p className="text-sm font-semibold text-foreground">
+    <div
+      className={cn("flex max-w-full flex-col items-center", className)}
+      style={style}
+      {...props}
+    >
+      <p className="text-lg md:text-lg font-bold text-foreground mb-4">
         Interview Readiness Score
       </p>
 
-      <div className="relative mt-2">
-        <svg
-          height="120"
-          viewBox="0 0 200 120"
-          width="200"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Background arc */}
-          <path
-            d={bgArcPath}
-            fill="none"
-            stroke="#e5e7eb"
-            strokeLinecap="round"
-            strokeWidth={strokeWidth}
-          />
+      <div className="relative mt-3 w-[75%] mx-auto">
+        <GaugeComponent
+          type="semicircle"
+          minValue={0}
+          maxValue={GAUGE_MAX}
+          value={gaugeValue}
+          arc={{
+            width: 0.1,
+            padding: 0.04,
+            cornerRadius: 10,
+            subArcs,
+          }}
+          pointer={{
+            type: "arrow",
+            color: "#312e81",
+            length: 0.5,
+            width: 10,
+            baseColor: "#f5f3f7",
+            elastic: true,
+            animationDelay: 0,
+            hide: !hasScore,
+          }}
+          labels={{
+            valueLabel: { hide: true },
+            tickLabels: {
+              hideMinMax: true,
+              defaultTickValueConfig: {
+                style: { fontSize: "0px", fill: "transparent" },
+              },
+              defaultTickLineConfig: {
+                color: "transparent",
+                length: 0,
+                width: 0,
+              },
+            },
+          }}
+        />
 
-          {/* Score arc */}
-          {hasScore && (
-            <path
-              d={scoreArcPath}
-              fill="none"
-              stroke={scoreColor}
-              strokeLinecap="round"
-              strokeWidth={strokeWidth}
-            />
-          )}
-        </svg>
-
-        {/* Score text */}
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
-          <span className="text-3xl font-bold text-foreground">
-            {hasScore ? percentage : "--"}
-            <span className="text-lg font-semibold text-muted-foreground">
-              /{maxScore}
-            </span>
+        <div className="pointer-events-none absolute inset-x-0 -bottom-1 flex items-baseline justify-center">
+          <span
+            className={cn(
+              "text-lg font-extrabold text-foreground tabular-nums",
+              hasScore && "text-4xl",
+            )}
+          >
+            {hasScore ? clampedScore : "--"}
+          </span>
+          <span className="text-xl font-bold text-muted-foreground tabular-nums">
+            /{maxScore}
           </span>
         </div>
+
+        {SEGMENTS.map((seg, i) => {
+          const positions = [
+            { left: "-8%", top: "72%" },
+            { left: "24%", top: "-6%" },
+            { left: "78%", top: "-6%" },
+            { left: "112%", top: "72%" },
+          ];
+          const pos = positions[i];
+          return (
+            <div
+              key={seg.key}
+              className="pointer-events-none absolute text-center text-xs leading-tight whitespace-nowrap"
+              style={{
+                left: pos.left,
+                top: pos.top,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div className="text-muted-foreground">{seg.label}</div>
+              <div className="font-bold text-foreground">{seg.range}</div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Labels */}
-      <div className="mt-1 flex w-full justify-between px-4 text-[10px] text-muted-foreground">
-        <div className="flex flex-col items-center">
-          <span>No Hire</span>
-          <span>0-50</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <span>Hold</span>
-          <span>51-70</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <span>Hire</span>
-          <span>71-90</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <span>Strong Hire</span>
-          <span>91-100</span>
-        </div>
-      </div>
-
-      {!hasScore && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          <svg
-            className="h-4 w-4 shrink-0"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            xmlns="http://www.w3.org/2000/svg"
+      <div className="mt-6 flex w-full justify-center">
+        {hasScore && segment ? (
+          <div
+            className="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-white"
+            style={{ backgroundColor: segment.color }}
           >
-            <path
-              clipRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
-              fillRule="evenodd"
-            />
-          </svg>
-          Complete 4 rounds to generate score
-        </div>
-      )}
+            <span aria-hidden>{segment.emoji}</span>
+            <span>{segment.label}</span>
+          </div>
+        ) : (
+          <div className="flex w-full items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+            <span
+              aria-hidden
+              className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-amber-500 font-bold text-white"
+            >
+              !
+            </span>
+            <span>Complete 4 rounds to generate score</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -6,11 +6,17 @@ import {
 } from "@livekit/components-react";
 import { type LocalVideoTrack, Track } from "livekit-client";
 import {
+  ArrowLeft,
+  CheckIcon,
+  ChevronDown,
+  ChevronUp,
+  Mic,
+  MicOff,
   TriangleAlert,
+  User,
   Video,
   VideoIcon,
   VideoOff,
-  Volume2,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -30,7 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type CoachOption, coachCards } from "@/lib/coaches";
+import type { CoachOption } from "@/lib/coaches";
+import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
 
@@ -63,6 +70,8 @@ export function CustomPreJoin({
   const [selectedCoach, setSelectedCoach] = useState<CoachOption | undefined>(
     coach ?? (hideCoachSelection ? undefined : "sana"),
   );
+  const [isCameraMuted, setIsCameraMuted] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
 
   useEffect(() => {
     setSelectedCoach(coach ?? (hideCoachSelection ? undefined : "sana"));
@@ -145,6 +154,16 @@ export function CustomPreJoin({
       videoTrack.detach(videoElement);
     };
   }, [videoTrack]);
+
+  // Mute/unmute video track
+  useEffect(() => {
+    if (!videoTrack) return;
+    if (isCameraMuted) {
+      void videoTrack.mute();
+    } else {
+      void videoTrack.unmute();
+    }
+  }, [isCameraMuted, videoTrack]);
 
   // Check browser permission state on mount
   useEffect(() => {
@@ -279,6 +298,12 @@ export function CustomPreJoin({
         participant_token: string;
         session_id: string;
         interaction_mode: string;
+        selected_job?: {
+          title: string;
+          description: string;
+          salary: string;
+          companies: string[];
+        };
       };
 
       if (flow === "diagnostics") {
@@ -287,7 +312,16 @@ export function CustomPreJoin({
           server_url: data.server_url,
           room_name: data.room_name,
           session_id: data.session_id,
+          round_id: roundId || "",
         });
+        if (data.selected_job) {
+          params.set("job_title", data.selected_job.title);
+          params.set("companies", data.selected_job.companies.join(","));
+          params.set("salary", data.selected_job.salary);
+        }
+        if (selectedCoach) {
+          params.set("coach", selectedCoach);
+        }
         router.push(`/diagnostics/session?${params.toString()}`);
       } else {
         const params = new URLSearchParams({
@@ -327,7 +361,7 @@ export function CustomPreJoin({
 
   if (permissionState === "checking") {
     return (
-      <main className="flex h-svh items-center justify-center bg-background">
+      <main className="flex h-svh items-center justify-center bg-lavender">
         <div className="flex flex-col items-center gap-3">
           <div className="size-8 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
           <p className="text-sm text-muted-foreground">
@@ -339,7 +373,12 @@ export function CustomPreJoin({
   }
 
   if (!hasRequested && permissionState !== "granted") {
-    return <PreJoinPermissionRequest onRequestPermission={requestPermission} />;
+    return (
+      <PreJoinPermissionRequest
+        onRequestPermission={requestPermission}
+        showBackButton={flow !== "prediagnostics"}
+      />
+    );
   }
 
   return (
@@ -348,19 +387,23 @@ export function CustomPreJoin({
       activeVideoDeviceId={activeVideoDeviceId}
       audioDevices={audioDevices}
       deviceError={deviceError}
-      hideCoachSelection={hideCoachSelection}
+      flow={flow}
+      isCameraMuted={isCameraMuted}
       isJoining={isJoining}
+      isMicMuted={isMicMuted}
       permissionState={permissionState}
+      roundId={roundId}
       selectedAudioLabel={selectedAudioLabel}
-      selectedCoach={selectedCoach}
       selectedVideoLabel={selectedVideoLabel}
+      showBackButton={flow !== "prediagnostics"}
       videoDevices={videoDevices}
       videoRef={videoRef}
       videoTrack={videoTrack}
       onAudioDeviceChange={handleAudioDeviceChange}
+      onCameraMuteToggle={() => setIsCameraMuted((v) => !v)}
       onJoin={handleJoin}
+      onMicMuteToggle={() => setIsMicMuted((v) => !v)}
       onRequestPermission={requestPermission}
-      onSelectedCoachChange={setSelectedCoach}
       onVideoDeviceChange={handleVideoDeviceChange}
     />
   );
@@ -368,11 +411,14 @@ export function CustomPreJoin({
 
 function PreJoinPermissionRequest({
   onRequestPermission,
+  showBackButton = true,
 }: {
   onRequestPermission: () => void;
+  showBackButton?: boolean;
 }) {
   return (
-    <main className="flex min-h-svh items-center justify-center bg-background px-5 py-8">
+    <main className="flex min-h-svh flex-col bg-background px-5 py-8">
+      <Header showBackButton={showBackButton} />
       <section className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-md flex-col justify-center">
         <div className="flex justify-center">
           <Image
@@ -403,7 +449,7 @@ function PreJoinPermissionRequest({
               onClick={onRequestPermission}
             >
               <VideoIcon className="size-4 mr-2" />
-              Enable mic & camera
+              Allow access and continue
             </Button>
           </div>
 
@@ -426,237 +472,307 @@ function PreJoinReadyState({
   activeVideoDeviceId,
   audioDevices,
   deviceError,
-  hideCoachSelection,
+  flow,
+  isCameraMuted,
   isJoining,
+  isMicMuted,
   permissionState,
+  roundId,
   selectedAudioLabel,
-  selectedCoach,
   selectedVideoLabel,
+  showBackButton = true,
   videoDevices,
   videoRef,
   videoTrack,
   onAudioDeviceChange,
+  onCameraMuteToggle,
   onJoin,
+  onMicMuteToggle,
   onRequestPermission,
-  onSelectedCoachChange,
   onVideoDeviceChange,
 }: {
   activeAudioDeviceId: string | undefined;
   activeVideoDeviceId: string | undefined;
   audioDevices: MediaDeviceInfo[];
   deviceError: string | null;
-  hideCoachSelection: boolean;
+  flow?: FlowType;
+  isCameraMuted: boolean;
   isJoining: boolean;
+  isMicMuted: boolean;
   permissionState: PermissionState;
+  roundId?: string;
   selectedAudioLabel: string;
-  selectedCoach: CoachOption | undefined;
   selectedVideoLabel: string;
+  showBackButton?: boolean;
   videoDevices: MediaDeviceInfo[];
   videoRef: RefObject<HTMLVideoElement | null>;
   videoTrack: LocalVideoTrack | undefined;
   onAudioDeviceChange: (deviceId: string | null) => void;
+  onCameraMuteToggle: () => void;
   onJoin: () => void;
+  onMicMuteToggle: () => void;
   onRequestPermission: () => void;
-  onSelectedCoachChange: (coach: CoachOption) => void;
   onVideoDeviceChange: (deviceId: string | null) => void;
 }) {
   return (
-    <main className="flex min-h-svh items-center justify-center bg-background px-5 py-8">
-      <section className="mx-auto w-full max-w-md space-y-6">
-        <div className="text-center">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Camera & microphone ready
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Make sure your camera and microphone are working well before you
-            join.
-          </p>
-        </div>
+    <main className="flex min-h-dvh flex-col bg-background p-6">
+      <Header showBackButton={showBackButton} />
+      <section className="mx-auto w-full max-w-2xl space-y-6">
+        {roundId ? (
+          <RoundInfoCard roundId={roundId} />
+        ) : flow === "prediagnostics" ? (
+          <PrediagnosticsInfoCard />
+        ) : null}
 
-        <div className="space-y-4">
-          {permissionState !== "granted" ? (
-            <PermissionStatusCard permissionState={permissionState} />
-          ) : null}
+        {permissionState !== "granted" ? (
+          <PermissionStatusCard permissionState={permissionState} />
+        ) : null}
 
-          {permissionState === "granted" ? (
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <div className="overflow-hidden rounded-xl border bg-black">
-                  <div className="relative aspect-video w-full">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      muted
-                      playsInline
-                      className="h-full w-full object-cover"
-                    />
-                    {!videoTrack ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                        <VideoOff className="size-12 text-muted-foreground" />
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Camera</p>
-                  <Select
-                    value={activeVideoDeviceId || ""}
-                    onValueChange={onVideoDeviceChange}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select camera">
-                        {selectedVideoLabel}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {videoDevices.map((device) => (
-                        <SelectItem
-                          key={device.deviceId}
-                          value={device.deviceId}
-                        >
-                          {device.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {!hideCoachSelection ? (
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-sm font-medium">Coach voice</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        You can switch coaches before each session.
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {coachCards.map((coach) => (
-                        <button
-                          key={coach.value}
-                          className={cn(
-                            "overflow-hidden rounded-xl border bg-input/30 text-left shadow-sm transition",
-                            selectedCoach === coach.value
-                              ? "border-foreground ring-1 ring-foreground"
-                              : "border-border hover:border-foreground/30",
-                          )}
-                          type="button"
-                          onClick={() => onSelectedCoachChange(coach.value)}
-                        >
-                          <div
-                            className="relative aspect-[1.15] overflow-hidden"
-                            style={{ backgroundColor: coach.tint }}
-                          >
-                            <Image
-                              alt={coach.title}
-                              className="object-cover"
-                              fill
-                              src={coach.imageSrc}
-                            />
-                          </div>
-                          <div className="p-3 text-center text-sm font-medium">
-                            {coach.title}
-                          </div>
-                        </button>
-                      ))}
+        {permissionState === "granted" ? (
+          <div className="space-y-4">
+            {/* Video preview */}
+            <div className="overflow-hidden rounded-xl border bg-[#EDE9F7] relative">
+              <div className="relative aspect-video w-full">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className={cn(
+                    "h-full w-full object-cover",
+                    isCameraMuted && "hidden",
+                  )}
+                />
+                {(isCameraMuted || !videoTrack) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-[#EDE9F7]">
+                    <div className="flex size-16 items-center justify-center rounded-full bg-[#DDD4F0]">
+                      <User className="size-8 text-[#9B8BC3]" />
                     </div>
                   </div>
-                ) : null}
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Microphone</p>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Volume2 className="size-3" />
-                      Listening...
-                    </span>
-                  </div>
-                  <div className="h-20 overflow-hidden rounded-lg border bg-input/30 p-3">
-                    <LiveWaveform
-                      active
-                      deviceId={
-                        activeAudioDeviceId === "default"
-                          ? undefined
-                          : activeAudioDeviceId || undefined
-                      }
-                      mode="scrolling"
-                      height="100%"
-                      barWidth={3}
-                      barGap={2}
-                      className="w-full"
-                    />
-                  </div>
-                  <Select
-                    value={activeAudioDeviceId || ""}
-                    onValueChange={onAudioDeviceChange}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select microphone">
-                        {selectedAudioLabel}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {audioDevices.map((device) => (
-                        <SelectItem
-                          key={device.deviceId}
-                          value={device.deviceId}
-                        >
-                          {device.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {deviceError ? (
-            <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {deviceError}
-            </div>
-          ) : null}
-
-          <div className="flex items-start gap-3 rounded-2xl border border-[#EFE8BE] bg-[#FFFBE8] px-5 py-4 text-[#6B6B72]">
-            <TriangleAlert className="mt-1 size-5 shrink-0 text-[#E4BE3D]" />
-            <p className="text-sm">
-              This interview cannot be paused{" "}
-              <span className="font-semibold">(~15 mins)</span> Keep your camera
-              on.
-            </p>
-          </div>
-
-          <div className="flex">
-            {permissionState === "granted" ? (
-              <Button
-                className="mx-auto h-auto w-full rounded-full bg-button py-3"
-                disabled={isJoining}
-                onClick={onJoin}
-              >
-                {isJoining ? (
-                  <>
-                    <Spinner />
-                    Joining...
-                  </>
-                ) : (
-                  "Start session"
                 )}
-              </Button>
-            ) : (
-              <Button
-                className="mx-auto h-auto w-full rounded-full bg-button py-3"
-                type="button"
-                onClick={onRequestPermission}
-              >
-                <Spinner className="size-4" />
-              </Button>
-            )}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/40 backdrop-blur-sm rounded-full overflow-hidden px-3 h-13">
+                  <Button
+                    type="button"
+                    onClick={onCameraMuteToggle}
+                    className="flex-1 bg-transparent flex size-9 items-center justify-center text-white transition hover:bg-transparent rounded-full"
+                  >
+                    {isCameraMuted ? (
+                      <VideoOff className="size-6" />
+                    ) : (
+                      <Video className="size-6" />
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={onMicMuteToggle}
+                    className="flex-1 bg-transparent flex size-9 items-center justify-center text-white  transition hover:bg-transparent rounded-full"
+                  >
+                    {isMicMuted ? (
+                      <MicOff className="size-6" />
+                    ) : (
+                      <Mic className="size-6" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Camera selector */}
+            <div className="grid  md:grid-cols-2 gap-4">
+              <div className="col-span-1">
+                <Select
+                  value={activeVideoDeviceId || ""}
+                  onValueChange={onVideoDeviceChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <Video className="size-4 mr-2 text-muted-foreground shrink-0" />
+                    <SelectValue placeholder="Select camera">
+                      {selectedVideoLabel}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {videoDevices.map((device) => (
+                      <SelectItem key={device.deviceId} value={device.deviceId}>
+                        {device.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Microphone selector */}
+              <div className="col-span-1">
+                <Select
+                  value={activeAudioDeviceId || ""}
+                  onValueChange={onAudioDeviceChange}
+                >
+                  <SelectTrigger className="w-full">
+                    <Mic className="size-4 mr-2 text-muted-foreground shrink-0" />
+                    <SelectValue placeholder="Select microphone">
+                      {selectedAudioLabel}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {audioDevices.map((device) => (
+                      <SelectItem key={device.deviceId} value={device.deviceId}>
+                        {device.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Waveform */}
+            <div className="space-y-2">
+              <p className="text-center text-sm text-muted-foreground">
+                Speak and test your mic
+              </p>
+              <div className="h-12 overflow-hidden rounded-lg bg-[#F2F2F2] p-3">
+                <LiveWaveform
+                  active={!isMicMuted}
+                  deviceId={
+                    activeAudioDeviceId === "default"
+                      ? undefined
+                      : activeAudioDeviceId || undefined
+                  }
+                  mode="scrolling"
+                  height="100%"
+                  barWidth={3}
+                  barGap={2}
+                  className="w-full"
+                />
+              </div>
+            </div>
           </div>
+        ) : null}
+
+        {deviceError ? (
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {deviceError}
+          </div>
+        ) : null}
+
+        <div className="flex">
+          {permissionState === "granted" ? (
+            <Button
+              className="mx-auto h-auto w-full rounded-full bg-button py-3"
+              disabled={isJoining}
+              onClick={onJoin}
+            >
+              {isJoining ? (
+                <>
+                  <Spinner />
+                  Joining...
+                </>
+              ) : (
+                "Join interview"
+              )}
+            </Button>
+          ) : (
+            <Button
+              className="mx-auto h-auto w-full rounded-full bg-button py-3"
+              type="button"
+              onClick={onRequestPermission}
+            >
+              Allow access and continue
+            </Button>
+          )}
         </div>
+
+        <PreJoinChecklist />
       </section>
     </main>
+  );
+}
+
+function RoundInfoCard({ roundId }: { roundId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const config = getRoundConfig(roundId);
+  if (!config) return null;
+
+  return (
+    <div className="rounded-xl border bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between p-4 text-left"
+      >
+        <span className="text-sm font-semibold">
+          {config.eyebrow} - {config.title}
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {config.duration}
+          </span>
+          {expanded ? (
+            <ChevronUp className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          )}
+        </div>
+      </button>
+      {expanded && (
+        <div className="px-4 pb-4">
+          <p className="text-sm text-muted-foreground">{config.description}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PrediagnosticsInfoCard() {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="rounded-xl border bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between p-4 text-left"
+      >
+        <span className="text-sm font-semibold">
+          Pre-diagnostic - Screening Interview
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            15 min
+          </span>
+          {expanded ? (
+            <ChevronUp className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          )}
+        </div>
+      </button>
+      {expanded && (
+        <div className="px-4 pb-4">
+          <p className="text-sm text-muted-foreground">
+            This session evaluates your background, communication clarity, and
+            career intent. You&apos;ll introduce yourself, talk about your
+            interests, and explain the roles you&apos;re aiming for.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PreJoinChecklist() {
+  return (
+    <div className="rounded-2xl bg-[#F4F4F4] px-5 py-4 space-y-3">
+      <p className="text-sm text-muted-foreground">Make sure you will have</p>
+      <div className="space-y-3">
+        {["Quiet space", "Good light", "Stable internet connectivity"].map(
+          (item) => (
+            <div key={item} className="flex items-center gap-2 text-sm">
+              <CheckIcon className="size-5 bg-green-500 shrink-0 bg-green text-white rounded-full p-1" />
+              {item}
+            </div>
+          ),
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -666,7 +782,7 @@ function PermissionStatusCard({
   permissionState: PermissionState;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border p-4">
+    <div className="flex items-center justify-between rounded-xl border bg-white p-4">
       <div className="flex items-center gap-3">
         <div
           className={cn(
@@ -687,6 +803,24 @@ function PermissionStatusCard({
       </div>
       <PermissionBadge state={permissionState} />
     </div>
+  );
+}
+
+function Header({ showBackButton = true }: { showBackButton?: boolean }) {
+  const router = useRouter();
+  return (
+    <header className="w-full mx-auto mb-6">
+      {showBackButton && (
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-sm font-medium text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </button>
+      )}
+    </header>
   );
 }
 

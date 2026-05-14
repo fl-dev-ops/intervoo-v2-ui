@@ -2,7 +2,7 @@ import {
   Award,
   BarChart3,
   BriefcaseBusiness,
-  CheckCircle2,
+  CheckIcon,
   ExternalLink,
   Gauge,
   Languages,
@@ -74,7 +74,7 @@ function FinalDiagnosticReportPreview({
   const displayName = preferredName?.trim() || "there";
 
   return (
-    <main className="min-h-svh bg-background">
+    <main className="min-h-dvh bg-background">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10">
         <HeaderActions publicUrl={publicUrl} showActions={showActions} />
 
@@ -217,7 +217,7 @@ function DiagnosticReportErrorState({
   showActions: boolean;
 }) {
   return (
-    <div className="grid min-h-svh place-items-center bg-background px-4">
+    <div className="grid min-h-dvh place-items-center bg-background px-4">
       <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-lg">
         <h2 className="text-xl font-semibold text-foreground">
           Report unavailable
@@ -313,9 +313,7 @@ function InsightList({
   tone: "positive" | "warning";
 }) {
   const iconClassName =
-    tone === "positive"
-      ? "text-emerald-500 bg-emerald-500/10"
-      : "text-amber-500 bg-amber-500/10";
+    tone === "positive" ? "bg-[#5DBE73] text-white" : "bg-amber-500 text-white";
 
   return (
     <section className="rounded-2xl border border-border bg-background p-4">
@@ -326,7 +324,7 @@ function InsightList({
             <span
               className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${iconClassName}`}
             >
-              <CheckCircle2 className="h-3.5 w-3.5" />
+              <CheckIcon className="h-3.5 w-3.5" />
             </span>
             <span className="text-muted-foreground">{item}</span>
           </div>

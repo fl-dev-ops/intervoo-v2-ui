@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  BriefcaseBusiness,
-  CheckCircle2,
+  CheckIcon,
   Circle,
   Loader2,
   Shield,
   Target,
+  Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -180,7 +180,7 @@ function PrediagnosticsGenerationState({
   const activeIndex = completedSteps < totalSteps ? completedSteps : -1;
 
   return (
-    <main className="min-h-svh bg-background flex items-center justify-center px-6 py-12">
+    <main className="min-h-dvh bg-white flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md mx-auto space-y-10 animate-fade-in">
         <div className="text-center space-y-2.5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -216,7 +216,7 @@ function PrediagnosticsReportErrorState(props: {
   showActions: boolean;
 }) {
   return (
-    <main className="min-h-svh bg-background flex items-center justify-center px-6 py-12">
+    <main className="min-h-dvh bg-background flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md mx-auto space-y-10 text-center animate-fade-in">
         <div className="space-y-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -262,7 +262,7 @@ function PrediagnosticsReportPreview({
   );
 
   return (
-    <div className="min-h-svh">
+    <div className="min-h-dvh bg-lavender">
       <div className="mx-auto w-full max-w-md md:max-w-lg">
         <div className="p-5 sm:p-6">
           <div className="rounded-xl px-5 pt-4 text-center">
@@ -278,7 +278,7 @@ function PrediagnosticsReportPreview({
             <section className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
                 <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-7 w-7 text-emerald-500" />
+                  <GreenCheckBadge className="size-7" iconClassName="size-4" />
                   <div className="text-base font-semibold text-foreground">
                     Your job goal
                   </div>
@@ -291,20 +291,20 @@ function PrediagnosticsReportPreview({
 
               <div className="mt-4 space-y-2.5">
                 <InfoCard
-                  icon={<BriefcaseBusiness className="h-4 w-4" />}
-                  iconClassName="bg-primary/10 text-primary"
+                  icon={<Trophy className="h-4 w-4" />}
+                  iconClassName="bg-purple-100 text-purple-600"
                   title="Your dream job"
                   value={report.dream_job || "Not captured yet"}
                 />
                 <InfoCard
                   icon={<Target className="h-4 w-4" />}
-                  iconClassName="bg-primary/10 text-primary"
+                  iconClassName="bg-amber-100 text-amber-600"
                   title="Your target (Current focus)"
                   value={report.aiming_for || "Not captured yet"}
                 />
                 <InfoCard
                   icon={<Shield className="h-4 w-4" />}
-                  iconClassName="bg-primary/10 text-primary"
+                  iconClassName="bg-blue-100 text-blue-600"
                   title="Your backup"
                   value={report.backup || "Not captured yet"}
                 />
@@ -321,7 +321,7 @@ function PrediagnosticsReportPreview({
             <section className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
                 <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-7 w-7 text-emerald-500" />
+                  <GreenCheckBadge className="size-7" iconClassName="size-4" />
                   <div className="text-base font-semibold text-foreground">
                     Your job awareness
                   </div>
@@ -386,9 +386,11 @@ function PrediagnosticsReportPreview({
                   Choose the job band you want to practice for and start a full
                   video diagnostic interview.
                 </p>
+
                 <Link
                   className={buttonVariants({
-                    className: "mt-6 w-full",
+                    variant: "default",
+                    className: "mt-6 w-full bg-button rounded-full! text-white",
                     size: "lg",
                   })}
                   href="/diagnostics"
@@ -492,7 +494,7 @@ function GenerationStepRow(props: {
     >
       <span className="shrink-0">
         {props.complete ? (
-          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+          <GreenCheckBadge className="size-5" iconClassName="size-3" />
         ) : props.active ? (
           <Loader2 className="h-5 w-5 animate-spin text-[#5E41CF]" />
         ) : (
@@ -510,6 +512,25 @@ function GenerationStepRow(props: {
         {props.label}
       </span>
     </li>
+  );
+}
+
+function GreenCheckBadge({
+  className,
+  iconClassName,
+}: {
+  className?: string;
+  iconClassName?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-full bg-[#5DBE73] text-white",
+        className,
+      )}
+    >
+      <CheckIcon className={iconClassName} />
+    </span>
   );
 }
 

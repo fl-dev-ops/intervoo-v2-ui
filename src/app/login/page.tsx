@@ -147,7 +147,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-svh h-screen p-3 md:p-10">
+    <main className="min-h-dvh h-screen p-3 md:p-10">
       <div className="justify-center h-full flex flex-col items-center w-full mx-auto md:max-w-sm space-y-8">
         <div className="flex-1 md:flex-0 flex flex-col items-center justify-center gap-3 font-medium ">
           <a href="/" className="flex flex-col items-center gap-3">

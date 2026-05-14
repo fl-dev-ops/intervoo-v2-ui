@@ -66,6 +66,7 @@ export function OtpForm({
               disabled={loading}
               containerClassName="justify-center"
               onChange={onOtpChange}
+              autoFocus
             >
               <InputOTPGroup className="gap-2 border-0">
                 {[0, 1, 2, 3, 4, 5].map((index) => (

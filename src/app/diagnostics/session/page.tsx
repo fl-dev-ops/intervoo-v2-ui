@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { DiagnosticsVideoSessionClient } from "@/components/diagnostics/video-session-client";
+import { DiagnosticsAgentSession } from "@/components/diagnostics/diagnostics-agent-session";
 import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsSessionPage({
@@ -10,13 +10,22 @@ export default async function DiagnosticsSessionPage({
     server_url?: string;
     room_name?: string;
     session_id?: string;
+    round_id?: string;
+    job_title?: string;
+    companies?: string;
+    salary?: string;
+    coach?: string;
   }>;
 }) {
-  const {
+    const {
     token,
     server_url: serverUrl,
     room_name: roomName,
     session_id: sessionId,
+    round_id: roundId,
+    job_title: jobTitle,
+    companies,
+    coach,
   } = await searchParams;
 
   await requirePageStage(["DIAGNOSTICS"]);
@@ -26,13 +35,15 @@ export default async function DiagnosticsSessionPage({
   }
 
   return (
-    <DiagnosticsVideoSessionClient
-      token={token}
-      serverUrl={serverUrl}
+    <DiagnosticsAgentSession
+      coach={coach}
+      companies={companies?.split(",") ?? []}
+      jobTitle={jobTitle}
       roomName={roomName}
+      roundId={roundId}
       sessionId={sessionId}
-      completeEndpoint="/api/diagnostics/complete"
-      redirectUrl="/diagnostics/rounds"
+      serverUrl={serverUrl}
+      token={token}
     />
   );
 }

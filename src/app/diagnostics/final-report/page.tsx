@@ -1,14 +1,14 @@
-import { redirect } from "next/navigation";
-import {
-  type DiagnosticReportPageState,
-  DiagnosticReportPreviewPage,
-} from "@/components/diagnostics/report-preview-page";
+import { PublicDiagnosticReport } from "@/components/diagnostics/public-diagnostic-report";
+import { DiagnosticReportPreviewPage } from "@/components/diagnostics/report-preview-page";
 import { prisma } from "@/lib/db";
+import { getDiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import {
   deriveFinalDiagnosticReport,
   ensureFinalDiagnosticShareToken,
 } from "@/lib/diagnostics/final-report";
+import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import { updateUserStage } from "@/lib/progress";
+import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
 import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsFinalReportPage() {
@@ -38,41 +38,80 @@ export default async function DiagnosticsFinalReportPage() {
   const report = deriveFinalDiagnosticReport(diagnostic.rounds);
 
   if (!report) {
-    if (stage === "COMPLETED") {
-      return (
-        <DiagnosticReportPreviewPage
-          showActions={false}
-          state={{
-            errorMessage:
-              "Your final report is not available yet. Please check your diagnostic round reports.",
-            status: "processing",
-          }}
-        />
-      );
-    }
-
-    redirect("/diagnostics/rounds");
+    return (
+      <DiagnosticReportPreviewPage
+        showActions={false}
+        state={{
+          errorMessage:
+            stage === "COMPLETED"
+              ? "Your final report is not available yet. Please check your diagnostic round reports."
+              : "Your final report is being prepared. Please check back shortly.",
+          status: "processing",
+        }}
+      />
+    );
   }
 
-  const shareToken = await ensureFinalDiagnosticShareToken(diagnostic.id);
+  await ensureFinalDiagnosticShareToken(diagnostic.id);
   await updateUserStage(user.id, "COMPLETED");
   await prisma.userProgress.updateMany({
     where: { userId: user.id },
     data: { diagnosticsCompletedAt: new Date() },
   });
 
-  const preferredName = diagnostic.user.profile?.preferredName;
-  const state: DiagnosticReportPageState = {
-    preferredName,
-    report,
-    status: "final-ready",
-  };
+  const bandConfig = getDiagnosticBandConfig(diagnostic.selectedBand);
+  const preferredName = diagnostic.user.profile?.preferredName ?? null;
+  const rounds = DIAGNOSTIC_ROUNDS.map((config, index) => {
+    const roundNumber = index + 1;
+    const dbRound = diagnostic.rounds.find(
+      (round) => round.roundNumber === roundNumber,
+    );
+    const roundReport = dbRound?.session?.report ?? null;
+
+    if (roundReport?.status === "READY" && roundReport.reportJson) {
+      const hydrated = toHydratedDiagnosticReport(roundReport.reportJson);
+      if (hydrated) {
+        return {
+          roundNumber,
+          roundType: config.id,
+          roundTitle: config.title,
+          hasReport: true as const,
+          shareToken: roundReport.shareToken ?? null,
+          report: hydrated,
+        };
+      }
+    }
+
+    return {
+      roundNumber,
+      roundType: config.id,
+      roundTitle: config.title,
+      hasReport: false as const,
+      shareToken: roundReport?.shareToken ?? null,
+      report: null,
+    };
+  });
+
+  const readyRounds = rounds.filter((round) => round.hasReport);
+  const allReady = readyRounds.length === 4;
+  const overallScore = allReady
+    ? Math.round(
+        readyRounds.reduce(
+          (sum, round) => sum + round.report.assessment_result.total_score,
+          0,
+        ) / 4,
+      )
+    : null;
 
   return (
-    <DiagnosticReportPreviewPage
-      publicUrl={shareToken ? `/d/${shareToken}` : null}
-      showActions
-      state={state}
+    <PublicDiagnosticReport
+      bandConfig={bandConfig}
+      currentRound={diagnostic.currentRound}
+      focusedRoundNumber={readyRounds[0]?.roundNumber ?? 1}
+      isOwner={true}
+      overallScore={overallScore}
+      preferredName={preferredName}
+      rounds={rounds}
     />
   );
 }

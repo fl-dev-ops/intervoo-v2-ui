@@ -285,10 +285,37 @@ async function createDiagnosticConnectionDetails({
   const existingRound = diagnostic.rounds.find((r) => r.roundType === roundId);
 
   if (existingRound) {
-    return NextResponse.json(
-      { error: "Round already started" },
-      { status: 409 },
+    const isSessionStuck =
+      existingRound.status === "STARTED" &&
+      existingRound.session?.startedAt &&
+      Date.now() - new Date(existingRound.session.startedAt).getTime() >
+        10 * 60 * 1000;
+
+    const isReportFailed =
+      existingRound.session?.report?.status === "FAILED";
+
+    const isReportStuck = Boolean(
+      (existingRound.session?.report?.status === "PENDING" ||
+        existingRound.session?.report?.status === "PROCESSING") &&
+        existingRound.session?.report?.startedAt &&
+        Date.now() -
+          new Date(existingRound.session.report.startedAt).getTime() >
+          15 * 60 * 1000,
     );
+
+    const isFailed = isSessionStuck || isReportFailed || isReportStuck;
+
+    if (!isFailed) {
+      return NextResponse.json(
+        { error: "Round already started" },
+        { status: 409 },
+      );
+    }
+
+    // Delete the old stuck/failed session (cascades to DiagnosticRound + Report)
+    await prisma.interviewSession.delete({
+      where: { id: existingRound.sessionId },
+    });
   }
 
   const completedCount = diagnostic.rounds.filter(

@@ -229,7 +229,7 @@ export default function OnboardingPage() {
           totalSteps={steps.length}
         />
 
-        <Card className="h-full flex-1 p-3 md:p-6 mt-4 md:mt-8">
+        <div className="h-full flex-1 p-2 mt-4 md:mt-8">
           <div key={step} className="pt-2 px-1 md:p-0 flex-1 animate-fade-in">
             {step === "profile" ? (
               <ProfileStep
@@ -281,7 +281,7 @@ export default function OnboardingPage() {
           ) : (
             <ReadyStepButton form={form} />
           )}
-        </Card>
+        </div>
       </section>
     </main>
   );
@@ -591,10 +591,10 @@ function CoachStep(props: {
           <button
             key={coach.value}
             className={cn(
-              "overflow-hidden rounded-xl border bg-input/30 text-left shadow-sm transition",
+              "overflow-hidden rounded-xl bg-input/30 text-left shadow-sm transition border-4",
               props.form.coach === coach.value
-                ? "border-[#5E41CF] border-2"
-                : "border-border hover:border-foreground/30",
+                ? "border-white "
+                : "border-transparent hover:border-foreground/30",
             )}
             type="button"
             onClick={() => props.onChange({ coach: coach.value })}
@@ -801,7 +801,7 @@ function MessageBubble({
   return (
     <div
       className={cn(
-        `rounded-md border bg-input/30 px-4 py-3 text-sm shadow-sm leading-relaxed`,
+        ` border text-black bg-lavender opacity-85 px-4 py-3 text-sm shadow-sm leading-relaxed rounded-4xl rounded-bl-sm`,
         className ?? "",
       )}
       style={delayMs ? { animationDelay: `${delayMs}ms` } : undefined}
@@ -865,9 +865,9 @@ function OptionButton(props: {
   return (
     <button
       className={cn(
-        "flex w-full items-center justify-between gap-4 rounded-lg border bg-input/30 p-4 text-left transition",
+        "flex w-full items-center justify-between gap-4 rounded-lg border bg-lavender opacity-85 p-4 text-left transition text-black",
         props.active
-          ? "border-[#5E41CF] border-2"
+          ? "border-white"
           : "border-border hover:border-foreground/30",
       )}
       type="button"

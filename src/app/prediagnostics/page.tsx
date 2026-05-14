@@ -8,7 +8,7 @@ export default async function PrediagnosticsPage() {
   return redirect("/prediagnostics/screening");
 
   // return (
-  //   <main className="flex min-h-svh items-center justify-center bg-background px-5 py-8">
+  //   <main className="flex min-h-dvh items-center justify-center bg-background px-5 py-8">
   //     <section className="mx-auto w-full max-w-lg space-y-6 text-center">
   //       <div className="space-y-3">
   //         <p className="text-sm font-medium text-muted-foreground">

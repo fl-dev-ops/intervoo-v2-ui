@@ -53,7 +53,7 @@ export default function RootLayout({
       )}
       suppressHydrationWarning
     >
-      <body className="flex h-screen max-h-screen flex-col overflow-hidden bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
+      <body className="flex h-screen max-h-full flex-col overflow-hidden bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
