@@ -79,7 +79,7 @@ function FinalDiagnosticReportPreview({
         <HeaderActions publicUrl={publicUrl} showActions={showActions} />
 
         <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-lg">
-          <div className="bg-gradient-to-br from-primary/15 via-transparent to-emerald-500/10 p-5 sm:p-8">
+          <div className="bg-linear-to-br from-primary/15 via-transparent to-emerald-500/10 p-5 sm:p-8">
             <p className="text-sm font-medium uppercase tracking-[0.08em] text-primary">
               Final diagnostic report
             </p>

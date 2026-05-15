@@ -83,7 +83,7 @@ export function PublicDiagnosticReport({
   return (
     <>
       {user ? <ReportHeader user={user} /> : null}
-      <main className="min-h-screen bg-[#f3f0f7] md:pb-10">
+      <main className="min-h-dvh bg-lavender md:pb-10">
         <div className="mx-auto w-full max-w-3xl space-y-6 md:py-8">
           {/* Job Header Card */}
           <DiagnosticsJobHeader
@@ -204,7 +204,7 @@ function RoundTabs({
                 className={cn(
                   "ring-2 ring-inset ring-transparent w-full flex flex-col items-center gap-2 px-2 py-4 text-center transition p-4 rounded-lg",
                   isActive && "ring-emerald-400 bg-emerald-50",
-                  !isEnabled && "cursor-not-allowed opacity-60",
+                  !isEnabled && "cursor-not-allowed opacity-60 pointer-events-none",
                 )}
                 disabled={!isEnabled}
                 type="button"

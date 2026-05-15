@@ -90,12 +90,9 @@ export function DiagnosticsSelectionClient({
 
   const hasBadges = Boolean(dreamRole) || Boolean(targetSalary);
 
-  console.log(hasBadges);
-  console.log(dreamRole, targetSalary);
-
   return (
     <main className="min-h-dvh bg-lavender px-3 py-8 text-foreground flex items-center justify-center">
-      <section className="mx-auto w-full max-w-4xl ">
+      <section className="mx-auto w-full max-w-3xl">
         <header className="mx-auto text-center mb-8">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
             Software Developer Interview Readiness Assessment

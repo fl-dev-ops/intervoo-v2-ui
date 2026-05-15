@@ -220,7 +220,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="flex min-h-screen h-screen flex-col text-white p-3 md:p-10">
+    <main className="flex min-h-dvh flex-col text-white p-3 md:p-10">
       <section className="relative mx-auto flex w-full max-w-md flex-1 flex-col ">
         <OnboardingHeader
           currentStep={currentStepIndex + 1}
@@ -438,7 +438,7 @@ function EducationStep(props: {
             <SelectTrigger
               aria-invalid={Boolean(props.errors.placementPreparation)}
               aria-required="true"
-              className="w-full"
+              className="w-full bg-white/10 border-white/20 text-white"
             >
               <SelectValue placeholder="Select preparation mode">
                 {placementOptions.find(
@@ -479,7 +479,7 @@ function EducationStep(props: {
               <SelectTrigger
                 aria-invalid={Boolean(props.errors.academySelection)}
                 aria-required="true"
-                className="w-full"
+                className="w-full bg-white/10 border-white/20 text-white"
               >
                 <SelectValue placeholder="Select academy">
                   {academyOptions.find(
@@ -801,7 +801,7 @@ function MessageBubble({
   return (
     <div
       className={cn(
-        ` border text-black bg-lavender opacity-85 px-4 py-3 text-sm shadow-sm leading-relaxed rounded-4xl rounded-bl-sm`,
+        `border bg-white/10 text-white px-4 py-3 text-sm shadow-sm leading-relaxed rounded-4xl rounded-bl-sm`,
         className ?? "",
       )}
       style={delayMs ? { animationDelay: `${delayMs}ms` } : undefined}
@@ -819,7 +819,7 @@ function StepContent(props: {
   return (
     <div>
       <h2 className="text-xl font-semibold tracking-tight">{props.title}</h2>
-      <p className="mt-1 text-sm leading-6 text-gray-500">
+      <p className="mt-1 text-sm leading-6 text-white/70">
         {props.description}
       </p>
       <div className="mt-6">{props.children}</div>
@@ -842,6 +842,7 @@ function TextField(props: {
       <Input
         aria-invalid={Boolean(props.error)}
         autoComplete={props.autoComplete}
+        className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
         required={props.required}
         type={props.type ?? "text"}
         value={props.value}
@@ -865,10 +866,10 @@ function OptionButton(props: {
   return (
     <button
       className={cn(
-        "flex w-full items-center justify-between gap-4 rounded-lg border bg-lavender opacity-85 p-4 text-left transition text-black",
+        "flex w-full items-center justify-between gap-4 rounded-lg border bg-white/10 p-4 text-left transition text-white",
         props.active
           ? "border-white"
-          : "border-border hover:border-foreground/30",
+          : "border-white/20 hover:border-white/40",
       )}
       type="button"
       onClick={props.onClick}
@@ -877,7 +878,7 @@ function OptionButton(props: {
         <span className="block text-sm font-medium leading-5">
           {props.label}
         </span>
-        <span className="mt-1 block text-xs text-muted-foreground">
+        <span className="mt-1 block text-xs text-white/60">
           {props.meta}
         </span>
       </span>
@@ -886,10 +887,10 @@ function OptionButton(props: {
           "flex size-5 shrink-0 items-center justify-center rounded-full border transition",
           props.active
             ? "border-[#5E41CF] bg-[#5E41CF]"
-            : "border-muted-foreground",
+            : "border-white/40",
         )}
       >
-        {props.active ? <Check className="size-3 text-[background]" /> : null}
+        {props.active ? <Check className="size-3 text-white" /> : null}
       </span>
     </button>
   );
