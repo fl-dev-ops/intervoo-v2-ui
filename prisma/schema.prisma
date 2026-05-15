@@ -7,37 +7,72 @@ datasource db {
   provider = "postgresql"
 }
 
-enum PreDiagnosticSessionStatus {
+// Enums
+enum UserStage {
+  ONBOARDING
+  PREDIAGNOSTICS
+  DIAGNOSTICS
+  COMPLETED
+}
+
+enum InterviewSessionType {
+  PREDIAGNOSTIC
+  DIAGNOSTIC_ROUND
+}
+
+enum InterviewSessionStatus {
   STARTED
   COMPLETED
   REPORT_READY
 }
 
-enum PreDiagnosticSessionReportStatus {
+enum DiagnosticStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ReportStatus {
   PENDING
   PROCESSING
   READY
   FAILED
 }
 
+// Auth & User models
 model User {
-  id                     String                    @id
-  name                   String
-  email                  String
-  emailVerified          Boolean                   @default(false)
-  image                  String?
-  phoneNumber            String?                   @unique
-  phoneNumberVerified    Boolean                   @default(false)
-  hasCompletedOnboarding Boolean                   @default(false)
-  createdAt              DateTime                  @default(now())
-  updatedAt              DateTime                  @updatedAt
-  sessions               Session[]
-  accounts               Account[]
-  profile                Profile?
-  preDiagnosticSessions  PreDiagnosticSession[]
+  id                  String    @id
+  name                String
+  email               String
+  emailVerified       Boolean   @default(false)
+  image               String?
+  phoneNumber         String?   @unique
+  phoneNumberVerified Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  sessions            Session[]
+  accounts            Account[]
+  profile             Profile?
+  progress            UserProgress?
+  interviewSessions   InterviewSession[]
+  diagnostics         Diagnostic[]
 
   @@unique([email])
   @@map("user")
+}
+
+model UserProgress {
+  id                        String   @id @default(cuid())
+  userId                    String   @unique
+  stage                     UserStage @default(ONBOARDING)
+  onboardingCompletedAt     DateTime?
+  prediagnosticsCompletedAt DateTime?
+  diagnosticsCompletedAt    DateTime?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_progress")
 }
 
 model Profile {
@@ -63,6 +98,7 @@ model Profile {
   @@map("profile")
 }
 
+// BetterAuth session (keep existing)
 model Session {
   id        String   @id
   expiresAt DateTime
@@ -111,42 +147,96 @@ model Verification {
   @@map("verification")
 }
 
-model PreDiagnosticSession {
-  id              String                       @id @default(cuid())
-  userId          String
-  user            User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status          PreDiagnosticSessionStatus   @default(STARTED)
-  roomName        String                       @unique
-  egressId        String?
-  videoUrl        String?
-  startedAt       DateTime                     @default(now())
-  endedAt         DateTime?
-  transcript      Json?
-  sessionMetadata Json?
-  report          PreDiagnosticSessionReport?
-  createdAt       DateTime                     @default(now())
-  updatedAt       DateTime                     @updatedAt
+// Unified interview session table
+model InterviewSession {
+  id            String                @id @default(cuid())
+  userId        String
+  type          InterviewSessionType
+  roomName      String                @unique
+  status        InterviewSessionStatus @default(STARTED)
+  transcript    Json?
+  audioUrl      String?
+  videoUrl      String?
+  transcriptUrl String?
+  metadata      Json?                 // { coach, interactionMode, deviceId, videoDeviceId }
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preDiagnostic   PreDiagnostic?
+  diagnosticRound DiagnosticRound?
+  report          Report?
 
   @@index([userId])
   @@index([status])
-  @@index([startedAt])
-  @@index([egressId])
-  @@map("pre_diagnostic_session")
+  @@index([type])
+  @@map("interview_session")
 }
 
-model PreDiagnosticSessionReport {
-  id            String                              @id @default(cuid())
-  sessionId     String                              @unique
-  session       PreDiagnosticSession                @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  status        PreDiagnosticSessionReportStatus    @default(PENDING)
-  promptVersion String?
-  fileUri       String?
-  reportJson    Json?
-  errorMessage  String?
-  metadata      Json?
-  createdAt     DateTime                            @default(now())
-  updatedAt     DateTime                            @updatedAt
+// Pre-diagnostics wrapper (1 session)
+model PreDiagnostic {
+  id        String @id @default(cuid())
+  sessionId String @unique
+
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("pre_diagnostic")
+}
+
+// Diagnostics wrapper (4 rounds)
+model Diagnostic {
+  id                 String           @id @default(cuid())
+  userId             String
+  status             DiagnosticStatus @default(IN_PROGRESS)
+  currentRound       Int              @default(1)
+  selectedBand       String?
+  selectedJob        Json?
+  finalReport        Json?
+  finalReportShareToken String?       @unique
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rounds DiagnosticRound[]
+
+  @@index([userId])
+  @@map("diagnostic")
+}
+
+// Individual diagnostic round
+model DiagnosticRound {
+  id           String               @id @default(cuid())
+  diagnosticId String
+  sessionId    String               @unique
+  roundNumber  Int
+  roundType    String
+  status       InterviewSessionStatus @default(STARTED)
+
+  diagnostic Diagnostic        @relation(fields: [diagnosticId], references: [id], onDelete: Cascade)
+  session    InterviewSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([diagnosticId])
+  @@map("diagnostic_round")
+}
+
+// Generic report table (separated from sessions)
+model Report {
+  id           String       @id @default(cuid())
+  sessionId    String       @unique
+  reportJson   Json?
+  status       ReportStatus @default(PENDING)
+  errorMessage String?
+  shareToken   String?      @unique
+  startedAt    DateTime?
+  completedAt  DateTime?
+  failedAt     DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([status])
-  @@map("pre_diagnostic_session_report")
+  @@map("report")
 }

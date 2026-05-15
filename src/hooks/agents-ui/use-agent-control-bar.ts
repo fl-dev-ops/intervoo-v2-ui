@@ -1,14 +1,15 @@
-import { useCallback } from "react";
+import { useCallback } from 'react';
+import { Track } from 'livekit-client';
 import {
-  useLocalParticipantPermissions,
-  usePersistentUserChoices,
-  useSessionContext,
-  useTrackToggle,
-  Track,
   type TrackReference,
-} from "#/shared/livekit";
+  useTrackToggle,
+  usePersistentUserChoices,
+  useLocalParticipantPermissions,
+  useSessionContext,
+} from '@livekit/components-react';
 
 const trackSourceToProtocol = (source: Track.Source) => {
+  // NOTE: this mapping avoids importing the protocol package as that leads to a significant bundle size increase
   switch (source) {
     case Track.Source.Camera:
       return 1;
@@ -31,10 +32,13 @@ export interface PublishPermissions {
 export function usePublishPermissions(): PublishPermissions {
   const localPermissions = useLocalParticipantPermissions();
 
-  const canPublishSource = (source: Track.Source) =>
-    !!localPermissions?.canPublish &&
-    (localPermissions.canPublishSources.length === 0 ||
-      localPermissions.canPublishSources.includes(trackSourceToProtocol(source)));
+  const canPublishSource = (source: Track.Source) => {
+    return (
+      !!localPermissions?.canPublish &&
+      (localPermissions.canPublishSources.length === 0 ||
+        localPermissions.canPublishSources.includes(trackSourceToProtocol(source)))
+    );
+  };
 
   return {
     camera: canPublishSource(Track.Source.Camera),
@@ -85,22 +89,22 @@ export function useInputControls({
   });
 
   const {
-    saveAudioInputDeviceId,
     saveAudioInputEnabled,
-    saveVideoInputDeviceId,
     saveVideoInputEnabled,
+    saveAudioInputDeviceId,
+    saveVideoInputDeviceId,
   } = usePersistentUserChoices({ preventSave: !saveUserChoices });
 
   const handleAudioDeviceChange = useCallback(
     (deviceId: string) => {
-      saveAudioInputDeviceId(deviceId ?? "default");
+      saveAudioInputDeviceId(deviceId ?? 'default');
     },
     [saveAudioInputDeviceId],
   );
 
   const handleVideoDeviceChange = useCallback(
     (deviceId: string) => {
-      saveVideoInputDeviceId(deviceId ?? "default");
+      saveVideoInputDeviceId(deviceId ?? 'default');
     },
     [saveVideoInputDeviceId],
   );
@@ -108,17 +112,19 @@ export function useInputControls({
   const handleToggleCamera = useCallback(
     async (enabled?: boolean) => {
       if (screenShareToggle.enabled) {
-        void screenShareToggle.toggle(false);
+        screenShareToggle.toggle(false);
       }
       await cameraToggle.toggle(enabled);
+      // persist video input enabled preference
       saveVideoInputEnabled(!cameraToggle.enabled);
     },
-    [cameraToggle, saveVideoInputEnabled, screenShareToggle],
+    [cameraToggle, screenShareToggle, saveVideoInputEnabled],
   );
 
   const handleToggleMicrophone = useCallback(
     async (enabled?: boolean) => {
       await microphoneToggle.toggle(enabled);
+      // persist audio input enabled preference
       saveAudioInputEnabled(!microphoneToggle.enabled);
     },
     [microphoneToggle, saveAudioInputEnabled],
@@ -127,13 +133,12 @@ export function useInputControls({
   const handleToggleScreenShare = useCallback(
     async (enabled?: boolean) => {
       if (cameraToggle.enabled) {
-        void cameraToggle.toggle(false);
+        cameraToggle.toggle(false);
       }
       await screenShareToggle.toggle(enabled);
     },
     [cameraToggle, screenShareToggle],
   );
-
   const handleMicrophoneDeviceSelectError = useCallback(
     (error: Error) => onDeviceError?.({ source: Track.Source.Microphone, error }),
     [onDeviceError],

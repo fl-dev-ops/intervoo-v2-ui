@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { type AgentState } from "#/shared/livekit";
+import { useEffect, useRef, useState } from 'react';
+import { type AgentState } from '@livekit/components-react';
 
 function generateConnectingSequenceBar(columns: number): number[][] {
-  const sequence: number[][] = [];
+  const seq = [];
 
-  for (let x = 0; x < columns; x += 1) {
-    sequence.push([x, columns - 1 - x]);
+  for (let x = 0; x < columns; x++) {
+    seq.push([x, columns - 1 - x]);
   }
 
-  return sequence;
+  return seq;
 }
 
 function generateListeningSequenceBar(columns: number): number[][] {
@@ -25,24 +25,24 @@ export function useAgentAudioVisualizerBarAnimator(
 ): number[] {
   const [index, setIndex] = useState(0);
   const [sequence, setSequence] = useState<number[][]>([[]]);
-  const animationFrameId = useRef<number | null>(null);
 
   useEffect(() => {
-    if (state === "thinking") {
+    if (state === 'thinking') {
       setSequence(generateListeningSequenceBar(columns));
-    } else if (state === "connecting" || state === "initializing") {
-      setSequence(generateConnectingSequenceBar(columns));
-    } else if (state === "listening") {
+    } else if (state === 'connecting' || state === 'initializing') {
+      const sequence = [...generateConnectingSequenceBar(columns)];
+      setSequence(sequence);
+    } else if (state === 'listening') {
       setSequence(generateListeningSequenceBar(columns));
-    } else if (state === undefined || state === "speaking") {
-      setSequence([Array.from({ length: columns }, (_, sequenceIndex) => sequenceIndex)]);
+    } else if (state === undefined || state === 'speaking') {
+      setSequence([new Array(columns).fill(0).map((_, idx) => idx)]);
     } else {
       setSequence([[]]);
     }
-
     setIndex(0);
-  }, [columns, state]);
+  }, [state, columns]);
 
+  const animationFrameId = useRef<number | null>(null);
   useEffect(() => {
     let startTime = performance.now();
 
@@ -50,7 +50,7 @@ export function useAgentAudioVisualizerBarAnimator(
       const timeElapsed = time - startTime;
 
       if (timeElapsed >= interval) {
-        setIndex((previous) => previous + 1);
+        setIndex((prev) => prev + 1);
         startTime = time;
       }
 
@@ -64,7 +64,7 @@ export function useAgentAudioVisualizerBarAnimator(
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [columns, interval, sequence.length, state]);
+  }, [interval, columns, state, sequence.length]);
 
   return sequence[index % sequence.length] ?? [];
 }

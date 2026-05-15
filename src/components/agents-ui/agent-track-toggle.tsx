@@ -1,46 +1,45 @@
-import { Fragment, useMemo, useState, type ComponentProps } from "react";
-import { type VariantProps, cva } from "class-variance-authority";
-import { Track } from "#/shared/livekit";
+import { Fragment, type ComponentProps, useMemo, useState } from 'react';
+import { type VariantProps, cva } from 'class-variance-authority';
+import { Track } from 'livekit-client';
 import {
-  LoaderIcon,
   MicIcon,
   MicOffIcon,
-  MonitorOffIcon,
   MonitorUpIcon,
+  MonitorOffIcon,
+  LoaderIcon,
   VideoIcon,
   VideoOffIcon,
-} from "lucide-react";
+} from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
+import { cn } from '@/lib/utils';
 
-import { Toggle } from "@/components/ui/toggle";
-import { cn } from "@/lib/utils";
-
-export const agentTrackToggleVariants = cva(["size-9"], {
+export const agentTrackToggleVariants = cva(['size-9'], {
   variants: {
     size: {
-      default: "h-9 px-2 min-w-9",
-      sm: "h-8 px-1.5 min-w-8",
-      lg: "h-10 px-2.5 min-w-10",
+      default: 'h-9 px-2 min-w-9',
+      sm: 'h-8 px-1.5 min-w-8',
+      lg: 'h-10 px-2.5 min-w-10',
     },
     variant: {
       default: [
-        "data-[state=off]:bg-red-500/10 data-[state=off]:text-red-500 dark:data-[state=off]:bg-red-900/10 dark:data-[state=off]:text-red-900",
-        "data-[state=off]:hover:bg-red-500/15 dark:data-[state=off]:hover:bg-red-900/15",
-        "data-[state=off]:focus-visible:ring-red-500/30 dark:data-[state=off]:focus-visible:ring-red-900/30",
-        "data-[state=on]:bg-slate-100 data-[state=on]:text-slate-900 dark:data-[state=on]:bg-slate-800 dark:data-[state=on]:text-slate-50",
-        "data-[state=on]:hover:bg-slate-950/10 dark:data-[state=on]:hover:bg-slate-50/10",
+        'data-[state=off]:bg-destructive/10 data-[state=off]:text-destructive',
+        'data-[state=off]:hover:bg-destructive/15',
+        'data-[state=off]:focus-visible:ring-destructive/30',
+        'data-[state=on]:bg-accent data-[state=on]:text-accent-foreground',
+        'data-[state=on]:hover:bg-foreground/10',
       ],
       outline: [
-        "data-[state=off]:bg-red-500/10 data-[state=off]:text-red-500 data-[state=off]:border-red-500/20 dark:data-[state=off]:bg-red-900/10 dark:data-[state=off]:text-red-900 dark:data-[state=off]:border-red-900/20",
-        "data-[state=off]:hover:bg-red-500/15 data-[state=off]:hover:text-red-500 dark:data-[state=off]:hover:bg-red-900/15 dark:data-[state=off]:hover:text-red-900",
-        "data-[state=off]:focus:text-red-500 dark:data-[state=off]:focus:text-red-900",
-        "data-[state=off]:focus-visible:border-red-500 data-[state=off]:focus-visible:ring-red-500/30 dark:data-[state=off]:focus-visible:border-red-900 dark:data-[state=off]:focus-visible:ring-red-900/30",
-        "data-[state=on]:hover:bg-slate-950/10 data-[state=on]:hover:border-slate-950/12 dark:data-[state=on]:hover:bg-slate-50/10 dark:data-[state=on]:hover:border-slate-50/12",
-        "dark:data-[state=on]:hover:bg-slate-950/10 dark:dark:data-[state=on]:hover:bg-slate-50/10",
+        'data-[state=off]:bg-destructive/10 data-[state=off]:text-destructive data-[state=off]:border-destructive/20',
+        'data-[state=off]:hover:bg-destructive/15 data-[state=off]:hover:text-destructive',
+        'data-[state=off]:focus:text-destructive',
+        'data-[state=off]:focus-visible:border-destructive data-[state=off]:focus-visible:ring-destructive/30',
+        'data-[state=on]:hover:bg-foreground/10 data-[state=on]:hover:border-foreground/12',
+        'dark:data-[state=on]:hover:bg-foreground/10',
       ],
     },
   },
   defaultVariants: {
-    variant: "default",
+    variant: 'default',
   },
 });
 
@@ -61,20 +60,64 @@ function getSourceIcon(source: Track.Source, enabled: boolean, pending = false) 
   }
 }
 
+/**
+ * Props for the AgentTrackToggle component.
+ */
 export type AgentTrackToggleProps = VariantProps<typeof agentTrackToggleVariants> &
-  ComponentProps<"button"> & {
-    size?: "sm" | "default" | "lg";
-    variant?: "default" | "outline";
-    source: "camera" | "microphone" | "screen_share";
+  Omit<ComponentProps<'button'>, 'value'> & {
+    /**
+     * The size of the toggle.
+     */
+    size?: 'sm' | 'default' | 'lg';
+    /**
+     * The variant of the toggle.
+     * @defaultValue 'default'
+     */
+    variant?: 'default' | 'outline';
+    /**
+     * The track source to toggle (Microphone, Camera, or ScreenShare).
+     */
+    source: 'camera' | 'microphone' | 'screen_share';
+    /**
+     * Whether the toggle is in a pending/loading state.
+     * When true, displays a loading spinner icon.
+     * @defaultValue false
+     */
     pending?: boolean;
+    /**
+     * Whether the toggle is currently pressed/enabled.
+     * @defaultValue false
+     */
     pressed?: boolean;
+    /**
+     * The default pressed state when uncontrolled.
+     * @defaultValue false
+     */
     defaultPressed?: boolean;
+    /**
+     * Callback fired when the pressed state changes.
+     */
     onPressedChange?: (pressed: boolean) => void;
   };
 
+/**
+ * A toggle button for controlling track publishing state.
+ * Displays appropriate icons based on the track source and state.
+ *
+ * @extends ComponentProps<'button'>
+ *
+ * @example
+ * ```tsx
+ * <AgentTrackToggle
+ *   source={Track.Source.Microphone}
+ *   pressed={isMicEnabled}
+ *   onPressedChange={(pressed) => setMicEnabled(pressed)}
+ * />
+ * ```
+ */
 export function AgentTrackToggle({
-  size = "default",
-  variant = "default",
+  size = 'default',
+  variant = 'default',
   source,
   pending = false,
   pressed,
@@ -90,7 +133,6 @@ export function AgentTrackToggle({
     [isControlled, pressed, uncontrolledPressed],
   );
   const IconComponent = getSourceIcon(source as Track.Source, resolvedPressed, pending);
-
   const handlePressedChange = (nextPressed: boolean) => {
     if (!isControlled) {
       setUncontrolledPressed(nextPressed);
@@ -109,13 +151,13 @@ export function AgentTrackToggle({
       className={cn(
         agentTrackToggleVariants({
           size,
-          variant: variant ?? "default",
+          variant: variant ?? 'default',
           className,
         }),
       )}
       {...props}
     >
-      <IconComponent className={cn(pending && "animate-spin")} />
+      <IconComponent className={cn(pending && 'animate-spin')} />
       {props.children}
     </Toggle>
   );
