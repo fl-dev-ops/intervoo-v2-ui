@@ -207,7 +207,7 @@ export function PrediagnosticsSessionView({
     }
 
     return (
-      <div className="flex h-svh items-center justify-center bg-[#1B1238] px-4">
+      <div className="flex min-h-dvh items-center justify-center bg-[#1B1238] px-4">
         <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-4 text-center">
           <p className="text-lg font-medium text-white">Connection lost</p>
           <p className="text-sm text-white/60">
@@ -235,7 +235,7 @@ export function PrediagnosticsSessionView({
   }
 
   return (
-    <main className="relative flex h-svh w-full flex-col overflow-hidden bg-[#1B1238]">
+    <main className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#1B1238]">
       {/* Dot pattern background */}
       <div
         className="pointer-events-none absolute inset-0 opacity-50"

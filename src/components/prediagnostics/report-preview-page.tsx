@@ -264,7 +264,7 @@ function PrediagnosticsReportPreview({
   return (
     <div className="min-h-dvh bg-lavender">
       <div className="mx-auto w-full max-w-md md:max-w-lg">
-        <div className="p-5 sm:p-6">
+        <div className="p-5 md:p-6">
           <div className="rounded-xl px-5 pt-4 text-center">
             <p className="text-2xl font-medium text-foreground">
               Hi {displayName}

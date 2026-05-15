@@ -156,7 +156,7 @@ export default function LoginPage() {
               Intervoo.ai
             </p>
           </a>
-          <span className="text-center text-sm text-gray-400 w-xs leading-6">
+          <span className="text-center text-sm text-gray-400 max-w-xs mx-auto leading-6">
             Speak better. Interview better. <br /> With India-trained voice AI.
           </span>
         </div>

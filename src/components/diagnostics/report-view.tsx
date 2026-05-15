@@ -134,13 +134,13 @@ export function ReportView(props: ReportViewProps) {
 
   return (
     <>
-      <section className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <section className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
         <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Interview readiness score
         </h2>
 
         <div className="mt-5 rounded-xl border border-border bg-input/30 p-4">
-          <div className="grid gap-4 lg:grid-cols-[1fr_13rem]">
+          <div className="grid gap-4 md:grid-cols-[1fr_13rem]">
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <h3 className="text-lg font-semibold tracking-tight text-foreground">
@@ -159,7 +159,7 @@ export function ReportView(props: ReportViewProps) {
                 </span>
               </div>
             </div>
-            <div className="text-left lg:text-right">
+            <div className="text-left md:text-right">
               <p className="text-sm text-muted-foreground">
                 Interview Readiness Score
               </p>
@@ -182,7 +182,7 @@ export function ReportView(props: ReportViewProps) {
         <h3 className="mt-6 text-base font-semibold text-foreground">
           Section wise interview performance
         </h3>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
           <PerformancePill
             label="Thinking"
             tone={getScoreTone(assessment.thinking_avg)}

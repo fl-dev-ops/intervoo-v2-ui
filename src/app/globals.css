@@ -149,6 +149,21 @@
     }
 }
 
+/* Focus rings for interactive elements */
+@layer base {
+    button:focus-visible,
+    [role="button"]:focus-visible,
+    a:focus-visible {
+        @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+    }
+
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+        @apply outline-none ring-2 ring-primary ring-offset-1 ring-offset-background;
+    }
+}
+
 @keyframes waveform {
     0%,
     100% {
@@ -174,6 +189,36 @@
 
 :root {
     overscroll-behavior: none;
+}
+
+/* Typography scale */
+.page-title {
+    @apply text-2xl font-bold tracking-tight;
+}
+
+.section-title {
+    @apply text-xl font-semibold tracking-tight;
+}
+
+.body-text {
+    @apply text-sm leading-6;
+}
+
+.caption-text {
+    @apply text-xs text-muted-foreground;
+}
+
+/* Page layout */
+.page-container {
+    @apply mx-auto w-full px-4 py-6 md:px-0 md:py-10;
+}
+
+.content-gap {
+    @apply space-y-6;
+}
+
+.card-padding {
+    @apply p-4 md:p-6;
 }
 
 .gauge-component-arc-tooltip {

@@ -19,7 +19,7 @@ export default async function PrediagnosticsSessionPage({
 
   if (!token || !url || !room || !session) {
     return (
-      <div className="flex h-svh items-center justify-center bg-background">
+      <div className="flex min-h-dvh items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-lg font-medium">Invalid session</p>
           <p className="mt-1 text-sm text-muted-foreground">

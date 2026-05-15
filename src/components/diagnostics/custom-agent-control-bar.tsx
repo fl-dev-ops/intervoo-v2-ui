@@ -141,7 +141,7 @@ export function CustomAgentControlBar({
               cameraToggle.enabled ? "Turn camera off" : "Turn camera on"
             }
             onClick={() => void cameraToggle.toggle()}
-            className="h-12.5 w-12.5 rounded-full border-white/15 bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-50"
+            className="h-12 w-12 rounded-full border-white/15 bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-50"
           >
             {cameraToggle.enabled ? <Video /> : <VideoOff />}
           </Button>
@@ -160,7 +160,7 @@ export function CustomAgentControlBar({
                 : "Turn microphone on"
             }
             onClick={() => void microphoneToggle.toggle()}
-            className="h-12.5 w-12.5 rounded-full border-white/15 bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-50"
+            className="h-12 w-12 rounded-full border-white/15 bg-white/10 p-2 text-white hover:bg-white/20 disabled:opacity-50"
           >
             {microphoneToggle.enabled ? <Mic /> : <MicOff />}
           </Button>
@@ -185,7 +185,7 @@ export function CustomAgentControlBar({
             aria-label="End call"
             onClick={handleClick}
             className={
-              "rounded-full p-2 h-12.5 w-12.5 bg-destructive/75 text-white"
+              "rounded-full p-2 h-12 w-12 bg-destructive/75 text-white"
             }
           >
             <PhoneOffIcon size={"10"} />

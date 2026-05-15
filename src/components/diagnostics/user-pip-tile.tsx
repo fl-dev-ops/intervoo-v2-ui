@@ -31,7 +31,7 @@ export function UserPipTile({
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-black/50 shadow-xl shadow-black/40 backdrop-blur-md">
-      <div className="h-[140px] w-[180px] sm:h-[160px] sm:w-[200px]">
+      <div className="h-[140px] w-[180px] md:h-[160px] md:w-[200px]">
         {!isCameraOff && videoTrack ? (
           <video
             ref={videoRef}

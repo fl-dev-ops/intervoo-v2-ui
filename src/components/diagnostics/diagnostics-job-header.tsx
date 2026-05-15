@@ -19,7 +19,7 @@ export function DiagnosticsJobHeader({
         <div className="col-span-1 md:col-span-6 flex-1 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+              <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
                 {bandConfig?.title ?? "SDE at Product companies"}
               </h1>
               <p className="mt-2 max-w-xl text-sm text-muted-foreground leading-6">

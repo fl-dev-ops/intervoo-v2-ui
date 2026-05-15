@@ -83,11 +83,11 @@ export function RoundCompleteClient({
     : "/diagnostics/rounds";
 
   return (
-    <main className="relative grid min-h-dvh overflow-hidden bg-lavender px-6 py-10 text-foreground">
+    <main className="relative grid min-h-dvh overflow-hidden bg-lavender text-foreground page-container">
       <section className="relative z-10 m-auto w-full max-w-md">
         <div className="overflow-hidden rounded-[1.6rem] border border-black/10 bg-white shadow-[0_18px_60px_rgba(21,18,35,0.08)]">
           <div className="px-8 pb-8 pt-10 text-center">
-            <div className="relative mx-auto h-53.5 w-51.5">
+            <div className="relative mx-auto h-52 w-52">
               <img
                 alt="Round completed"
                 className="h-full w-full object-contain"

@@ -237,7 +237,7 @@ function SessionLayout({
 
   return (
     <motion.div
-      className="relative flex h-svh flex-col overflow-hidden bg-[#1B1238]"
+      className="relative flex min-h-dvh flex-col overflow-hidden bg-[#1B1238]"
       variants={PAGE_SEQUENCE}
       initial="hidden"
       animate="visible"

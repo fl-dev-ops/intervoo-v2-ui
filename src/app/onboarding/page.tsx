@@ -210,7 +210,7 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-3 md:p-10">
+      <main className="flex min-h-dvh items-center justify-center p-3 md:p-10">
         <div className="flex flex-col items-center gap-3">
           <Spinner className="size-8 text-white" />
           <p className="text-sm text-white">Loading your profile...</p>
