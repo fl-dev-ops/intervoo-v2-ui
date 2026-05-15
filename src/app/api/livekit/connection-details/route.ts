@@ -21,7 +21,7 @@ import {
 } from "@/lib/livekit";
 import { getUserStage } from "@/lib/progress";
 
-const LIVEKIT_AGENT_NAME = "intervoo-agent";
+const LIVEKIT_AGENT_NAME = "intervoo-agent-hs";
 const PREDIAGNOSTIC_AGENT_ID = "pre_screen";
 const DIAGNOSTIC_AGENT_ID = "diagnostic";
 const COACH_AGENT_DETAILS = {
@@ -291,16 +291,14 @@ async function createDiagnosticConnectionDetails({
       Date.now() - new Date(existingRound.session.startedAt).getTime() >
         10 * 60 * 1000;
 
-    const isReportFailed =
-      existingRound.session?.report?.status === "FAILED";
+    const isReportFailed = existingRound.session?.report?.status === "FAILED";
 
     const isReportStuck = Boolean(
       (existingRound.session?.report?.status === "PENDING" ||
         existingRound.session?.report?.status === "PROCESSING") &&
-        existingRound.session?.report?.startedAt &&
-        Date.now() -
-          new Date(existingRound.session.report.startedAt).getTime() >
-          15 * 60 * 1000,
+      existingRound.session?.report?.startedAt &&
+      Date.now() - new Date(existingRound.session.report.startedAt).getTime() >
+        15 * 60 * 1000,
     );
 
     const isFailed = isSessionStuck || isReportFailed || isReportStuck;
