@@ -1,5 +1,6 @@
 import { SessionPageClient } from "@/components/prediagnostics/session-client";
 import { requirePageStage } from "@/lib/stage-guards";
+import { redirect } from "next/navigation";
 
 export default async function PrediagnosticsSessionPage({
   searchParams,
@@ -18,16 +19,7 @@ export default async function PrediagnosticsSessionPage({
   await requirePageStage(["PREDIAGNOSTICS"]);
 
   if (!token || !url || !room || !session) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-background">
-        <div className="text-center">
-          <p className="text-lg font-medium">Invalid session</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Please join from the pre-diagnostics page.
-          </p>
-        </div>
-      </div>
-    );
+    redirect("/prediagnostics");
   }
 
   return (

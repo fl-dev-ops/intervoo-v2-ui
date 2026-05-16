@@ -235,7 +235,7 @@ export function PrediagnosticsSessionView({
   }
 
   return (
-    <main className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#1B1238]">
+    <main className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-[#1B1238]">
       {/* Dot pattern background */}
       <div
         className="pointer-events-none absolute inset-0 opacity-50"
@@ -275,7 +275,7 @@ export function PrediagnosticsSessionView({
         )}
 
         <AgentChatTranscript
-          className="min-h-0 w-full flex-1 overflow-hidden text-white"
+          className="min-h-0 w-full flex-1 overflow-y-auto text-white"
           agentState={agent.state}
           messages={sessionMessages}
         />
