@@ -44,6 +44,12 @@ export async function POST(request: NextRequest) {
       include: { report: true },
     });
 
+    console.info("[diagnostics] report webhook request", {
+      foundSession: Boolean(session),
+      roomName: roomName ?? null,
+      sessionId: session?.id ?? sessionId ?? null,
+    });
+
     if (!session) {
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
@@ -57,8 +63,7 @@ export async function POST(request: NextRequest) {
           transcriptUrl: body.transcript_url || undefined,
           videoUrl: body.video_url || undefined,
           transcript: body.transcript || undefined,
-          status:
-            session.status === "REPORT_READY" ? "REPORT_READY" : "COMPLETED",
+          status: "COMPLETED",
           endedAt: session.endedAt ?? new Date(),
         },
       });
@@ -76,6 +81,10 @@ export async function POST(request: NextRequest) {
     try {
       const baseUrl = process.env.WEBHOOK_BASE_URL || request.nextUrl.origin;
       await generateSessionReport({ baseUrl, sessionId: session.id });
+      console.info("[diagnostics] report webhook generated report", {
+        sessionId: session.id,
+        sessionType: session.type,
+      });
     } catch (generationError) {
       const message =
         generationError instanceof Error

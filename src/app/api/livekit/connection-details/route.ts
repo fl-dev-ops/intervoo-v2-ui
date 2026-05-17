@@ -12,6 +12,11 @@ import {
   getRoundNumber,
 } from "@/lib/diagnostics/rounds-config";
 import {
+  canStartDiagnosticRound,
+  countCompletedDiagnosticRounds,
+  getDiagnosticRoundRecoveryState,
+} from "@/lib/diagnostics/rules";
+import {
   buildDiagnosticRoomName,
   buildPreDiagnosticRoomName,
   createAgentDispatchClient,
@@ -67,12 +72,24 @@ export async function POST(request: NextRequest) {
     const user = await getSessionCreationUser(session.user.id);
     const stage = await getUserStage(session.user.id);
 
+    console.info("[diagnostics] connection-details request", {
+      requestedRoundId: body.round_id ?? null,
+      sessionType,
+      stage,
+      userId: session.user.id,
+    });
+
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     if (sessionType === "DIAGNOSTIC_ROUND") {
       if (stage !== "DIAGNOSTICS") {
+        console.info("[diagnostics] diagnostic connection rejected", {
+          reason: "invalid_stage",
+          stage,
+          userId: session.user.id,
+        });
         return NextResponse.json(
           { error: "Diagnostics are not available for this user stage" },
           { status: 409 },
@@ -250,6 +267,11 @@ async function createDiagnosticConnectionDetails({
   const roundId = typeof body.round_id === "string" ? body.round_id : null;
 
   if (!roundId || !getRoundConfig(roundId)) {
+    console.info("[diagnostics] diagnostic connection rejected", {
+      reason: "invalid_round_id",
+      roundId,
+      userId: user.id,
+    });
     return NextResponse.json({ error: "Invalid round ID" }, { status: 400 });
   }
 
@@ -266,6 +288,13 @@ async function createDiagnosticConnectionDetails({
   const band = parseDiagnosticBand(diagnostic?.selectedBand);
 
   if (!diagnostic || !band) {
+    console.info("[diagnostics] diagnostic connection rejected", {
+      diagnosticId: diagnostic?.id ?? null,
+      reason: "missing_diagnostic_or_band",
+      roundId,
+      selectedBand: diagnostic?.selectedBand ?? null,
+      userId: user.id,
+    });
     return NextResponse.json(
       { error: "Select a diagnostic band before starting a round" },
       { status: 409 },
@@ -276,6 +305,13 @@ async function createDiagnosticConnectionDetails({
   const selectedJob = getDiagnosticJobOption(jobOptions, band);
 
   if (!selectedJob) {
+    console.info("[diagnostics] diagnostic connection rejected", {
+      band,
+      diagnosticId: diagnostic.id,
+      reason: "missing_selected_job",
+      roundId,
+      userId: user.id,
+    });
     return NextResponse.json(
       { error: "Selected diagnostic job was not found" },
       { status: 409 },
@@ -285,25 +321,34 @@ async function createDiagnosticConnectionDetails({
   const existingRound = diagnostic.rounds.find((r) => r.roundType === roundId);
 
   if (existingRound) {
-    const isSessionStuck =
-      existingRound.status === "STARTED" &&
-      existingRound.session?.startedAt &&
-      Date.now() - new Date(existingRound.session.startedAt).getTime() >
-        10 * 60 * 1000;
+    const recoveryState = getDiagnosticRoundRecoveryState({
+      reportStartedAt: existingRound.session?.report?.startedAt ?? null,
+      reportStatus: existingRound.session?.report?.status ?? null,
+      roundType: existingRound.roundType,
+      startedAt: existingRound.session?.startedAt ?? null,
+      status: existingRound.status,
+    });
 
-    const isReportFailed = existingRound.session?.report?.status === "FAILED";
+    console.info("[diagnostics] existing round check", {
+      diagnosticId: diagnostic.id,
+      existingRoundStatus: existingRound.status,
+      isFailed: recoveryState.isRecoverable,
+      isReportFailed: recoveryState.isReportFailed,
+      isReportStuck: recoveryState.isReportStuck,
+      isSessionStuck: recoveryState.isSessionStuck,
+      reportStatus: existingRound.session?.report?.status ?? null,
+      roundId,
+      sessionId: existingRound.sessionId,
+      userId: user.id,
+    });
 
-    const isReportStuck = Boolean(
-      (existingRound.session?.report?.status === "PENDING" ||
-        existingRound.session?.report?.status === "PROCESSING") &&
-      existingRound.session?.report?.startedAt &&
-      Date.now() - new Date(existingRound.session.report.startedAt).getTime() >
-        15 * 60 * 1000,
-    );
-
-    const isFailed = isSessionStuck || isReportFailed || isReportStuck;
-
-    if (!isFailed) {
+    if (!recoveryState.isRecoverable) {
+      console.info("[diagnostics] diagnostic connection rejected", {
+        reason: "round_already_started",
+        roundId,
+        sessionId: existingRound.sessionId,
+        userId: user.id,
+      });
       return NextResponse.json(
         { error: "Round already started" },
         { status: 409 },
@@ -314,14 +359,29 @@ async function createDiagnosticConnectionDetails({
     await prisma.interviewSession.delete({
       where: { id: existingRound.sessionId },
     });
+    console.info("[diagnostics] deleted stuck diagnostic session", {
+      roundId,
+      sessionId: existingRound.sessionId,
+      userId: user.id,
+    });
   }
 
-  const completedCount = diagnostic.rounds.filter(
-    (round) => round.status === "COMPLETED" || round.status === "REPORT_READY",
-  ).length;
+  const completedCount = countCompletedDiagnosticRounds(diagnostic.rounds);
   const requestedRoundNumber = getRoundNumber(roundId);
 
-  if (requestedRoundNumber !== completedCount + 1) {
+  if (
+    !canStartDiagnosticRound({
+      completedRoundCount: completedCount,
+      requestedRoundNumber,
+    })
+  ) {
+    console.info("[diagnostics] diagnostic connection rejected", {
+      completedCount,
+      reason: "round_sequence_violation",
+      requestedRoundNumber,
+      roundId,
+      userId: user.id,
+    });
     return NextResponse.json(
       { error: "Complete the previous round before starting this one" },
       { status: 409 },
@@ -355,6 +415,18 @@ async function createDiagnosticConnectionDetails({
   await prisma.diagnostic.update({
     where: { id: diagnostic.id },
     data: { currentRound: requestedRoundNumber },
+  });
+
+  console.info("[diagnostics] diagnostic session created", {
+    completedCount,
+    diagnosticId: diagnostic.id,
+    roomName,
+    roundId,
+    roundNumber: requestedRoundNumber,
+    selectedBand: band,
+    selectedJob: selectedJob.title,
+    sessionId: dbSession.id,
+    userId: user.id,
   });
 
   const appUrl = process.env.WEBHOOK_BASE_URL || request.nextUrl.origin;
@@ -429,6 +501,14 @@ async function createDiagnosticConnectionDetails({
   const agentDispatchClient = createAgentDispatchClient();
   await agentDispatchClient.createDispatch(roomName, agentName, {
     metadata: JSON.stringify(roomMetadata),
+  });
+
+  console.info("[diagnostics] livekit agent dispatched", {
+    agentName,
+    roomName,
+    roundId,
+    sessionId: dbSession.id,
+    userId: user.id,
   });
 
   const participantToken = await createParticipantToken({

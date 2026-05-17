@@ -1,8 +1,8 @@
 "use client";
 
-import confetti from "canvas-confetti";
-import { CheckIcon, Loader2, MessageCircle, Play } from "lucide-react";
 import { IconBrandWhatsapp } from "@tabler/icons-react";
+import confetti from "canvas-confetti";
+import { CheckIcon, Loader2, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -27,6 +27,32 @@ export function RoundCompleteClient({
 }: RoundCompleteClientProps) {
   const router = useRouter();
   const isFinalRound = !nextRound;
+  const primaryLabel = nextRound
+    ? canStartNext
+      ? `Start next Round ${nextRound.roundNumber}`
+      : "Finalizing round..."
+    : "Go to interview rounds";
+  const primaryHref = nextRound
+    ? `/diagnostics/prejoin?round=${nextRound.id}`
+    : "/diagnostics/rounds";
+
+  useEffect(() => {
+    console.info("[diagnostics] round complete client state", {
+      canStartNext,
+      completedRoundTitle,
+      isFinalRound,
+      nextRound,
+      primaryHref,
+      primaryLabel,
+    });
+  }, [
+    canStartNext,
+    completedRoundTitle,
+    isFinalRound,
+    nextRound,
+    primaryHref,
+    primaryLabel,
+  ]);
 
   useEffect(() => {
     const end = Date.now() + 3 * 1000;
@@ -72,15 +98,6 @@ export function RoundCompleteClient({
 
     return () => window.clearInterval(intervalId);
   }, [canStartNext, nextRound, router]);
-
-  const primaryLabel = nextRound
-    ? canStartNext
-      ? `Start next Round ${nextRound.roundNumber}`
-      : "Finalizing round..."
-    : "Go to interview rounds";
-  const primaryHref = nextRound
-    ? `/diagnostics/prejoin?round=${nextRound.id}`
-    : "/diagnostics/rounds";
 
   return (
     <main className="relative grid min-h-dvh overflow-hidden bg-lavender text-foreground page-container">

@@ -1,11 +1,12 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { PublicDiagnosticReport } from "@/components/diagnostics/public-diagnostic-report";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getDiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import { isDiagnosticReportReady } from "@/lib/diagnostics/rules";
 import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
-import { auth } from "@/lib/auth";
 
 export default async function PublicDiagnosticReportPage({
   params,
@@ -67,7 +68,7 @@ export default async function PublicDiagnosticReportPage({
     );
     const report = dbRound?.session?.report ?? null;
 
-    if (report?.status === "READY" && report.reportJson) {
+    if (isDiagnosticReportReady(report?.status) && report.reportJson) {
       const hydrated = toHydratedDiagnosticReport(report.reportJson);
       if (hydrated) {
         return {

@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { isDiagnosticReportReady } from "@/lib/diagnostics/rules";
 import { getUserStage } from "@/lib/progress";
 import { generateSessionReport } from "@/lib/report-generation/session-report";
 
@@ -16,6 +17,10 @@ export async function POST(request: NextRequest) {
     }
 
     const stage = await getUserStage(session.user.id);
+    console.info("[diagnostics] manual report request", {
+      stage,
+      userId: session.user.id,
+    });
     if (stage !== "DIAGNOSTICS" && stage !== "COMPLETED") {
       return NextResponse.json(
         { error: "Diagnostics are not available for this user stage" },
@@ -45,7 +50,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (interviewSession.report?.status === "READY") {
+    if (isDiagnosticReportReady(interviewSession.report?.status)) {
       return NextResponse.json({
         status: "READY",
         shareToken: interviewSession.report.shareToken,
@@ -56,6 +61,12 @@ export async function POST(request: NextRequest) {
       const result = await generateSessionReport({
         baseUrl: process.env.WEBHOOK_BASE_URL || request.nextUrl.origin,
         sessionId: interviewSession.id,
+      });
+
+      console.info("[diagnostics] manual report result", {
+        result,
+        sessionId: interviewSession.id,
+        userId: session.user.id,
       });
 
       return NextResponse.json(result);

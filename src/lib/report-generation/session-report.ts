@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { isDiagnosticReportReady } from "@/lib/diagnostics/rules";
 import { updateUserStage } from "@/lib/progress";
 import { createUniquePublicReportToken } from "@/lib/report-share";
 import { buildPublicReportUrl } from "@/lib/share-token";
@@ -22,7 +23,18 @@ export async function generateSessionReport({
     throw new Error("Session not found");
   }
 
-  if (session.report?.status === "READY" && session.report.reportJson) {
+  console.info("[diagnostics] generate session report state", {
+    currentReportStatus: session.report?.status ?? null,
+    sessionId,
+    sessionStatus: session.status,
+    sessionType: session.type,
+    userId: session.userId,
+  });
+
+  if (
+    isDiagnosticReportReady(session.report?.status) &&
+    session.report.reportJson
+  ) {
     const shareToken =
       session.report.shareToken ?? (await createUniquePublicReportToken());
 
@@ -37,6 +49,11 @@ export async function generateSessionReport({
   }
 
   if (session.report?.status === "PROCESSING") {
+    console.info("[diagnostics] generate session report skipped", {
+      reason: "already_processing",
+      sessionId,
+      shareToken: session.report.shareToken,
+    });
     return {
       shareToken: session.report.shareToken,
       status: "PROCESSING" as const,
@@ -84,6 +101,12 @@ export async function generateSessionReport({
       },
     });
 
+    console.info("[diagnostics] generate session report failed", {
+      error: message,
+      sessionId,
+      sessionType: session.type,
+    });
+
     throw generationError;
   }
 
@@ -106,13 +129,13 @@ export async function generateSessionReport({
 
   await prisma.interviewSession.update({
     where: { id: session.id },
-    data: { status: "REPORT_READY" },
+    data: { status: "COMPLETED" },
   });
 
   if (session.type === "DIAGNOSTIC_ROUND") {
     await prisma.diagnosticRound.updateMany({
       where: { sessionId: session.id },
-      data: { status: "REPORT_READY" },
+      data: { status: "COMPLETED" },
     });
   }
 
@@ -126,6 +149,13 @@ export async function generateSessionReport({
 
   await sendReportLink({
     baseUrl,
+    sessionType: session.type,
+    shareToken,
+    userId: session.userId,
+  });
+
+  console.info("[diagnostics] generate session report ready", {
+    sessionId,
     sessionType: session.type,
     shareToken,
     userId: session.userId,

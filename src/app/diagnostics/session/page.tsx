@@ -17,7 +17,7 @@ export default async function DiagnosticsSessionPage({
     coach?: string;
   }>;
 }) {
-    const {
+  const {
     token,
     server_url: serverUrl,
     room_name: roomName,
@@ -31,8 +31,26 @@ export default async function DiagnosticsSessionPage({
   await requirePageStage(["DIAGNOSTICS"]);
 
   if (!token || !serverUrl || !roomName || !sessionId) {
+    console.info("[diagnostics] redirect", {
+      from: "/diagnostics/session",
+      hasRoomName: Boolean(roomName),
+      hasServerUrl: Boolean(serverUrl),
+      hasSessionId: Boolean(sessionId),
+      hasToken: Boolean(token),
+      reason: "missing_connection_params",
+      to: "/diagnostics/rounds",
+    });
     redirect("/diagnostics/rounds");
   }
+
+  console.info("[diagnostics] render session", {
+    coach: coach ?? null,
+    companies: companies?.split(",") ?? [],
+    jobTitle: jobTitle ?? null,
+    roomName,
+    roundId: roundId ?? null,
+    sessionId,
+  });
 
   return (
     <DiagnosticsAgentSession

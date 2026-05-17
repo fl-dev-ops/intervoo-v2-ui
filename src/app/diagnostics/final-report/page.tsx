@@ -7,6 +7,7 @@ import {
   ensureFinalDiagnosticShareToken,
 } from "@/lib/diagnostics/final-report";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import { isDiagnosticReportReady } from "@/lib/diagnostics/rules";
 import { updateUserStage } from "@/lib/progress";
 import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
 import { requirePageStage } from "@/lib/stage-guards";
@@ -24,6 +25,10 @@ export default async function DiagnosticsFinalReportPage() {
   });
 
   if (!diagnostic) {
+    console.info("[diagnostics] final report unavailable", {
+      reason: "missing_diagnostic",
+      userId: user.id,
+    });
     return (
       <DiagnosticReportPreviewPage
         showActions={false}
@@ -36,6 +41,19 @@ export default async function DiagnosticsFinalReportPage() {
   }
 
   const report = deriveFinalDiagnosticReport(diagnostic.rounds);
+
+  console.info("[diagnostics] final report state", {
+    diagnosticId: diagnostic.id,
+    reportReady: Boolean(report),
+    rounds: diagnostic.rounds.map((round) => ({
+      reportStatus: round.session?.report?.status ?? null,
+      roundNumber: round.roundNumber,
+      roundType: round.roundType,
+      status: round.status,
+    })),
+    stage,
+    userId: user.id,
+  });
 
   if (!report) {
     return (
@@ -68,7 +86,10 @@ export default async function DiagnosticsFinalReportPage() {
     );
     const roundReport = dbRound?.session?.report ?? null;
 
-    if (roundReport?.status === "READY" && roundReport.reportJson) {
+    if (
+      isDiagnosticReportReady(roundReport?.status) &&
+      roundReport.reportJson
+    ) {
       const hydrated = toHydratedDiagnosticReport(roundReport.reportJson);
       if (hydrated) {
         return {

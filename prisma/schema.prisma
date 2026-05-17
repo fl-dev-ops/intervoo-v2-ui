@@ -23,7 +23,6 @@ enum InterviewSessionType {
 enum InterviewSessionStatus {
   STARTED
   COMPLETED
-  REPORT_READY
 }
 
 enum DiagnosticStatus {

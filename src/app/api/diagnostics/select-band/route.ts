@@ -7,6 +7,7 @@ import {
   getDiagnosticJobOption,
   parseDiagnosticBand,
 } from "@/lib/diagnostics/job-options";
+import { canChangeDiagnosticBand } from "@/lib/diagnostics/rules";
 import { getUserStage } from "@/lib/progress";
 
 export async function POST(request: NextRequest) {
@@ -20,7 +21,16 @@ export async function POST(request: NextRequest) {
     }
 
     const stage = await getUserStage(session.user.id);
+    console.info("[diagnostics] select-band request", {
+      stage,
+      userId: session.user.id,
+    });
     if (stage !== "DIAGNOSTICS") {
+      console.info("[diagnostics] select-band rejected", {
+        reason: "invalid_stage",
+        stage,
+        userId: session.user.id,
+      });
       return NextResponse.json(
         { error: "Diagnostics are not available for this user stage" },
         { status: 409 },
@@ -31,6 +41,11 @@ export async function POST(request: NextRequest) {
     const band = parseDiagnosticBand(body.band);
 
     if (!band) {
+      console.info("[diagnostics] select-band rejected", {
+        rawBand: body.band,
+        reason: "invalid_band",
+        userId: session.user.id,
+      });
       return NextResponse.json(
         { error: "Invalid diagnostic band" },
         { status: 400 },
@@ -41,6 +56,11 @@ export async function POST(request: NextRequest) {
     const selectedJob = getDiagnosticJobOption(jobOptions, band);
 
     if (!selectedJob) {
+      console.info("[diagnostics] select-band rejected", {
+        band,
+        reason: "missing_selected_job",
+        userId: session.user.id,
+      });
       return NextResponse.json(
         { error: "Selected diagnostic job was not found" },
         { status: 400 },
@@ -49,13 +69,23 @@ export async function POST(request: NextRequest) {
 
     const existingDiagnostic = await prisma.diagnostic.findFirst({
       where: { userId: session.user.id },
-      include: { rounds: { select: { id: true } } },
+      include: {
+        rounds: { include: { session: { include: { report: true } } } },
+      },
       orderBy: { createdAt: "desc" },
     });
 
-    if (existingDiagnostic?.rounds.length) {
+    const existingRoundCount = existingDiagnostic?.rounds.length ?? 0;
+
+    if (!canChangeDiagnosticBand(existingDiagnostic?.rounds ?? [])) {
+      console.info("[diagnostics] select-band rejected", {
+        diagnosticId: existingDiagnostic?.id ?? null,
+        reason: "completed_round_report_exists",
+        roundCount: existingRoundCount,
+        userId: session.user.id,
+      });
       return NextResponse.json(
-        { error: "Diagnostic band cannot be changed after a round starts" },
+        { error: "Diagnostic band cannot be changed after a completed report" },
         { status: 409 },
       );
     }
@@ -75,6 +105,13 @@ export async function POST(request: NextRequest) {
             selectedJob: selectedJob as object,
           },
         });
+
+    console.info("[diagnostics] select-band saved", {
+      band,
+      diagnosticId: diagnostic.id,
+      selectedJob: selectedJob.title,
+      userId: session.user.id,
+    });
 
     return NextResponse.json({
       diagnosticId: diagnostic.id,

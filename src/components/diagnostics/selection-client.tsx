@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DiagnosticsPageHeader } from "@/components/diagnostics/diagnostics-page-header";
 import { Button } from "@/components/ui/button";
 import {
   type DiagnosticBand,
@@ -22,6 +23,7 @@ type DiagnosticsSelectionClientProps = {
   options: DiagnosticJobOption[];
   dreamRole?: string | null;
   targetSalary?: string | null;
+  user: { email: string | null; name: string | null };
 };
 
 export function DiagnosticsSelectionClient({
@@ -29,6 +31,7 @@ export function DiagnosticsSelectionClient({
   options,
   dreamRole,
   targetSalary,
+  user,
 }: DiagnosticsSelectionClientProps) {
   const router = useRouter();
   const defaultBand =
@@ -62,6 +65,10 @@ export function DiagnosticsSelectionClient({
 
     setError(null);
     setIsSubmitting(true);
+    console.info("[diagnostics] selection start clicked", {
+      selectedBand: selectedOption.id,
+      selectedJob: selectedOption.title,
+    });
 
     try {
       const response = await fetch("/api/diagnostics/select-band", {
@@ -79,6 +86,11 @@ export function DiagnosticsSelectionClient({
 
       router.push("/diagnostics/rounds");
     } catch (startError) {
+      console.info("[diagnostics] selection start failed", {
+        error:
+          startError instanceof Error ? startError.message : "Unknown error",
+        selectedBand: selectedOption.id,
+      });
       setError(
         startError instanceof Error
           ? startError.message
@@ -91,8 +103,9 @@ export function DiagnosticsSelectionClient({
   const hasBadges = Boolean(dreamRole) || Boolean(targetSalary);
 
   return (
-    <main className="min-h-dvh bg-lavender text-foreground flex items-center justify-center page-container">
-      <section className="mx-auto w-full max-w-3xl">
+    <main className="min-h-dvh bg-lavender text-foreground">
+      <DiagnosticsPageHeader title="Software Developer Interview" user={user} />
+      <section className="mx-auto flex w-full max-w-3xl flex-col justify-center page-container">
         <header className="mx-auto text-center mb-8">
           <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
             Software Developer Interview Readiness Assessment

@@ -6,7 +6,12 @@ import {
   getDiagnosticJobOption,
   parseDiagnosticBand,
 } from "@/lib/diagnostics/job-options";
-import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import {
+  areAllDiagnosticRoundsComplete,
+  isDiagnosticReportReady,
+  isDiagnosticSessionComplete,
+  shouldShowDiagnosticBandSelection,
+} from "@/lib/diagnostics/rules";
 import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
 import { requirePageStage } from "@/lib/stage-guards";
 
@@ -27,7 +32,13 @@ export default async function DiagnosticsRoundsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  if (!diagnostic?.selectedBand) {
+  if (!diagnostic || shouldShowDiagnosticBandSelection(diagnostic)) {
+    console.info("[diagnostics] redirect", {
+      from: "/diagnostics/rounds",
+      reason: "missing_selected_band",
+      to: "/diagnostics/selection",
+      userId: user.id,
+    });
     redirect("/diagnostics/selection");
   }
 
@@ -36,6 +47,13 @@ export default async function DiagnosticsRoundsPage() {
   const selectedJob = getDiagnosticJobOption(jobOptions, selectedBand);
 
   if (!selectedJob) {
+    console.info("[diagnostics] redirect", {
+      from: "/diagnostics/rounds",
+      reason: "invalid_selected_job",
+      selectedBand: diagnostic.selectedBand,
+      to: "/diagnostics/selection",
+      userId: user.id,
+    });
     redirect("/diagnostics/selection");
   }
 
@@ -59,20 +77,33 @@ export default async function DiagnosticsRoundsPage() {
     };
   });
 
-  const allCompleted = DIAGNOSTIC_ROUNDS.every((config) => {
-    const round = rounds.find((item) => item.roundType === config.id);
-    return round?.status === "COMPLETED" || round?.status === "REPORT_READY";
+  const allCompleted = areAllDiagnosticRoundsComplete(rounds);
+
+  console.info("[diagnostics] rounds page state", {
+    allCompleted,
+    diagnosticId: diagnostic.id,
+    rounds,
+    selectedBand: diagnostic.selectedBand,
+    selectedJob: selectedJob.title,
+    userId: user.id,
   });
 
   if (allCompleted) {
+    console.info("[diagnostics] redirect", {
+      from: "/diagnostics/rounds",
+      reason: "all_rounds_completed",
+      to: "/diagnostics/final-report",
+      userId: user.id,
+    });
     redirect("/diagnostics/final-report");
   }
 
   const reportsReadyCount = rounds.filter(
-    (round) => round.reportStatus === "READY" && round.reportShareToken,
+    (round) =>
+      isDiagnosticReportReady(round.reportStatus) && round.reportShareToken,
   ).length;
-  const hasCompletedRound = rounds.some(
-    (round) => round.status === "COMPLETED" || round.status === "REPORT_READY",
+  const hasCompletedRound = rounds.some((round) =>
+    isDiagnosticSessionComplete(round.status),
   );
 
   return (

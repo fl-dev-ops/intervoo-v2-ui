@@ -11,6 +11,11 @@ export async function POST(request: NextRequest) {
     const receiver = new WebhookReceiver(apiKey, apiSecret);
     const event = await receiver.receive(body, authorization);
 
+    console.info("[diagnostics] livekit webhook", {
+      event: event.event,
+      roomName: event.room?.name ?? null,
+    });
+
     if (event.event === "room_finished" && event.room?.name) {
       await completeInterviewSessionByRoom(event.room.name).catch((error) => {
         console.warn("Failed to complete session from LiveKit webhook", error);

@@ -5,13 +5,17 @@ export async function completeInterviewSessionById(sessionId: string) {
     where: { id: sessionId },
   });
 
+  console.info("[diagnostics] complete session by id", {
+    existingStatus: existingSession?.status ?? null,
+    foundSession: Boolean(existingSession),
+    sessionId,
+    sessionType: existingSession?.type ?? null,
+  });
+
   const session = await prisma.interviewSession.update({
     where: { id: sessionId },
     data: {
-      status:
-        existingSession?.status === "REPORT_READY"
-          ? "REPORT_READY"
-          : "COMPLETED",
+      status: "COMPLETED",
       endedAt: new Date(),
     },
   });
@@ -23,6 +27,12 @@ export async function completeInterviewSessionById(sessionId: string) {
     });
   }
 
+  console.info("[diagnostics] session completed by id", {
+    nextStatus: session.status,
+    sessionId,
+    sessionType: session.type,
+  });
+
   return session;
 }
 
@@ -31,13 +41,18 @@ export async function completeInterviewSessionByRoom(roomName: string) {
     where: { roomName },
   });
 
+  console.info("[diagnostics] complete session by room", {
+    existingStatus: existingSession?.status ?? null,
+    foundSession: Boolean(existingSession),
+    roomName,
+    sessionId: existingSession?.id ?? null,
+    sessionType: existingSession?.type ?? null,
+  });
+
   const session = await prisma.interviewSession.update({
     where: { roomName },
     data: {
-      status:
-        existingSession?.status === "REPORT_READY"
-          ? "REPORT_READY"
-          : "COMPLETED",
+      status: "COMPLETED",
       endedAt: new Date(),
     },
   });
@@ -48,6 +63,13 @@ export async function completeInterviewSessionByRoom(roomName: string) {
       data: { status: "COMPLETED" },
     });
   }
+
+  console.info("[diagnostics] session completed by room", {
+    nextStatus: session.status,
+    roomName,
+    sessionId: session.id,
+    sessionType: session.type,
+  });
 
   return session;
 }

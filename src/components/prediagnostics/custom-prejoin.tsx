@@ -6,12 +6,7 @@ import {
 } from "@livekit/components-react";
 import { type LocalVideoTrack, Track } from "livekit-client";
 import { useRouter } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PreJoinPermissionRequest } from "@/components/prejoin/prejoin-permission-request";
 import { PreJoinReadyState } from "@/components/prejoin/prejoin-ready-state";
 import type { CoachOption } from "@/lib/coaches";
@@ -238,6 +233,13 @@ export function CustomPreJoin({
   const handleJoin = useCallback(async () => {
     setIsJoining(true);
     setDeviceError(null);
+    console.info("[diagnostics] prejoin join clicked", {
+      activeAudioDeviceId,
+      activeVideoDeviceId,
+      flow,
+      roundId: roundId ?? null,
+      selectedCoach: selectedCoach ?? null,
+    });
 
     try {
       const response = await fetch("/api/livekit/connection-details", {
@@ -282,6 +284,12 @@ export function CustomPreJoin({
       };
 
       if (flow === "diagnostics") {
+        console.info("[diagnostics] prejoin connection details received", {
+          roomName: data.room_name,
+          roundId: roundId ?? null,
+          selectedJob: data.selected_job?.title ?? null,
+          sessionId: data.session_id,
+        });
         const params = new URLSearchParams({
           token: data.participant_token,
           server_url: data.server_url,
@@ -314,6 +322,11 @@ export function CustomPreJoin({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to join session.";
+      console.info("[diagnostics] prejoin join failed", {
+        error: message,
+        flow,
+        roundId: roundId ?? null,
+      });
       setDeviceError(message);
       setIsJoining(false);
     }

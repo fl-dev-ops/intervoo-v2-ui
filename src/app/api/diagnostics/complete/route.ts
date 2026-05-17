@@ -71,10 +71,7 @@ export async function POST(request: NextRequest) {
       where: { id: interviewSession.id },
       data: {
         transcript: transcript ?? undefined,
-        status:
-          interviewSession.status === "REPORT_READY"
-            ? "REPORT_READY"
-            : "COMPLETED",
+        status: "COMPLETED",
         endedAt: new Date(),
       },
     });
@@ -82,12 +79,7 @@ export async function POST(request: NextRequest) {
     if (interviewSession.diagnosticRound) {
       await prisma.diagnosticRound.update({
         where: { id: interviewSession.diagnosticRound.id },
-        data: {
-          status:
-            interviewSession.diagnosticRound.status === "REPORT_READY"
-              ? "REPORT_READY"
-              : "COMPLETED",
-        },
+        data: { status: "COMPLETED" },
       });
     }
 

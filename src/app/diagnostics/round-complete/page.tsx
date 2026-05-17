@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { RoundCompleteClient } from "@/components/diagnostics/round-complete-client";
 import { prisma } from "@/lib/db";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import { isDiagnosticSessionComplete } from "@/lib/diagnostics/rules";
 import { requirePageStage } from "@/lib/stage-guards";
 
 const ROUND_DISPLAY_TITLES: Record<string, string> = {
@@ -20,6 +21,12 @@ export default async function DiagnosticsRoundCompletePage({
   const { session_id: sessionId } = await searchParams;
 
   if (!sessionId) {
+    console.info("[diagnostics] redirect", {
+      from: "/diagnostics/round-complete",
+      reason: "missing_session_id",
+      to: "/diagnostics/rounds",
+      userId: user.id,
+    });
     redirect("/diagnostics/rounds");
   }
 
@@ -34,14 +41,30 @@ export default async function DiagnosticsRoundCompletePage({
     session.type !== "DIAGNOSTIC_ROUND" ||
     !session.diagnosticRound
   ) {
+    console.info("[diagnostics] redirect", {
+      foundSession: Boolean(session),
+      from: "/diagnostics/round-complete",
+      reason: "invalid_or_unauthorized_session",
+      sessionId,
+      to: "/diagnostics/rounds",
+      userId: user.id,
+    });
     redirect("/diagnostics/rounds");
   }
 
   const completedRound = session.diagnosticRound;
   const nextRound = DIAGNOSTIC_ROUNDS[completedRound.roundNumber] ?? null;
-  const canStartNext =
-    completedRound.status === "COMPLETED" ||
-    completedRound.status === "REPORT_READY";
+  const canStartNext = isDiagnosticSessionComplete(completedRound.status);
+
+  console.info("[diagnostics] round complete state", {
+    canStartNext,
+    completedRoundNumber: completedRound.roundNumber,
+    completedRoundStatus: completedRound.status,
+    completedRoundType: completedRound.roundType,
+    nextRound: nextRound?.id ?? null,
+    sessionId,
+    userId: user.id,
+  });
 
   return (
     <RoundCompleteClient

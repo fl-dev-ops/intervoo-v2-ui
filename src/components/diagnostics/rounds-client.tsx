@@ -10,18 +10,19 @@ import { ArrowLeft, CheckIcon, Lock, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DiagnosticsJobHeader } from "@/components/diagnostics/diagnostics-job-header";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { authClient } from "@/lib/auth-client";
+import { DiagnosticsPageHeader } from "@/components/diagnostics/diagnostics-page-header";
 import type { DiagnosticJobOption } from "@/lib/diagnostics/job-options";
 import {
   DIAGNOSTIC_ROUNDS,
   type DiagnosticRoundConfig,
 } from "@/lib/diagnostics/rounds-config";
+import {
+  getActiveDiagnosticRoundNumber,
+  isDiagnosticReportActive,
+  isDiagnosticReportReady,
+  isDiagnosticRoundStuckOrFailed,
+  isDiagnosticSessionComplete,
+} from "@/lib/diagnostics/rules";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "../ui/button";
 
@@ -38,82 +39,13 @@ type RoundData = {
   reportStartedAt: string | null;
 };
 
-const SESSION_STUCK_MINUTES = 10;
-const REPORT_STUCK_MINUTES = 15;
-
 function isRoundCompleted(round: RoundData | undefined): boolean {
   if (!round) return false;
-  return round.status === "COMPLETED" || round.status === "REPORT_READY";
+  return isDiagnosticSessionComplete(round.status);
 }
 
 function isRoundFailed(round: RoundData | undefined): boolean {
-  if (!round) return false;
-
-  const isSessionStuck =
-    round.status === "STARTED" &&
-    round.startedAt &&
-    Date.now() - new Date(round.startedAt).getTime() >
-      SESSION_STUCK_MINUTES * 60 * 1000;
-
-  const isReportFailed = round.reportStatus === "FAILED";
-
-  const isReportStuck = Boolean(
-    (round.reportStatus === "PENDING" || round.reportStatus === "PROCESSING") &&
-    round.reportStartedAt &&
-    Date.now() - new Date(round.reportStartedAt).getTime() >
-      REPORT_STUCK_MINUTES * 60 * 1000,
-  );
-
-  return isSessionStuck || isReportFailed || isReportStuck;
-}
-
-function getUserInitial(user: { email: string | null; name: string | null }) {
-  const source = user.name?.trim() || user.email?.trim() || "U";
-  return source.charAt(0).toUpperCase();
-}
-
-function DiagnosticsHomeHeader({
-  selectedJob,
-  user,
-}: {
-  selectedJob: DiagnosticJobOption;
-  user: { email: string | null; name: string | null };
-}) {
-  const router = useRouter();
-
-  async function handleLogout() {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => router.push("/login"),
-      },
-    });
-  }
-
-  return (
-    <header className="">
-      <div className="flex items-center justify-between gap-4 bg-white px-3 py-2 shadow-sm md:px-8">
-        <h1 className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground">
-          {selectedJob.title} Interview
-        </h1>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-[#4D7ED8] bg-[#4D7ED8] text-lg font-semibold text-white shadow-[inset_0_0_0_3px_white] transition hover:bg-[#416FC1] md:size-12"
-            type="button"
-          >
-            {getUserInitial(user)}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem
-              className="cursor-pointer text-destructive focus:text-destructive"
-              onClick={handleLogout}
-            >
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
-  );
+  return isDiagnosticRoundStuckOrFailed(round);
 }
 
 export function DiagnosticsRoundsClient({
@@ -138,9 +70,8 @@ export function DiagnosticsRoundsClient({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const hasPendingReports = initialRounds.some(
-      (round) =>
-        round.reportStatus === "PENDING" || round.reportStatus === "PROCESSING",
+    const hasPendingReports = initialRounds.some((round) =>
+      isDiagnosticReportActive(round.reportStatus),
     );
 
     if (!hasPendingReports) {
@@ -154,9 +85,42 @@ export function DiagnosticsRoundsClient({
     return () => window.clearInterval(intervalId);
   }, [initialRounds, router]);
 
+  const activeRoundNumber = getActiveDiagnosticRoundNumber(
+    initialRounds,
+    DIAGNOSTIC_ROUNDS.map((round) => round.id),
+  );
+
+  useEffect(() => {
+    const activeRound = DIAGNOSTIC_ROUNDS[activeRoundNumber - 1];
+    console.info("[diagnostics] rounds client state", {
+      activeRoundId: activeRound?.id ?? null,
+      activeRoundNumber,
+      allCompleted,
+      hasCompletedRound,
+      reportsReadyCount,
+      rounds: initialRounds.map((round) => ({
+        reportScore: round.reportScore,
+        reportStatus: round.reportStatus,
+        roundNumber: round.roundNumber,
+        roundType: round.roundType,
+        sessionId: round.sessionId,
+        status: round.status,
+      })),
+      selectedJob: selectedJob.title,
+    });
+  }, [
+    activeRoundNumber,
+    allCompleted,
+    hasCompletedRound,
+    initialRounds,
+    reportsReadyCount,
+    selectedJob.title,
+  ]);
+
   async function handleGenerateReport(sessionId: string) {
     setError(null);
     setGeneratingReports((prev) => new Set(prev).add(sessionId));
+    console.info("[diagnostics] generate report clicked", { sessionId });
 
     try {
       const response = await fetch("/api/diagnostics/generate-report", {
@@ -174,6 +138,11 @@ export function DiagnosticsRoundsClient({
 
       router.refresh();
     } catch (reportError) {
+      console.info("[diagnostics] generate report failed", {
+        error:
+          reportError instanceof Error ? reportError.message : "Unknown error",
+        sessionId,
+      });
       setError(
         reportError instanceof Error
           ? reportError.message
@@ -188,16 +157,6 @@ export function DiagnosticsRoundsClient({
     }
   }
 
-  const firstIncompleteIndex = DIAGNOSTIC_ROUNDS.findIndex((config) => {
-    const round = initialRounds.find((r) => r.roundType === config.id);
-    return !round || !isRoundCompleted(round);
-  });
-
-  const activeRoundNumber =
-    firstIncompleteIndex === -1
-      ? DIAGNOSTIC_ROUNDS.length
-      : firstIncompleteIndex + 1;
-
   const roundRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -211,7 +170,10 @@ export function DiagnosticsRoundsClient({
     <>
       <header className="bg-white shadow">
         {hasCompletedRound ? (
-          <DiagnosticsHomeHeader selectedJob={selectedJob} user={user} />
+          <DiagnosticsPageHeader
+            title={`${selectedJob.title} Interview`}
+            user={user}
+          />
         ) : (
           <div className="z-100 p-3 absolute top-0 left-0 shadow md:shadow-none md:relative w-full flex flex-row items-center justify-between pb-4 bg-background md:bg-transparent">
             {/* Back button */}
@@ -275,11 +237,16 @@ export function DiagnosticsRoundsClient({
                         onGenerateReport={() =>
                           roundData && handleGenerateReport(roundData.sessionId)
                         }
-                        onStart={() =>
+                        onStart={() => {
+                          console.info("[diagnostics] start round clicked", {
+                            activeRoundNumber,
+                            roundId: roundConfig.id,
+                            roundNumber,
+                          });
                           router.push(
                             `/diagnostics/prejoin?round=${roundConfig.id}`,
-                          )
-                        }
+                          );
+                        }}
                       />
                     </div>
                   );
@@ -593,7 +560,10 @@ function RoundAction({
     return null;
   }
 
-  if (roundData.reportStatus === "READY" && roundData.reportShareToken) {
+  if (
+    isDiagnosticReportReady(roundData.reportStatus) &&
+    roundData.reportShareToken
+  ) {
     return (
       <div className="mt-4 flex justify-end">
         <a

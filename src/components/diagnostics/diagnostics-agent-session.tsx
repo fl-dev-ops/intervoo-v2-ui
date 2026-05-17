@@ -24,8 +24,8 @@ import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-vis
 import { EndSessionDialog } from "@/components/diagnostics/end-session-dialog";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import { cn } from "@/lib/utils";
-import { CustomAgentControlBar } from "./custom-agent-control-bar";
 import { Avatar, AvatarFallback } from "../ui/avatar";
+import { CustomAgentControlBar } from "./custom-agent-control-bar";
 
 const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 
@@ -106,13 +106,17 @@ export function DiagnosticsAgentSession({
     if (session.connectionState !== ConnectionState.Disconnected) return;
 
     hasStartedRef.current = true;
+    console.info("[diagnostics] live session starting", {
+      roundId: roundId ?? null,
+      sessionId,
+    });
     void session.start({
       tracks: {
         microphone: { enabled: true },
         camera: { enabled: true },
       },
     });
-  }, [session]);
+  }, [roundId, session, sessionId]);
 
   return (
     <SessionProvider session={session}>
@@ -171,6 +175,9 @@ function SessionLayout({
       if (hasNavigatedRef.current) return;
 
       hasNavigatedRef.current = true;
+      console.info("[diagnostics] agent disconnected; navigating to complete", {
+        sessionId,
+      });
       window.location.href = `/diagnostics/round-complete?session_id=${encodeURIComponent(sessionId)}`;
     };
 
@@ -208,6 +215,11 @@ function SessionLayout({
   const promptEndSession = () => {
     setEndDialogMode(conversationMessageCount >= 8 ? "confirm" : "need-more");
     setEndDialogOpen(true);
+    console.info("[diagnostics] end session prompted", {
+      conversationMessageCount,
+      mode: conversationMessageCount >= 8 ? "confirm" : "need-more",
+      sessionId,
+    });
   };
 
   const endSession = async () => {
@@ -216,6 +228,7 @@ function SessionLayout({
     setEndDialogOpen(false);
 
     hasNavigatedRef.current = true;
+    console.info("[diagnostics] ending live session", { sessionId });
     await session.room.localParticipant
       ?.setMicrophoneEnabled(false)
       .catch(() => {});

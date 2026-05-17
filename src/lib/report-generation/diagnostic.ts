@@ -44,6 +44,15 @@ export async function generateDiagnosticReport(sessionId: string) {
     session.transcript,
   );
 
+  console.info("[diagnostics] diagnostic report input", {
+    hasTranscript: Boolean(transcriptPromptText),
+    roundNumber: session.diagnosticRound?.roundNumber ?? null,
+    roundType: session.diagnosticRound?.roundType ?? null,
+    sessionId,
+    transcriptMessageCount: transcriptMessages.length,
+    userAnswerCount: userMessages.length,
+  });
+
   if (!transcriptPromptText) {
     throw new Error("No transcript is available for this session");
   }

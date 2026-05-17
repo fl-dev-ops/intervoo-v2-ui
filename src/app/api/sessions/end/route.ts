@@ -31,6 +31,12 @@ export async function POST(request: NextRequest) {
     }
 
     const stage = await getUserStage(session.user.id);
+    console.info("[diagnostics] end-session request", {
+      sessionId: body.sessionId,
+      sessionType: interviewSession.type,
+      stage,
+      userId: session.user.id,
+    });
     if (
       interviewSession.type === "PREDIAGNOSTIC" &&
       stage !== "PREDIAGNOSTICS"
@@ -52,6 +58,12 @@ export async function POST(request: NextRequest) {
     }
 
     await completeInterviewSessionById(body.sessionId);
+
+    console.info("[diagnostics] end-session completed", {
+      sessionId: body.sessionId,
+      sessionType: interviewSession.type,
+      userId: session.user.id,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
