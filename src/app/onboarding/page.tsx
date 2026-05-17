@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -652,10 +653,10 @@ function ReadyStepContent(props: { form: OnboardingForm }) {
           </div>
         ) : null}
         <div className="space-y-3">
-          <MessageBubble>
+          <MessageBubble delayMs={150}>
             Hi {name}, welcome to your personalized interview preparation.
           </MessageBubble>
-          <MessageBubble>
+          <MessageBubble delayMs={650}>
             Let&apos;s have a quick chat about the jobs you&apos;re targeting.
             I&apos;ll use this to create your personalized diagnostic interview.
           </MessageBubble>
@@ -799,15 +800,17 @@ function MessageBubble({
   className?: string;
 }) {
   return (
-    <div
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
       className={cn(
-        `border bg-white/10 text-white px-4 py-3 text-sm shadow-sm leading-relaxed rounded-4xl rounded-bl-sm`,
+        "rounded-4xl rounded-bl-sm border bg-white/10 px-4 py-3 text-sm leading-relaxed text-white shadow-sm",
         className ?? "",
       )}
-      style={delayMs ? { animationDelay: `${delayMs}ms` } : undefined}
+      initial={{ opacity: 0, y: 8 }}
+      transition={{ delay: (delayMs ?? 0) / 1000, duration: 0.35 }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
