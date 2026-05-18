@@ -13,16 +13,16 @@ export function DiagnosticsJobHeader({
   overallScore,
 }: DiagnosticsJobHeaderProps) {
   return (
-    <div className="w-full rounded-2xl md:border border-border bg-transparent md:bg-card p-4 md:p-6 shadow-none md:shadow-sm mb-4">
-      <div className="w-full grid grid-cols-1 md:grid-cols-10 gap-y-8">
+    <div className="w-full rounded-2xl md:border border-border sm:bg-white bg-transparent p-4 md:p-6 mb-4">
+      <div className="w-full grid grid-cols-1 md:grid-cols-10 gap-x-1">
         {/* Job Info */}
         <div className="col-span-1 md:col-span-6 flex-1 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+              <h1 className="font-semibold tracking-tight text-xl md:text-[26px] md:mb-2">
                 {bandConfig?.title ?? "SDE at Product companies"}
               </h1>
-              <p className="mt-2 max-w-xl text-sm text-muted-foreground leading-6">
+              <p className="mt-2 text-sm md:text-[15px] text-muted-foreground leading-6 md:mb-4">
                 {bandConfig?.description ??
                   "Problem solving, behavioural communication, and technical fundamentals expected in growing product companies."}
               </p>
@@ -53,7 +53,7 @@ export function DiagnosticsJobHeader({
         </div>
 
         {/* Interview Readiness Score */}
-        <div className="col-span-1 md:col-span-4 shrink-0 px-4 py-2">
+        <div className="col-span-1 md:col-span-4 shrink-0">
           <InterviewReadinessScore score={overallScore} />
         </div>
       </div>

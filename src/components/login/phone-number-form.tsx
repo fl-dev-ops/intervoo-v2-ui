@@ -68,9 +68,9 @@ export function PhoneNumberForm({
             <Button
               type="submit"
               disabled={loading}
-              className="h-11 text-sm bg-button"
+              className="h-11 text-sm bg-button rounded-full w-fit"
             >
-              {loading ? <Spinner /> : "Submit"}
+              {loading ? <Spinner /> : "Get OTP"}
             </Button>
           </Field>
         </FieldGroup>

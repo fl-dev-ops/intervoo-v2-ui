@@ -257,24 +257,26 @@ export function PrediagnosticsSessionView({
       </header>
 
       {/* Main content */}
-      <section className="relative z-10 mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col overflow-hidden px-4">
-        {showConnectingSpinner && (
-          <div className="flex justify-center py-4">
-            <div className="rounded-full bg-white/10 px-4 py-2 text-sm text-white/60 shadow-sm backdrop-blur-md">
-              Connecting to session...
+      <section className="w-full flex-1 relative z-10 min-h-0 ">
+        <div className="h-full flex flex-col overflow-hidden ">
+          {showConnectingSpinner && (
+            <div className="flex justify-center py-4">
+              <div className="rounded-full bg-white/10 px-4 py-2 text-sm text-white/60 shadow-sm backdrop-blur-md">
+                Connecting to session...
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <AgentChatTranscript
-          className="min-h-0 w-full flex-1 overflow-y-auto text-white"
-          agentState={agent.state}
-          messages={sessionMessages}
-        />
+          <AgentChatTranscript
+            className="min-h-0 w-full flex-1 overflow-y-auto text-white"
+            agentState={agent.state}
+            messages={sessionMessages}
+          />
+        </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 shrink-0 px-3 pb-3 md:px-6 md:pb-6">
+      <footer className="relative z-10 shrink-0 px-3 pb-3 md:px-6 md:pb-6 max-w-lg mx-auto w-full">
         {sessionMessages.length === 0 && (
           <p className="pointer-events-none mx-auto block w-full max-w-lg pb-4 text-center text-sm font-semibold text-white/60">
             Agent is listening, ask it a question
@@ -348,7 +350,7 @@ function SessionControlBar({
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg">
+    <div className="mx-auto w-full pt-4">
       <div className="flex w-full items-end rounded-[2rem]">
         <div
           className={`shrink-0 overflow-hidden transition-all duration-300 ease-out ${

@@ -107,7 +107,7 @@ export function DiagnosticsSelectionClient({
       <DiagnosticsPageHeader title="Software Developer Interview" user={user} />
       <section className="mx-auto flex w-full max-w-3xl flex-col justify-center page-container">
         <header className="mx-auto text-center mb-8">
-          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
+          <h1 className="text-base font-semibold tracking-tight md:text-2xl">
             Software Developer Interview Readiness Assessment
           </h1>
 
@@ -235,8 +235,8 @@ function DiagnosticJobCard({
       type="button"
       aria-pressed={selected}
       className={cn(
-        "flex flex-col rounded-xl border-2 bg-card p-4 text-left transition",
-        selected ? "border-[#5E41CF]" : "hover:border-foreground/15",
+        "cursor-pointer shadow flex flex-col rounded-xl bg-card p-4 text-left transition border-2 border-transparent hover:shadow-lg",
+        selected && "border-[#5E41CF]",
       )}
       onClick={onSelect}
     >

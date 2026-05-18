@@ -1,6 +1,7 @@
 import { PenLineIcon } from "lucide-react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { IconRotate } from "@tabler/icons-react";
 import { Field, FieldError, FieldGroup } from "@/components/ui/field";
 import {
   InputOTP,
@@ -47,11 +48,11 @@ export function OtpForm({
           We sent a 6-digit code to{" "}
           <button
             type="button"
-            className="text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+            className="block text-center text-base font-semibold w-full my-2 text-muted-foreground hover:text-foreground transition-colors"
             onClick={onChangeNumber}
           >
             {formatPhoneNumberForDisplay(phone)}
-            <PenLineIcon className="inline-block w-3 h-3 ml-2" />
+            <PenLineIcon className="inline-block w-4 h-4 ml-2" />
           </button>
         </p>
       </div>
@@ -73,7 +74,7 @@ export function OtpForm({
                   <InputOTPSlot
                     key={`otp-slot-${index}`}
                     index={index}
-                    className="size-11 rounded-md border"
+                    className="size-12 rounded-md border text-xl font-semibold"
                   />
                 ))}
               </InputOTPGroup>
@@ -81,28 +82,37 @@ export function OtpForm({
             <div className="text-sm text-center">
               <button
                 type="button"
-                className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                className="text-muted-foreground text-sm underline-offset-4 hover:text-foreground my-4 font-semibold"
                 disabled={loading || resendCooldown > 0}
                 onClick={onResend}
               >
+                <IconRotate className="size-5 inline-block mr-2" />
                 {resendCooldown > 0
                   ? formatCountdown(resendCooldown)
                   : "Resend code"}
               </button>
             </div>
           </Field>
-
           {/*{error ? <FieldError>{error}</FieldError> : null}*/}
-
           <div className="w-full">
             <Button
               size={"lg"}
               type="submit"
               disabled={loading || otp.length !== 6}
-              className="w-full bg-button"
+              className="w-full bg-button rounded-full"
             >
               {loading ? <Spinner /> : "Verify & Continue"}
             </Button>
+          </div>
+          <div className="text-center mt-3">
+            <h3 className="text-sm font-semibold mb-2">
+              {" "}
+              Didn’t receive the OTP?
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+              Ensure your number is active on WhatsApp and connected to the
+              internet.
+            </p>
           </div>
         </FieldGroup>
       </form>

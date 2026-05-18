@@ -34,8 +34,8 @@ export function DiagnosticsPageHeader({
   }
 
   return (
-    <header className="bg-white shadow">
-      <div className="flex items-center justify-between gap-4 px-3 py-2 md:px-8">
+    <header className="bg-white md:bg-transparent ">
+      <div className="flex items-center justify-between gap-4 px-3 py-3 md:px-4">
         <h1 className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground">
           {title}
         </h1>

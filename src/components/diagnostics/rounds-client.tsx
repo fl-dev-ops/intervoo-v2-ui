@@ -123,31 +123,29 @@ export function DiagnosticsRoundsClient({
 
   return (
     <>
-      <header className="bg-white shadow">
-        {hasCompletedRound ? (
-          <DiagnosticsPageHeader
-            title={`${selectedJob.title} Interview`}
-            user={user}
-          />
-        ) : (
-          <div className="z-100 p-3 absolute top-0 left-0 shadow md:shadow-none md:relative w-full flex flex-row items-center justify-between pb-4 bg-background md:bg-transparent">
-            {/* Back button */}
-            <button
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => router.push("/diagnostics/selection")}
-              type="button"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </button>
-            <span className="md:hidden shrink-0 rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white">
-              {selectedJob.salary}
-            </span>
-          </div>
-        )}
-      </header>
       <main className="min-h-dvh md:pb-10 bg-lavender">
-        <section className={cn("mx-auto w-full max-w-3xl space-y-6 md:py-8")}>
+        <header className="bg-transparent">
+          {hasCompletedRound ? (
+            <DiagnosticsPageHeader
+              title={`${selectedJob.title} Interview`}
+              user={user}
+            />
+          ) : (
+            <div className="z-100 p-3 md:relative w-full flex flex-row items-center justify-between pb-4 bg-background md:bg-transparent">
+              {/* Back button */}
+              <button
+                className="flex items-center gap-2 text-sm font-medium text-black transition-colors hover:text-foreground"
+                onClick={() => router.push("/diagnostics/selection")}
+                type="button"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </button>
+            </div>
+          )}
+        </header>
+
+        <section className={cn("mx-auto w-full max-w-4xl space-y-6 md:py-8")}>
           {/* Header Card */}
           <DiagnosticsJobHeader bandConfig={selectedJob} />
 
@@ -309,9 +307,15 @@ function RoundTimelineItem({
           <div
             className={cn(
               "hidden h-full min-h-28 w-1 rounded-full md:block",
-              isDone
-                ? "bg-[linear-gradient(180deg,rgba(61,210,74,0.75)_0%,rgba(0,180,0,0)_100%)]"
-                : "bg-[linear-gradient(180deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0)_100%)]",
+              isCurrent
+                ? "bg-[linear-gradient(180deg,rgba(108,71,255,0.75)_0%,rgba(0,180,0,0)_100%)]"
+                : isDone
+                  ? "bg-[linear-gradient(180deg,rgba(61,210,74,0.75)_0%,rgba(0,180,0,0)_100%)]"
+                  : "bg-[linear-gradient(180deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0)_100%)]",
+
+              // isDone
+              //   ? "bg-[linear-gradient(180deg,rgba(61,210,74,0.75)_0%,rgba(0,180,0,0)_100%)]"
+              //   : "bg-[linear-gradient(180deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0)_100%)]",
             )}
           />
         )}
@@ -423,7 +427,7 @@ function RoundStateIcon({
   return (
     <div
       className={cn(
-        "relative z-10 flex h-12 w-12 items-center justify-center rounded-full border-2",
+        "relative z-10 flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full border-2",
         isCurrent
           ? "border-[#6C47FF] bg-[#6C47FF] text-white"
           : isDone

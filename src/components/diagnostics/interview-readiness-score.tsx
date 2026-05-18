@@ -110,15 +110,19 @@ export function InterviewReadinessScore({
 
   return (
     <div
-      className={cn("flex max-w-full flex-col items-center", className)}
+      className={cn(
+        "flex max-w-full flex-col items-center",
+        "border p-4 rounded-xl bg-white md:bg-[#f5f3f7]",
+        className,
+      )}
       style={style}
       {...props}
     >
-      <p className="text-lg md:text-lg font-bold text-foreground mb-4">
+      <p className="text-base font-bold text-foreground mb-8">
         Interview Readiness Score
       </p>
 
-      <div className="relative mt-3 w-[75%] mx-auto">
+      <div className="relative mt-3 w-[65%] mx-auto">
         <GaugeComponent
           type="semicircle"
           minValue={0}
@@ -205,10 +209,10 @@ export function InterviewReadinessScore({
             <span>{segment.label}</span>
           </div>
         ) : (
-          <div className="flex w-full items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+          <div className="text-[14px] flex w-full items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-amber-900">
             <span
               aria-hidden
-              className="flex size-5 shrink-0 items-center justify-center rounded-sm bg-amber-500 font-bold text-white"
+              className="flex size-4 shrink-0 items-center justify-center rounded-sm bg-amber-500 font-bold text-white"
             >
               !
             </span>

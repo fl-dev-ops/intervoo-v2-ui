@@ -160,7 +160,7 @@ export function LoginPageClient() {
           </span>
         </div>
 
-        <div className="w-full rounded-2xl bg-card px-3 pt-5 pb-3 md:p-5">
+        <div className="w-full rounded-2xl bg-card px-3 pt-5 pb-5 md:p-5">
           {step === "phone" && (
             <PhoneNumberForm
               phone={phone}
