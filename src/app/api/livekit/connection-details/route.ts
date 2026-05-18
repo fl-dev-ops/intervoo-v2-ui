@@ -13,7 +13,7 @@ import {
 } from "@/lib/diagnostics/rounds-config";
 import {
   canStartDiagnosticRound,
-  countCompletedDiagnosticRounds,
+  countProgressableDiagnosticRounds,
   getDiagnosticRoundRecoveryState,
 } from "@/lib/diagnostics/rules";
 import {
@@ -366,17 +366,19 @@ async function createDiagnosticConnectionDetails({
     });
   }
 
-  const completedCount = countCompletedDiagnosticRounds(diagnostic.rounds);
+  const progressableCount = countProgressableDiagnosticRounds(
+    diagnostic.rounds,
+  );
   const requestedRoundNumber = getRoundNumber(roundId);
 
   if (
     !canStartDiagnosticRound({
-      completedRoundCount: completedCount,
+      progressableRoundCount: progressableCount,
       requestedRoundNumber,
     })
   ) {
     console.info("[diagnostics] diagnostic connection rejected", {
-      completedCount,
+      progressableCount,
       reason: "round_sequence_violation",
       requestedRoundNumber,
       roundId,
@@ -418,8 +420,8 @@ async function createDiagnosticConnectionDetails({
   });
 
   console.info("[diagnostics] diagnostic session created", {
-    completedCount,
     diagnosticId: diagnostic.id,
+    progressableCount,
     roomName,
     roundId,
     roundNumber: requestedRoundNumber,

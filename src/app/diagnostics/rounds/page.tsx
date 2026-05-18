@@ -8,8 +8,8 @@ import {
 } from "@/lib/diagnostics/job-options";
 import {
   areAllDiagnosticRoundsComplete,
+  countProgressableDiagnosticRounds,
   isDiagnosticReportReady,
-  isDiagnosticSessionComplete,
   shouldShowDiagnosticBandSelection,
 } from "@/lib/diagnostics/rules";
 import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
@@ -98,13 +98,10 @@ export default async function DiagnosticsRoundsPage() {
     redirect("/diagnostics/final-report");
   }
 
-  const reportsReadyCount = rounds.filter(
-    (round) =>
-      isDiagnosticReportReady(round.reportStatus) && round.reportShareToken,
+  const reportsReadyCount = rounds.filter((round) =>
+    isDiagnosticReportReady(round.reportStatus),
   ).length;
-  const hasCompletedRound = rounds.some((round) =>
-    isDiagnosticSessionComplete(round.status),
-  );
+  const hasCompletedRound = countProgressableDiagnosticRounds(rounds) > 0;
 
   return (
     <DiagnosticsRoundsClient

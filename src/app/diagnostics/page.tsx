@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import {
-  countCompletedDiagnosticRounds,
+  countProgressableDiagnosticRounds,
   isDiagnosticBandLocked,
   isFinalDiagnosticReportReady,
   shouldShowDiagnosticBandSelection,
@@ -46,14 +46,16 @@ export default async function DiagnosticsPage() {
     redirect("/diagnostics/selection");
   }
 
-  const completedRounds = countCompletedDiagnosticRounds(diagnostic.rounds);
+  const progressableRounds = countProgressableDiagnosticRounds(
+    diagnostic.rounds,
+  );
 
   const finalReportReady = isFinalDiagnosticReportReady(diagnostic.rounds);
 
   if (finalReportReady) {
     console.info("[diagnostics] redirect", {
-      completedRounds,
       from: "/diagnostics",
+      progressableRounds,
       reason: "final_report_ready",
       to: "/diagnostics/final-report",
       userId: user.id,
@@ -63,9 +65,9 @@ export default async function DiagnosticsPage() {
 
   if (!isDiagnosticBandLocked(diagnostic)) {
     console.info("[diagnostics] redirect", {
-      completedRounds,
       finalReportReady,
       from: "/diagnostics",
+      progressableRounds,
       reason: "band_not_locked",
       to: "/diagnostics/selection",
       userId: user.id,
@@ -74,9 +76,9 @@ export default async function DiagnosticsPage() {
   }
 
   console.info("[diagnostics] redirect", {
-    completedRounds,
     finalReportReady,
     from: "/diagnostics",
+    progressableRounds,
     reason: "band_locked_by_completed_report",
     to: "/diagnostics/rounds",
     userId: user.id,

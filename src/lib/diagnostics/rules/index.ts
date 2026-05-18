@@ -1,13 +1,7 @@
 export const DIAGNOSTIC_TOTAL_ROUNDS = 4;
-export const DIAGNOSTIC_SESSION_STUCK_MINUTES = 10;
-export const DIAGNOSTIC_REPORT_STUCK_MINUTES = 15;
+export const DIAGNOSTIC_SESSION_STUCK_MINUTES = 15;
 
 export const DIAGNOSTIC_COMPLETED_SESSION_STATUSES = ["COMPLETED"] as const;
-
-export const DIAGNOSTIC_ACTIVE_REPORT_STATUSES = [
-  "PENDING",
-  "PROCESSING",
-] as const;
 
 type RoundStatus = string | null | undefined;
 type ReportStatus = string | null | undefined;
@@ -22,9 +16,14 @@ export type DiagnosticRoundStateInput = {
 
 export type DiagnosticRoundWithReportInput = {
   status: RoundStatus;
+  startedAt?: string | Date | null;
+  reportStatus?: ReportStatus;
+  reportStartedAt?: string | Date | null;
   session?: {
+    startedAt?: string | Date | null;
     report?: {
       status?: ReportStatus;
+      startedAt?: string | Date | null;
     } | null;
   } | null;
 };
@@ -38,11 +37,7 @@ export function shouldShowDiagnosticBandSelection(
 export function hasCompletedDiagnosticRoundReport<
   Round extends DiagnosticRoundWithReportInput,
 >(rounds: Round[]) {
-  return rounds.some(
-    (round) =>
-      isDiagnosticSessionComplete(round.status) &&
-      isDiagnosticReportReady(round.session?.report?.status),
-  );
+  return rounds.some((round) => isDiagnosticRoundReadyForProgression(round));
 }
 
 export function isDiagnosticBandLocked<
@@ -76,42 +71,55 @@ export function isDiagnosticReportReady(status: ReportStatus) {
   return status === "READY";
 }
 
-export function isDiagnosticReportActive(status: ReportStatus) {
-  return DIAGNOSTIC_ACTIVE_REPORT_STATUSES.includes(
-    status as (typeof DIAGNOSTIC_ACTIVE_REPORT_STATUSES)[number],
+export function isDiagnosticRoundReadyForProgression<
+  Round extends DiagnosticRoundWithReportInput,
+>(round: Round | undefined) {
+  if (!round) return false;
+
+  return (
+    isDiagnosticSessionComplete(round.status) &&
+    isDiagnosticReportReady(getRoundReportStatus(round))
   );
 }
 
-export function countCompletedDiagnosticRounds<
-  Round extends { status: RoundStatus },
+export function isDiagnosticRoundReportProcessing<
+  Round extends DiagnosticRoundWithReportInput,
+>(round: Round | undefined) {
+  if (!round || !isDiagnosticSessionComplete(round.status)) return false;
+
+  const reportStatus = getRoundReportStatus(round);
+
+  return !isDiagnosticReportReady(reportStatus) && reportStatus !== "FAILED";
+}
+
+export function countProgressableDiagnosticRounds<
+  Round extends DiagnosticRoundWithReportInput,
 >(rounds: Round[]) {
-  return rounds.filter((round) => isDiagnosticSessionComplete(round.status))
+  return rounds.filter((round) => isDiagnosticRoundReadyForProgression(round))
     .length;
 }
 
 export function areAllDiagnosticRoundsComplete<
-  Round extends { status: RoundStatus },
+  Round extends DiagnosticRoundWithReportInput,
 >(rounds: Round[], totalRounds = DIAGNOSTIC_TOTAL_ROUNDS) {
-  return countCompletedDiagnosticRounds(rounds) === totalRounds;
+  return countProgressableDiagnosticRounds(rounds) === totalRounds;
 }
 
 export function isFinalDiagnosticReportReady<
   Round extends DiagnosticRoundWithReportInput,
 >(rounds: Round[], totalRounds = DIAGNOSTIC_TOTAL_ROUNDS) {
   return (
-    countCompletedDiagnosticRounds(rounds) === totalRounds &&
-    rounds.every((round) =>
-      isDiagnosticReportReady(round.session?.report?.status),
-    )
+    countProgressableDiagnosticRounds(rounds) === totalRounds &&
+    rounds.every((round) => isDiagnosticRoundReadyForProgression(round))
   );
 }
 
 export function getActiveDiagnosticRoundNumber<
-  Round extends { roundType: string; status: RoundStatus },
+  Round extends DiagnosticRoundWithReportInput & { roundType: string },
 >(rounds: Round[], roundOrder: string[]) {
   const firstIncompleteIndex = roundOrder.findIndex((roundType) => {
     const round = rounds.find((item) => item.roundType === roundType);
-    return !round || !isDiagnosticSessionComplete(round.status);
+    return !round || !isDiagnosticRoundReadyForProgression(round);
   });
 
   return firstIncompleteIndex === -1
@@ -120,13 +128,13 @@ export function getActiveDiagnosticRoundNumber<
 }
 
 export function canStartDiagnosticRound({
-  completedRoundCount,
+  progressableRoundCount,
   requestedRoundNumber,
 }: {
-  completedRoundCount: number;
+  progressableRoundCount: number;
   requestedRoundNumber: number;
 }) {
-  return requestedRoundNumber === completedRoundCount + 1;
+  return requestedRoundNumber === progressableRoundCount + 1;
 }
 
 export function isDiagnosticRoundStuckOrFailed(
@@ -158,16 +166,14 @@ export function getDiagnosticRoundRecoveryState(
 
   const isReportFailed = round.reportStatus === "FAILED";
 
-  const isReportStuck =
-    isDiagnosticReportActive(round.reportStatus) &&
-    Boolean(round.reportStartedAt) &&
-    nowMs - new Date(round.reportStartedAt as string | Date).getTime() >
-      DIAGNOSTIC_REPORT_STUCK_MINUTES * 60 * 1000;
-
   return {
-    isRecoverable: isSessionStuck || isReportFailed || isReportStuck,
+    isRecoverable: isSessionStuck || isReportFailed,
     isReportFailed,
-    isReportStuck,
+    isReportStuck: false,
     isSessionStuck,
   };
+}
+
+function getRoundReportStatus(round: DiagnosticRoundWithReportInput) {
+  return round.reportStatus ?? round.session?.report?.status ?? null;
 }

@@ -3,7 +3,7 @@ import { DiagnosticsSelectionClient } from "@/components/diagnostics/selection-c
 import { prisma } from "@/lib/db";
 import { buildDiagnosticJobOptions } from "@/lib/diagnostics/job-options";
 import {
-  countCompletedDiagnosticRounds,
+  countProgressableDiagnosticRounds,
   isDiagnosticBandLocked,
   isFinalDiagnosticReportReady,
 } from "@/lib/diagnostics/rules";
@@ -20,15 +20,15 @@ export default async function DiagnosticsSelectionPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const completedRounds = existingDiagnostic
-    ? countCompletedDiagnosticRounds(existingDiagnostic.rounds)
+  const progressableRounds = existingDiagnostic
+    ? countProgressableDiagnosticRounds(existingDiagnostic.rounds)
     : 0;
 
   console.info("[diagnostics] selection page state", {
     bandLocked: isDiagnosticBandLocked(existingDiagnostic),
-    completedRounds,
     diagnosticId: existingDiagnostic?.id ?? null,
     hasRounds: Boolean(existingDiagnostic?.rounds.length),
+    progressableRounds,
     selectedBand: existingDiagnostic?.selectedBand ?? null,
     userId: user.id,
   });

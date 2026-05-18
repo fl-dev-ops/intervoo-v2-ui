@@ -8,7 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { ArrowLeft, CheckIcon, Lock, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { DiagnosticsJobHeader } from "@/components/diagnostics/diagnostics-job-header";
 import { DiagnosticsPageHeader } from "@/components/diagnostics/diagnostics-page-header";
 import type { DiagnosticJobOption } from "@/lib/diagnostics/job-options";
@@ -18,10 +18,10 @@ import {
 } from "@/lib/diagnostics/rounds-config";
 import {
   getActiveDiagnosticRoundNumber,
-  isDiagnosticReportActive,
   isDiagnosticReportReady,
+  isDiagnosticRoundReadyForProgression,
+  isDiagnosticRoundReportProcessing,
   isDiagnosticRoundStuckOrFailed,
-  isDiagnosticSessionComplete,
 } from "@/lib/diagnostics/rules";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "../ui/button";
@@ -40,8 +40,7 @@ type RoundData = {
 };
 
 function isRoundCompleted(round: RoundData | undefined): boolean {
-  if (!round) return false;
-  return isDiagnosticSessionComplete(round.status);
+  return isDiagnosticRoundReadyForProgression(round);
 }
 
 function isRoundFailed(round: RoundData | undefined): boolean {
@@ -64,14 +63,10 @@ export function DiagnosticsRoundsClient({
   user: { email: string | null; name: string | null };
 }) {
   const router = useRouter();
-  const [generatingReports, setGeneratingReports] = useState<Set<string>>(
-    new Set(),
-  );
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const hasPendingReports = initialRounds.some((round) =>
-      isDiagnosticReportActive(round.reportStatus),
+      isDiagnosticRoundReportProcessing(round),
     );
 
     if (!hasPendingReports) {
@@ -116,46 +111,6 @@ export function DiagnosticsRoundsClient({
     reportsReadyCount,
     selectedJob.title,
   ]);
-
-  async function handleGenerateReport(sessionId: string) {
-    setError(null);
-    setGeneratingReports((prev) => new Set(prev).add(sessionId));
-    console.info("[diagnostics] generate report clicked", { sessionId });
-
-    try {
-      const response = await fetch("/api/diagnostics/generate-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
-      });
-      const payload = (await response.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Failed to generate report.");
-      }
-
-      router.refresh();
-    } catch (reportError) {
-      console.info("[diagnostics] generate report failed", {
-        error:
-          reportError instanceof Error ? reportError.message : "Unknown error",
-        sessionId,
-      });
-      setError(
-        reportError instanceof Error
-          ? reportError.message
-          : "Failed to generate report.",
-      );
-    } finally {
-      setGeneratingReports((prev) => {
-        const next = new Set(prev);
-        next.delete(sessionId);
-        return next;
-      });
-    }
-  }
 
   const roundRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -207,7 +162,12 @@ export function DiagnosticsRoundsClient({
                   );
                   const isDone = isRoundCompleted(roundData);
                   const isFailed = isRoundFailed(roundData);
-                  const isStarted = Boolean(roundData) && !isDone && !isFailed;
+                  const isProcessing =
+                    isDiagnosticRoundReportProcessing(roundData);
+                  const isStarted =
+                    Boolean(roundData) &&
+                    roundData?.status === "STARTED" &&
+                    !isFailed;
                   const isActive = roundNumber === activeRoundNumber;
                   const isLocked = roundNumber > activeRoundNumber;
 
@@ -223,20 +183,13 @@ export function DiagnosticsRoundsClient({
                         isActive={isActive}
                         isDone={isDone}
                         isFailed={isFailed}
-                        isGenerating={
-                          roundData
-                            ? generatingReports.has(roundData.sessionId)
-                            : false
-                        }
                         isLast={index === DIAGNOSTIC_ROUNDS.length - 1}
                         isLocked={isLocked}
+                        isProcessing={isProcessing}
                         isStarted={isStarted}
                         questions={roundConfig.questionsByBand[selectedJob.id]}
                         roundData={roundData}
                         roundNumber={roundNumber}
-                        onGenerateReport={() =>
-                          roundData && handleGenerateReport(roundData.sessionId)
-                        }
                         onStart={() => {
                           console.info("[diagnostics] start round clicked", {
                             activeRoundNumber,
@@ -275,12 +228,6 @@ export function DiagnosticsRoundsClient({
               </div>
             )}
           </div>
-
-          {error ? (
-            <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-              {error}
-            </div>
-          ) : null}
         </section>
       </main>
     </>
@@ -292,11 +239,10 @@ function RoundTimelineItem({
   isActive,
   isDone,
   isFailed,
-  isGenerating,
   isLast,
   isLocked,
+  isProcessing,
   isStarted,
-  onGenerateReport,
   onStart,
   questions,
   roundData,
@@ -306,17 +252,17 @@ function RoundTimelineItem({
   isActive: boolean;
   isDone: boolean;
   isFailed: boolean;
-  isGenerating: boolean;
   isLast: boolean;
   isLocked: boolean;
+  isProcessing: boolean;
   isStarted: boolean;
-  onGenerateReport: () => void;
   onStart: () => void;
   questions: string[];
   roundData: RoundData | undefined;
   roundNumber: number;
 }) {
-  const isCurrent = isActive || isFailed;
+  const canStart = (isActive && !isStarted && !isProcessing) || isFailed;
+  const isCurrent = canStart || isProcessing || isStarted;
 
   return (
     <article className="relative grid grid-cols-[3rem_1fr] gap-x-2 md:gap-x-4 gap-y-2 md:gap-y-0">
@@ -347,6 +293,10 @@ function RoundTimelineItem({
         </span>
         {isDone ? (
           <RoundResultBadge score={roundData?.reportScore ?? null} />
+        ) : isProcessing ? (
+          <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white">
+            Processing
+          </span>
         ) : (
           <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white">
             {config.duration}
@@ -395,7 +345,7 @@ function RoundTimelineItem({
             {config.description}
           </p>
 
-          {isCurrent && (
+          {canStart && (
             <div className="grid items-end gap-4 md:grid-cols-3">
               <div className="md:col-span-2">
                 <p className="mt-4 text-sm font-medium text-[#6B6B7A]">
@@ -425,6 +375,15 @@ function RoundTimelineItem({
             </div>
           )}
 
+          {isProcessing && (
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/70">
+                <span className="size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                Report processing
+              </span>
+            </div>
+          )}
+
           {isStarted && (
             <div className="mt-4 flex items-center justify-end gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-400">
@@ -438,12 +397,7 @@ function RoundTimelineItem({
           )}
 
           {isDone && roundData && (
-            <RoundAction
-              isDone={isDone}
-              isGenerating={isGenerating}
-              onGenerateReport={onGenerateReport}
-              roundData={roundData}
-            />
+            <RoundAction isDone={isDone} roundData={roundData} />
           )}
         </div>
       </div>
@@ -547,13 +501,9 @@ function getRoundResult(score: number | null): {
 
 function RoundAction({
   isDone,
-  isGenerating,
-  onGenerateReport,
   roundData,
 }: {
   isDone: boolean;
-  isGenerating: boolean;
-  onGenerateReport: () => void;
   roundData: RoundData;
 }) {
   if (!isDone || !roundData) {
@@ -582,28 +532,4 @@ function RoundAction({
   }
 
   return null;
-
-  // const isProcessing =
-  //   roundData.reportStatus === "PENDING" ||
-  //   roundData.reportStatus === "PROCESSING";
-
-  // return (
-  //   <div className="mt-4 flex justify-end">
-  //     <button
-  //       className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
-  //       disabled={isGenerating || isProcessing}
-  //       type="button"
-  //       onClick={onGenerateReport}
-  //     >
-  //       {isGenerating || isProcessing ? (
-  //         <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-  //       ) : null}
-  //       {isProcessing
-  //         ? "Report processing"
-  //         : roundData.reportStatus === "FAILED"
-  //           ? "Retry Report"
-  //           : "Generate Report"}
-  //     </button>
-  //   </div>
-  // );
 }

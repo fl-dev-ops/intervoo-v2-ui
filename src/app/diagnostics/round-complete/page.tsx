@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { RoundCompleteClient } from "@/components/diagnostics/round-complete-client";
 import { prisma } from "@/lib/db";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
-import { isDiagnosticSessionComplete } from "@/lib/diagnostics/rules";
+import { isDiagnosticRoundReadyForProgression } from "@/lib/diagnostics/rules";
 import { requirePageStage } from "@/lib/stage-guards";
 
 const ROUND_DISPLAY_TITLES: Record<string, string> = {
@@ -32,7 +32,7 @@ export default async function DiagnosticsRoundCompletePage({
 
   const session = await prisma.interviewSession.findUnique({
     where: { id: sessionId },
-    include: { diagnosticRound: true },
+    include: { diagnosticRound: true, report: true },
   });
 
   if (
@@ -54,7 +54,10 @@ export default async function DiagnosticsRoundCompletePage({
 
   const completedRound = session.diagnosticRound;
   const nextRound = DIAGNOSTIC_ROUNDS[completedRound.roundNumber] ?? null;
-  const canStartNext = isDiagnosticSessionComplete(completedRound.status);
+  const canStartNext = isDiagnosticRoundReadyForProgression({
+    session: { report: session.report },
+    status: completedRound.status,
+  });
 
   console.info("[diagnostics] round complete state", {
     canStartNext,
