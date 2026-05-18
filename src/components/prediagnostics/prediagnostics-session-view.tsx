@@ -6,19 +6,14 @@ import {
   useSessionContext,
   useSessionMessages,
 } from "@livekit/components-react";
+import { IconKeyboard, IconMicrophone, IconSend2 } from "@tabler/icons-react";
 import {
   ConnectionState as LKConnectionState,
   ParticipantKind,
   RoomEvent,
   RpcError,
 } from "livekit-client";
-import {
-  MessageSquareTextIcon,
-  Mic,
-  MicOff,
-  PhoneOff,
-  SendHorizontal,
-} from "lucide-react";
+import { PhoneOff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   EndSessionDialog,
@@ -26,7 +21,6 @@ import {
 } from "@/components/diagnostics/end-session-dialog";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
-import { cn } from "@/lib/utils";
 import { AgentChatTranscript } from "../agents-ui/agent-chat-transcript";
 
 interface PrediagnosticsSessionViewProps {
@@ -247,15 +241,14 @@ export function PrediagnosticsSessionView({
       />
 
       {/* Header */}
-      <header className="relative z-10 flex shrink-0 items-center justify-between px-4 py-3">
+      <header className="relative z-10 flex shrink-0 items-center justify-between px-4 py-3 max-w-lg mx-auto w-full">
         <h1 className="text-sm font-semibold text-white md:text-base">
           Pre-Diagnostic Session
         </h1>
         <Button
           size={"lg"}
           type="button"
-          variant="destructive"
-          className="rounded-full px-4 font-semibold"
+          className="rounded-full px-4 font-semibold bg-red-500 text-white"
           onClick={() => promptEnd(sessionMessages.length)}
         >
           <PhoneOff className="mr-2 size-4" />
@@ -264,7 +257,7 @@ export function PrediagnosticsSessionView({
       </header>
 
       {/* Main content */}
-      <section className="relative z-10 mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col overflow-hidden px-4">
+      <section className="relative z-10 mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col overflow-hidden px-4">
         {showConnectingSpinner && (
           <div className="flex justify-center py-4">
             <div className="rounded-full bg-white/10 px-4 py-2 text-sm text-white/60 shadow-sm backdrop-blur-md">
@@ -283,7 +276,7 @@ export function PrediagnosticsSessionView({
       {/* Footer */}
       <footer className="relative z-10 shrink-0 px-3 pb-3 md:px-6 md:pb-6">
         {sessionMessages.length === 0 && (
-          <p className="pointer-events-none mx-auto block w-full max-w-xl pb-4 text-center text-sm font-semibold text-white/60">
+          <p className="pointer-events-none mx-auto block w-full max-w-lg pb-4 text-center text-sm font-semibold text-white/60">
             Agent is listening, ask it a question
           </p>
         )}
@@ -332,84 +325,136 @@ function SessionControlBar({
   onSendText: () => Promise<void>;
   onToggleVoice: () => Promise<void>;
 }) {
-  return (
-    <div className="mx-auto w-full max-w-xl">
-      <div className="w-full overflow-hidden shadow-md backdrop-blur-md">
-        {isChatOpen && (
-          <div className="mb-3 flex w-full items-end gap-2 border rounded-3xl border-white/15 p-3 bg-white/10">
-            <textarea
-              className="field-sizing-content max-h-16 min-h-8 flex-1 resize-none bg-transparent py-2 text-sm text-white [scrollbar-width:thin] placeholder:text-white/40 focus:outline-none disabled:opacity-50"
-              disabled={disabled}
-              placeholder="Type your response..."
-              value={chatText}
-              onChange={(event) => onChatTextChange(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void onSendText();
-                }
-              }}
-            />
-            <Button
-              className="rounded-full bg-white/20 text-white hover:bg-white/30"
-              disabled={disabled || !hasTypedMessage || isRecording}
-              size="icon"
-              type="button"
-              onClick={() => void onSendText()}
-            >
-              <SendHorizontal className="size-5" />
-            </Button>
-          </div>
-        )}
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
-        <div className="flex w-full min-w-0 items-center justify-between gap-3 p-2">
-          {/* Chat toggle */}
+  function resizeTextArea(textArea: HTMLTextAreaElement | null) {
+    if (!textArea) return;
+
+    textArea.style.height = "0px";
+    textArea.style.height = `${Math.min(textArea.scrollHeight, 112)}px`;
+  }
+
+  function setTextAreaRef(textArea: HTMLTextAreaElement | null) {
+    textAreaRef.current = textArea;
+    resizeTextArea(textArea);
+  }
+
+  async function handleVoiceClick() {
+    if (isChatOpen) {
+      onChatToggle();
+    }
+
+    await onToggleVoice();
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-lg">
+      <div className="flex w-full items-end rounded-[2rem]">
+        <div
+          className={`shrink-0 overflow-hidden transition-all duration-300 ease-out ${
+            isChatOpen ? "mr-0 w-0 opacity-0" : "mr-3 w-12 opacity-100"
+          }`}
+        >
           <Button
             aria-label="Toggle text response"
-            className={cn(
-              "relative h-12 w-12 shrink-0 rounded-full border border-white/15 bg-white/10 text-white transition-all duration-200 hover:bg-white/20",
-              isChatOpen && "bg-white/20",
-            )}
+            className="relative size-12 shrink-0 rounded-2xl bg-white text-slate-500 transition-all duration-200 hover:bg-[#E8E4F0] hover:text-slate-700"
             size="icon"
             type="button"
             variant="ghost"
+            aria-hidden={isChatOpen}
+            disabled={disabled || isRecording}
+            tabIndex={isChatOpen ? -1 : undefined}
             onClick={onChatToggle}
           >
-            <MessageSquareTextIcon className="size-5" />
+            <IconKeyboard className="size-5" />
           </Button>
+        </div>
 
-          {/* Mic / PTT — stretches full width */}
-          <Button
-            aria-label={isRecording ? "Stop talking" : "Start talking"}
-            className={cn(
-              "relative h-12 min-w-12 rounded-full border border-white/15 transition-all duration-500",
-              "bg-white/10 text-white hover:bg-white/20",
-              isRecording && "bg-lavender text-[#1B1238] flex-1",
-            )}
-            size={isRecording ? "default" : "icon"}
-            disabled={disabled}
-            type="button"
-            onClick={() => void onToggleVoice()}
-          >
-            {isRecording ? (
-              <div className="flex w-full items-center gap-2 px-2">
+        <div className="min-w-0 flex-1 transition-all duration-300 ease-out">
+          {isChatOpen ? (
+            <div className="flex min-h-12 min-w-0 items-end rounded-[1.5rem] border border-[#D6D2E2] bg-white py-1.5 pr-3 pl-4 transition-colors focus-within:border-[#6548E4]">
+              <textarea
+                ref={setTextAreaRef}
+                autoComplete="off"
+                className="my-auto max-h-28 min-h-7 min-w-0 flex-1 resize-none appearance-none overflow-y-auto border-0 bg-transparent py-1 text-base leading-6 text-slate-950 shadow-none outline-0 ring-0 [scrollbar-width:thin] placeholder:text-slate-400 focus:border-0 focus:outline-0 focus:ring-0 focus-visible:border-0 focus-visible:outline-0 focus-visible:ring-0 active:border-0 active:outline-0 disabled:opacity-50"
+                disabled={disabled || isRecording}
+                placeholder="Type your response..."
+                rows={1}
+                value={chatText}
+                onChange={(event) => {
+                  onChatTextChange(event.target.value);
+                  resizeTextArea(event.currentTarget);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void onSendText();
+                  }
+                }}
+              />
+              <Button
+                aria-label="Send response"
+                className="ml-2 size-9 shrink-0 rounded-full bg-transparent text-[#6548E4] hover:bg-[#F0EDF6] focus-visible:ring-0 active:ring-0"
+                disabled={disabled || !hasTypedMessage || isRecording}
+                size="icon"
+                type="button"
+                variant="ghost"
+                onClick={() => void onSendText()}
+              >
+                <IconSend2 className="size-5 shrink-0 text-[#6548E4]" />
+              </Button>
+            </div>
+          ) : isRecording ? (
+            <Button
+              aria-label="Stop talking"
+              className="relative h-12 w-full min-w-0 overflow-hidden rounded-full border border-[#C8C7D6] bg-white px-5 text-[#6548E4] transition-all duration-300 hover:bg-white"
+              disabled={disabled}
+              type="button"
+              variant="ghost"
+              onClick={() => void onToggleVoice()}
+            >
+              <div className="flex h-full w-full items-center gap-3 overflow-hidden">
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <LiveWaveform
                     active={isRecording}
-                    height="32px"
+                    className="text-[#6548E4]"
+                    height="28px"
                     mode="scrolling"
-                    className="text-current"
                   />
                 </div>
-
-                <span className="relative flex size-5 shrink-0 items-center justify-center">
-                  <Mic className="size-5" />
-                  <span className="absolute -inset-1 rounded-full bg-black opacity-20 animate-ping" />
-                </span>
+                <IconSend2 className="size-5 shrink-0 text-[#6548E4]" />
               </div>
-            ) : (
-              <MicOff className="size-5" />
-            )}
+            </Button>
+          ) : (
+            <Button
+              aria-label="Start talking"
+              className="relative h-12 w-full min-w-0 rounded-full bg-button text-sm text-white shadow-lg shadow-[#6548E4]/20 transition-all duration-300 hover:opacity-95"
+              disabled={disabled}
+              type="button"
+              onClick={() => void onToggleVoice()}
+            >
+              <IconMicrophone className="size-5" />
+              Tap to speak
+            </Button>
+          )}
+        </div>
+
+        <div
+          className={`shrink-0 overflow-hidden transition-all duration-300 ease-out ${
+            isChatOpen ? "ml-3 w-12 opacity-100" : "ml-0 w-0 opacity-0"
+          }`}
+        >
+          <Button
+            aria-label="Start talking"
+            className="size-12 shrink-0 rounded-full bg-button text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95"
+            disabled={disabled}
+            size="icon"
+            type="button"
+            aria-hidden={!isChatOpen}
+            tabIndex={isChatOpen ? undefined : -1}
+            onClick={() => void handleVoiceClick()}
+          >
+            <IconMicrophone className="size-5" />
           </Button>
         </div>
       </div>
