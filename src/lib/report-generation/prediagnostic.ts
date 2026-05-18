@@ -4,10 +4,18 @@ import { generateReport } from "./generate-report";
 import { buildPreDiagnosticRubric } from "./rubrics";
 import { buildReportTranscriptPromptText } from "./transcript";
 
+const CareerGoalSchema = z.object({
+  role: z.string().nullable(),
+  workContext: z.string().nullable(),
+  organizationType: z.string().nullable(),
+  workArrangement: z.string().nullable(),
+  rawText: z.string().nullable(),
+});
+
 const PreDiagnosticReportSchema = z.object({
-  dream_job: z.string().nullable(),
-  aiming_for: z.string().nullable(),
-  backup: z.string().nullable(),
+  dream_job: CareerGoalSchema.nullable(),
+  aiming_for: CareerGoalSchema.nullable(),
+  backup: CareerGoalSchema.nullable(),
   salary_expectation: z.string().nullable(),
   reasoning: z.string().nullable(),
   companies_mentioned: z.array(z.string()),

@@ -33,10 +33,20 @@ type ResearchBreakdownKey =
   | "tools_and_role_clarity"
   | "salary_clarity";
 
+type CareerGoal = {
+  role: string | null;
+  workContext: string | null;
+  organizationType: string | null;
+  workArrangement: string | null;
+  rawText: string | null;
+};
+
+type CareerGoalValue = CareerGoal | string | null;
+
 export type PrediagnosticsReportPreviewReport = {
-  dream_job: string | null;
-  aiming_for: string | null;
-  backup: string | null;
+  dream_job: CareerGoalValue;
+  aiming_for: CareerGoalValue;
+  backup: CareerGoalValue;
   salary_expectation: string | null;
   reasoning: string | null;
   companies_mentioned: string[];
@@ -260,6 +270,9 @@ function PrediagnosticsReportPreview({
   const awarenessBadge = getPositiveBadge(
     report.job_research_category ?? "Not Enough",
   );
+  const dreamJob = normalizeCareerGoal(report.dream_job);
+  const targetJob = normalizeCareerGoal(report.aiming_for);
+  const backupJob = normalizeCareerGoal(report.backup);
 
   return (
     <div className="min-h-dvh bg-lavender">
@@ -294,19 +307,19 @@ function PrediagnosticsReportPreview({
                   icon={<Trophy className="h-4 w-4" />}
                   iconClassName="bg-purple-100 text-purple-600"
                   title="Your dream job"
-                  value={report.dream_job || "Not captured yet"}
+                  goal={dreamJob}
                 />
                 <InfoCard
                   icon={<Target className="h-4 w-4" />}
                   iconClassName="bg-amber-100 text-amber-600"
                   title="Your target (Current focus)"
-                  value={report.aiming_for || "Not captured yet"}
+                  goal={targetJob}
                 />
                 <InfoCard
                   icon={<Shield className="h-4 w-4" />}
                   iconClassName="bg-blue-100 text-blue-600"
                   title="Your backup"
-                  value={report.backup || "Not captured yet"}
+                  goal={backupJob}
                 />
               </div>
 
@@ -425,7 +438,7 @@ function InfoCard(props: {
   icon: ReactNode;
   iconClassName: string;
   title: string;
-  value: string;
+  goal: NormalizedCareerGoal;
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-3">
@@ -440,12 +453,71 @@ function InfoCard(props: {
             {props.title}
           </div>
           <div className="mt-1 text-sm text-muted-foreground">
-            {props.value}
+            <div>{props.goal.primary}</div>
+            {props.goal.secondary ? (
+              <div className="mt-0.5 text-xs text-muted-foreground/80">
+                {props.goal.secondary}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+type NormalizedCareerGoal = {
+  primary: string;
+  secondary: string | null;
+};
+
+function normalizeCareerGoal(goal: CareerGoalValue): NormalizedCareerGoal {
+  if (!goal) {
+    return { primary: "Not captured yet", secondary: null };
+  }
+
+  if (typeof goal === "string") {
+    return { primary: goal, secondary: null };
+  }
+
+  const role = goal.role?.trim();
+  const workContext = goal.workContext?.trim();
+  const organizationType = goal.organizationType?.trim();
+  const workArrangement = goal.workArrangement?.trim();
+  const rawText = goal.rawText?.trim();
+
+  const primary = role || rawText || "Not captured yet";
+  const secondary = getCareerGoalSecondary({
+    organizationType,
+    workArrangement,
+    workContext,
+  });
+
+  return { primary, secondary };
+}
+
+function getCareerGoalSecondary({
+  organizationType,
+  workArrangement,
+  workContext,
+}: {
+  workContext?: string;
+  organizationType?: string;
+  workArrangement?: string;
+}) {
+  if (workContext) {
+    return `at ${workContext}`;
+  }
+
+  if (organizationType) {
+    return `in ${organizationType}`;
+  }
+
+  if (workArrangement) {
+    return workArrangement;
+  }
+
+  return null;
 }
 
 function AwarenessRow(props: {

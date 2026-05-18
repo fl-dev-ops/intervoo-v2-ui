@@ -65,11 +65,10 @@ export default async function DiagnosticsSelectionPage() {
   });
 
   const reportJson = preDiagnosticSession?.report?.reportJson;
-  const dreamRole =
-    typeof reportJson === "object" && reportJson !== null
-      ? ((reportJson as Record<string, unknown>).dream_job ??
-        (reportJson as Record<string, unknown>).aiming_for)
-      : null;
+  const dreamRole = getCareerGoalLabel(
+    getReportField(reportJson, "dream_job") ??
+      getReportField(reportJson, "aiming_for"),
+  );
   const targetSalary =
     typeof reportJson === "object" && reportJson !== null
       ? (reportJson as Record<string, unknown>).salary_expectation
@@ -94,4 +93,33 @@ export default async function DiagnosticsSelectionPage() {
       user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );
+}
+
+function getReportField(reportJson: unknown, key: string) {
+  return typeof reportJson === "object" && reportJson !== null
+    ? (reportJson as Record<string, unknown>)[key]
+    : null;
+}
+
+function getCareerGoalLabel(goal: unknown) {
+  if (!goal) return null;
+
+  if (typeof goal === "string") {
+    return goal;
+  }
+
+  if (typeof goal !== "object" || Array.isArray(goal)) {
+    return null;
+  }
+
+  const record = goal as Record<string, unknown>;
+  const role = typeof record.role === "string" ? record.role.trim() : "";
+  const workContext =
+    typeof record.workContext === "string" ? record.workContext.trim() : "";
+
+  if (role && workContext) {
+    return `${role} at ${workContext}`;
+  }
+
+  return role || workContext || null;
 }

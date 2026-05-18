@@ -33,9 +33,16 @@ Extraction and analysis rules:
 
 Part 1: Data extraction
 
-- dream_job: The highest aspiration the student expressed, whether role, company, or both. It must be explicitly stated as a dream or long-term goal.
-- aiming_for: A realistic middle target the student expressed. It must be different from dream_job.
+- dream_job: The highest aspiration the student expressed. It must be explicitly stated as a dream or long-term goal.
+- aiming_for: A realistic middle target the student expressed. It must be different from dream_job when the student clearly gave multiple levels.
 - backup: The lowest acceptable option or Plan B the student mentioned.
+- For dream_job, aiming_for, and backup, return a career goal object with these fields:
+  - role: concise role/work title, for example Software Developer, Chef, Singer, Teacher, Nurse, Business Owner, Freelance Designer. Do not force software/IT roles unless the student said or strongly implied software/IT.
+  - workContext: named company, venue, sector, workplace, or setting if mentioned, for example Google, restaurant, bar, hospital, school, film industry, freelance clients.
+  - organizationType: normalized workplace/category if clear, for example product company, IT services company, restaurant, bar, hospital, school, freelance clients, own business.
+  - workArrangement: full-time, part-time, freelance, internship, business owner, or null if not mentioned.
+  - rawText: the original phrase or closest exact wording from the student.
+  Return null for the entire goal if that goal level was not mentioned. Within a goal object, use null for unknown fields.
 - salary_expectation: Any salary number or range mentioned, in LPA. Return as a string such as 3.5 LPA or 3-5 LPA.
 - reasoning: A short one-line summary of any reason the student gave for their job choices, or null.
 - companies_mentioned: A list of any company names mentioned anywhere in the conversation.

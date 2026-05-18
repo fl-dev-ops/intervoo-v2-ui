@@ -107,8 +107,7 @@ export function PrediagnosticsSessionView({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId }),
     }).catch(() => {});
-    window.location.href =
-      redirectUrl ?? `/prediagnostics/report?session=${sessionId}`;
+    window.location.href = redirectUrl ?? "/prediagnostics/report";
   }, [completeEndpoint, redirectUrl, sessionId]);
 
   useEffect(() => {

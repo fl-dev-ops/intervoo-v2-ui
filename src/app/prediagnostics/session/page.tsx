@@ -1,6 +1,6 @@
+import { redirect } from "next/navigation";
 import { SessionPageClient } from "@/components/prediagnostics/session-client";
 import { requirePageStage } from "@/lib/stage-guards";
-import { redirect } from "next/navigation";
 
 export default async function PrediagnosticsSessionPage({
   searchParams,
@@ -30,6 +30,7 @@ export default async function PrediagnosticsSessionPage({
       sessionId={session}
       token={token}
       video={video}
+      redirectUrl="/prediagnostics/report"
     />
   );
 }

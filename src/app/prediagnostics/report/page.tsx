@@ -20,13 +20,7 @@ type ReportPageInterviewSession = {
   userId: string;
 };
 
-export default async function PrediagnosticsReportPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ session?: string }>;
-}) {
-  const { session: sessionId } = await searchParams;
-
+export default async function PrediagnosticsReportPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -40,20 +34,18 @@ export default async function PrediagnosticsReportPage({
     redirect("/onboarding");
   }
 
-  const interviewSession = sessionId
-    ? await prisma.interviewSession.findUnique({
-        where: { id: sessionId },
-        include: {
-          report: true,
-          user: { include: { profile: true } },
-        },
-      })
-    : null;
+  const interviewSession = await prisma.interviewSession.findFirst({
+    where: { userId: session.user.id, type: "PREDIAGNOSTIC" },
+    include: {
+      report: true,
+      user: { include: { profile: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   const state = getReportPageState({
     authUserId: session.user.id,
     interviewSession,
-    sessionId,
   });
 
   return <PrediagnosticsReportPreviewPage state={state} />;
@@ -62,16 +54,14 @@ export default async function PrediagnosticsReportPage({
 function getReportPageState({
   authUserId,
   interviewSession,
-  sessionId,
 }: {
   authUserId: string;
   interviewSession: ReportPageInterviewSession | null;
-  sessionId?: string;
 }): PrediagnosticsReportPageState {
-  if (!sessionId || !interviewSession) {
+  if (!interviewSession) {
     return {
       errorMessage:
-        "No report found for this session. It may still be processing or the session ID is invalid.",
+        "No pre-diagnostic session was found for this account. It may still be processing.",
       status: "unavailable",
     };
   }
@@ -82,7 +72,7 @@ function getReportPageState({
   ) {
     return {
       errorMessage:
-        "No report found for this session. It may still be processing or the session ID is invalid.",
+        "No pre-diagnostic report was found for this account. It may still be processing.",
       status: "unavailable",
     };
   }
