@@ -19,47 +19,62 @@ export function PrediagnosticsIntro({
     coachCards.find((item) => item.value === coach) ?? coachCards[0];
 
   return (
-    <main className="flex min-h-dvh bg-white">
-      <section className="mx-auto flex w-full max-w-md flex-1 flex-col overflow-hidden bg-[#F5F3F7] shadow-sm">
-        <div
-          className="relative flex min-h-96 overflow-hidden rounded-b-[2rem] px-5 pt-10 md:min-h-92"
-          style={{ backgroundColor: selectedCoach.tint }}
-        >
-          <h1 className="relative z-10 mx-auto text-center text-xl font-semibold tracking-tight text-white">
-            You&apos;re all set to begin
-          </h1>
-          <Image
-            priority
-            alt={selectedCoach.title}
-            className="object-contain object-bottom scale-130"
-            fill
-            src={selectedCoach.imageSrc}
-          />
-        </div>
+    <main className="flex min-h-dvh bg-white md:items-center md:bg-[#F5F3F7] md:p-8">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col md:max-w-3xl md:flex-none">
+        <h1 className="mb-6 hidden text-center text-2xl font-semibold tracking-tight text-slate-950 md:block">
+          You&apos;re all set to begin
+        </h1>
 
-        <div className="flex flex-1 flex-col px-6 pb-6 pt-6">
-          <div className="space-y-4">
-            <MessageBubble delayMs={200}>
-              Hi {displayName}, I&apos;m {selectedCoach.title} - your interview
-              partner.
-            </MessageBubble>
-            <MessageBubble delayMs={500}>
-              Let&apos;s have a quick chat about the jobs you&apos;re targeting.
-              I&apos;ll use this to create your personalized diagnostic
-              interview.
-            </MessageBubble>
-            <MessageBubble delayMs={800}>
-              You can speak in your native language. Takes less than 7 minutes.
-            </MessageBubble>
+        <section className="flex flex-1 flex-col overflow-hidden bg-[#F5F3F7] shadow-sm md:grid md:flex-none md:grid-cols-2 md:bg-transparent md:shadow-none">
+          <div
+            className="relative flex min-h-96 overflow-hidden rounded-b-[2rem] px-5 pt-10 md:rounded-l-[2rem] md:rounded-br-none md:px-8 md:pt-12"
+            style={{ backgroundColor: selectedCoach.tint }}
+          >
+            <h1 className="relative z-10 mx-auto text-center text-xl font-semibold tracking-tight text-white md:hidden">
+              You&apos;re all set to begin
+            </h1>
+            <Image
+              priority
+              alt={selectedCoach.title}
+              className="object-contain object-bottom scale-130 md:scale-148 md:object-center"
+              fill
+              src={selectedCoach.imageSrc}
+            />
           </div>
 
-          <div className="mt-auto pt-8">
-            <Button className="h-12 w-full rounded-full! bg-button text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95">
-              <Link href="/prediagnostics/screening">Start Pre Diagnostic</Link>
-            </Button>
+          <div className="flex flex-1 flex-col px-6 pb-6 pt-6 md:rounded-r-[2rem] md:bg-white md:p-8">
+            <div className="space-y-4">
+              <MessageBubble delayMs={200}>
+                Hi {displayName}, I&apos;m {selectedCoach.title} - your
+                interview partner.
+              </MessageBubble>
+              <MessageBubble delayMs={500}>
+                Let&apos;s have a quick chat about the jobs you&apos;re
+                targeting. I&apos;ll use this to create your personalized
+                diagnostic interview.
+              </MessageBubble>
+              <MessageBubble delayMs={800}>
+                You can speak in your native language. Takes less than 7
+                minutes.
+              </MessageBubble>
+            </div>
+
+            <div className="mt-auto pt-8 md:hidden">
+              <Button className="h-12 w-full rounded-full! bg-button text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95">
+                <Link href="/prediagnostics/screening">
+                  Start Pre Diagnostic
+                </Link>
+              </Button>
+            </div>
           </div>
+        </section>
+
+        <div className="mt-6 hidden justify-center md:flex">
+          <Button className="h-12 min-w-72 rounded-full! bg-button px-10 text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95">
+            <Link href="/prediagnostics/screening">Start Pre Diagnostic</Link>
+          </Button>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
