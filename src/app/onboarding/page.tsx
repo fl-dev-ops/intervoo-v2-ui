@@ -1,12 +1,10 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
-import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
@@ -31,7 +29,6 @@ const steps = [
   { id: "language", label: "Language" },
   { id: "english", label: "English" },
   { id: "coach", label: "Coach" },
-  { id: "ready", label: "Ready" },
 ] as const;
 
 type StepId = (typeof steps)[number]["id"];
@@ -43,6 +40,31 @@ type NativeLanguage =
   | "malayalam"
   | "bengali";
 type EnglishLevel = "beginner" | "intermediate" | "advanced" | "native";
+
+const stepDetails = {
+  coach: {
+    description: "Choose your preferred agent and speak comfortably",
+    title: "Pick your voice coach",
+  },
+  education: {
+    description:
+      "This helps us personalize interview prompts around your placement context.",
+    title: "Education Background",
+  },
+  english: {
+    description:
+      "We’ll assess your level more accurately in a short interview.",
+    title: "Your current English level?",
+  },
+  language: {
+    description: "We’ll use this to personalize your experience.",
+    title: "Your native language?",
+  },
+  profile: {
+    description: "Tell us what to call you before your diagnostic starts.",
+    title: "Build your profile",
+  },
+} as const satisfies Record<StepId, { description: string; title: string }>;
 
 type OnboardingForm = {
   firstName: string;
@@ -140,6 +162,8 @@ export default function OnboardingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [validationErrors, setValidationErrors] = useState<FieldErrors>({});
   const currentStepIndex = steps.findIndex((item) => item.id === step);
+  const currentStepDetails = stepDetails[step];
+  const isFinalStep = currentStepIndex === steps.length - 1;
 
   useEffect(() => {
     async function loadProfile() {
@@ -211,27 +235,29 @@ export default function OnboardingPage() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-dvh items-center justify-center p-3 md:p-10">
+      <main className="flex min-h-dvh items-center justify-center bg-white p-3 md:p-10">
         <div className="flex flex-col items-center gap-3">
-          <Spinner className="size-8 text-white" />
-          <p className="text-sm text-white">Loading your profile...</p>
+          <Spinner className="size-8 text-[#6548E4]" />
+          <p className="text-sm text-slate-600">Loading your profile...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-dvh flex-col text-white p-3 md:p-10">
-      <section className="relative mx-auto flex w-full max-w-md flex-1 flex-col ">
+    <main className="flex min-h-dvh flex-col md:p-10">
+      <section className="relative mx-auto flex w-full max-w-md flex-1 flex-col pt-6 ">
         <OnboardingHeader
           currentStep={currentStepIndex + 1}
-          onBack={goBack}
-          showBack={currentStepIndex > 0}
+          title={currentStepDetails.title}
           totalSteps={steps.length}
         />
 
-        <div className="h-full flex-1 p-2 mt-4 md:mt-8">
-          <div key={step} className="pt-2 px-1 md:p-0 flex-1 animate-fade-in">
+        <div className="mt-4 flex h-full flex-1 flex-col rounded-t-2xl md:rounded-2xl bg-white pt-3 p-6 md:pt-6">
+          <div
+            key={step}
+            className="pt-2 px-1 pb-2 md:p-0 flex-1 animate-fade-in"
+          >
             {step === "profile" ? (
               <ProfileStep
                 errors={validationErrors}
@@ -256,31 +282,28 @@ export default function OnboardingPage() {
                 form={form}
                 onChange={updateForm}
               />
-            ) : step === "coach" ? (
+            ) : (
               <CoachStep
                 errors={validationErrors}
                 form={form}
                 onChange={updateForm}
               />
-            ) : (
-              <ReadyStepContent form={form} />
             )}
           </div>
 
-          {step !== "ready" ? (
-            <div className="mt-8">
-              <Button
-                className="w-full bg-button"
-                size={"lg"}
-                type="button"
-                onClick={goNext}
-              >
-                Next
-                <ArrowRight className="size-4" />
-              </Button>
-            </div>
+          {isFinalStep ? (
+            <OnboardingSubmitButton
+              form={form}
+              onBack={goBack}
+              showBack={currentStepIndex > 0}
+            />
           ) : (
-            <ReadyStepButton form={form} />
+            <OnboardingFooter
+              nextLabel="Next"
+              onBack={goBack}
+              onNext={goNext}
+              showBack={currentStepIndex > 0}
+            />
           )}
         </div>
       </section>
@@ -290,29 +313,13 @@ export default function OnboardingPage() {
 
 function OnboardingHeader(props: {
   currentStep: number;
+  title: string;
   totalSteps: number;
-  showBack: boolean;
-  onBack: () => void;
 }) {
   return (
-    <header className="text-white px-2 mt-2">
-      <div className="flex items-center gap-2 text-sm">
-        {props.showBack && (
-          <button
-            className="inline-flex items-center justify-center rounded-md p-1 text-muted transition hover:bg-accent hover:text-foreground"
-            type="button"
-            onClick={props.onBack}
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-        )}
-        <span className="font-medium">Onboarding</span>
-        <span className="ml-auto tabular-nums text-muted">
-          {props.currentStep} / {props.totalSteps}
-        </span>
-      </div>
+    <header className="px-2 mt-2">
       <div
-        className="mt-3 grid gap-2"
+        className="mx-auto grid w-30 gap-2"
         style={{
           gridTemplateColumns: `repeat(${props.totalSteps}, minmax(0, 1fr))`,
         }}
@@ -324,13 +331,52 @@ function OnboardingHeader(props: {
           <span
             key={segment.id}
             className={cn(
-              "h-2 rounded-full transition-colors duration-500 ease-out",
-              segment.isComplete ? "bg-white" : "bg-white/25",
+              "h-1.25 rounded-full transition-colors duration-500 ease-out",
+              segment.isComplete ? "bg-[#6548E4]" : "bg-slate-200",
             )}
           />
         ))}
       </div>
+      <div className="mt-4 text-center">
+        <h2 className="text-xl font-semibold tracking-tight text-white">
+          {props.title}
+        </h2>
+      </div>
     </header>
+  );
+}
+
+function OnboardingFooter(props: {
+  nextLabel: string;
+  showBack: boolean;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <footer className="mt-auto flex items-center justify-between gap-3 pt-8">
+      {props.showBack ? (
+        <Button
+          className="px-2 text-slate-500 hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-[#6548E4]/20"
+          type="button"
+          variant="ghost"
+          onClick={props.onBack}
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </Button>
+      ) : (
+        <span aria-hidden="true" />
+      )}
+      <Button
+        className="rounded-full min-w-32 bg-button text-white shadow-lg shadow-[#6548E4]/20 focus-visible:ring-[#6548E4]/20"
+        size="lg"
+        type="button"
+        onClick={props.onNext}
+      >
+        {props.nextLabel}
+        <ArrowRight className="size-4" />
+      </Button>
+    </footer>
   );
 }
 
@@ -340,10 +386,7 @@ function ProfileStep(props: {
   onChange: (patch: Partial<OnboardingForm>) => void;
 }) {
   return (
-    <StepContent
-      description="Tell us what to call you before your diagnostic starts."
-      title="Basic Details"
-    >
+    <StepContent description={stepDetails.profile.description}>
       <FieldGroup className="gap-6">
         <div className="grid grid-cols-2 gap-3">
           <TextField
@@ -394,10 +437,7 @@ function EducationStep(props: {
   const isOtherAcademy = props.form.academySelection === "Others";
 
   return (
-    <StepContent
-      description="This helps us personalize interview prompts around your placement context."
-      title="Education Background"
-    >
+    <StepContent description={stepDetails.education.description}>
       <FieldGroup className="gap-6">
         <TextField
           error={props.errors.degree}
@@ -421,7 +461,9 @@ function EducationStep(props: {
           onChange={(value) => props.onChange({ institution: value })}
         />
         <Field>
-          <FieldLabel>How are you preparing for placements?</FieldLabel>
+          <FieldLabel className="font-normal leading-none text-[#6B6B6B]">
+            How are you preparing for placements?
+          </FieldLabel>
           <Select
             value={props.form.placementPreparation}
             onValueChange={(value) =>
@@ -439,7 +481,7 @@ function EducationStep(props: {
             <SelectTrigger
               aria-invalid={Boolean(props.errors.placementPreparation)}
               aria-required="true"
-              className="w-full bg-white/10 border-white/20 text-white"
+              className="h-auto w-full rounded-lg border-0 bg-[#F0EDF6] px-3 py-2 font-normal text-[#24232A] shadow-none focus-visible:border-0 focus-visible:ring-3 focus-visible:ring-[#6548E4]/20 data-placeholder:text-slate-400"
             >
               <SelectValue placeholder="Select preparation mode">
                 {placementOptions.find(
@@ -467,7 +509,9 @@ function EducationStep(props: {
         </Field>
         {isTrainingAcademy ? (
           <Field>
-            <FieldLabel>Select your academy</FieldLabel>
+            <FieldLabel className="font-normal leading-none text-[#6B6B6B]">
+              Select your academy
+            </FieldLabel>
             <Select
               value={props.form.academySelection}
               onValueChange={(value) =>
@@ -480,7 +524,7 @@ function EducationStep(props: {
               <SelectTrigger
                 aria-invalid={Boolean(props.errors.academySelection)}
                 aria-required="true"
-                className="w-full bg-white/10 border-white/20 text-white"
+                className="h-auto w-full rounded-lg border-0 bg-[#F0EDF6] px-3 py-2 font-medium text-[#24232A] shadow-none focus-visible:border-0 focus-visible:ring-3 focus-visible:ring-[#6548E4]/20 data-placeholder:text-slate-400 md:text-xl"
               >
                 <SelectValue placeholder="Select academy">
                   {academyOptions.find(
@@ -523,10 +567,7 @@ function LanguageStep(props: {
   onChange: (patch: Partial<OnboardingForm>) => void;
 }) {
   return (
-    <StepContent
-      description="Choose the language you are most comfortable speaking alongside English."
-      title="Comfort language"
-    >
+    <StepContent description={stepDetails.language.description}>
       <div className="grid gap-3">
         {languageOptions.map((option) => (
           <OptionButton
@@ -553,10 +594,7 @@ function EnglishStep(props: {
   onChange: (patch: Partial<OnboardingForm>) => void;
 }) {
   return (
-    <StepContent
-      description="Pick the option that feels closest to your current speaking comfort."
-      title="English fluency"
-    >
+    <StepContent description={stepDetails.english.description}>
       <div className="grid gap-3">
         {englishOptions.map((option) => (
           <OptionButton
@@ -583,19 +621,16 @@ function CoachStep(props: {
   onChange: (patch: Partial<OnboardingForm>) => void;
 }) {
   return (
-    <StepContent
-      description="Choose the coach voice that will guide your practice sessions."
-      title="Pick your coach"
-    >
+    <StepContent description={stepDetails.coach.description}>
       <div className="grid grid-cols-2 gap-3">
         {coachCards.map((coach) => (
           <button
             key={coach.value}
             className={cn(
-              "overflow-hidden rounded-xl bg-input/30 text-left shadow-sm transition border-4",
+              "overflow-hidden rounded-xl border-2 bg-white text-left text-slate-950 shadow-sm transition",
               props.form.coach === coach.value
-                ? "border-white "
-                : "border-transparent hover:border-foreground/30",
+                ? "border-[#6548E4] ring-2 ring-[#6548E4]/10"
+                : "border-slate-200 hover:border-slate-300 hover:bg-slate-50",
             )}
             type="button"
             onClick={() => props.onChange({ coach: coach.value })}
@@ -626,47 +661,11 @@ function CoachStep(props: {
   );
 }
 
-function ReadyStepContent(props: { form: OnboardingForm }) {
-  const name =
-    props.form.preferredName.trim() || props.form.firstName.trim() || "there";
-  const selectedCoach = coachCards.find(
-    (coach) => coach.value === props.form.coach,
-  );
-
-  return (
-    <StepContent
-      description="Your profile is complete and ready for the diagnostic session."
-      title="You're all set to begin"
-    >
-      <div className="-mt-2 flex flex-col gap-3">
-        {selectedCoach ? (
-          <div
-            className="w-full aspect-square relative overflow-hidden rounded-xl"
-            style={{ backgroundColor: selectedCoach.tint }}
-          >
-            <Image
-              alt={selectedCoach.title}
-              className="object-cover"
-              fill
-              src={selectedCoach.imageSrc}
-            />
-          </div>
-        ) : null}
-        <div className="space-y-3">
-          <MessageBubble delayMs={150}>
-            Hi {name}, welcome to your personalized interview preparation.
-          </MessageBubble>
-          <MessageBubble delayMs={650}>
-            Let&apos;s have a quick chat about the jobs you&apos;re targeting.
-            I&apos;ll use this to create your personalized diagnostic interview.
-          </MessageBubble>
-        </div>
-      </div>
-    </StepContent>
-  );
-}
-
-function ReadyStepButton(props: { form: OnboardingForm }) {
+function OnboardingSubmitButton(props: {
+  form: OnboardingForm;
+  showBack: boolean;
+  onBack: () => void;
+}) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -704,21 +703,37 @@ function ReadyStepButton(props: { form: OnboardingForm }) {
   }
 
   return (
-    <div className="mt-8">
+    <div className="mt-auto pt-8">
       {error ? (
         <p className="mb-4 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       ) : null}
-      <Button
-        className="w-full bg-button"
-        size="lg"
-        disabled={isSubmitting}
-        type="button"
-        onClick={handleStart}
-      >
-        {isSubmitting ? <Spinner className="size-4" /> : "Finish"}
-      </Button>
+      <footer className="flex items-center justify-between gap-3">
+        {props.showBack ? (
+          <Button
+            className="text-slate-500 hover:bg-slate-100 hover:text-slate-950"
+            disabled={isSubmitting}
+            type="button"
+            variant="ghost"
+            onClick={props.onBack}
+          >
+            <ArrowLeft className="size-4" />
+            Back
+          </Button>
+        ) : (
+          <span aria-hidden="true" />
+        )}
+        <Button
+          className="rounded-full min-w-32 bg-button text-white shadow-lg shadow-[#6548E4]/20"
+          size="lg"
+          disabled={isSubmitting}
+          type="button"
+          onClick={handleStart}
+        >
+          {isSubmitting ? <Spinner className="size-4" /> : "Done"}
+        </Button>
+      </footer>
     </div>
   );
 }
@@ -790,42 +805,16 @@ function validateOnboardingForm(form: OnboardingForm) {
   return "";
 }
 
-function MessageBubble({
-  children,
-  delayMs,
-  className,
-}: {
-  children: React.ReactNode;
-  delayMs?: number;
-  className?: string;
-}) {
-  return (
-    <motion.div
-      animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        "rounded-4xl rounded-bl-sm border bg-white/10 px-4 py-3 text-sm leading-relaxed text-white shadow-sm",
-        className ?? "",
-      )}
-      initial={{ opacity: 0, y: 8 }}
-      transition={{ delay: (delayMs ?? 0) / 1000, duration: 0.35 }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 function StepContent(props: {
-  title: string;
-  description: string;
   children: React.ReactNode;
+  description: string;
 }) {
   return (
     <div>
-      <h2 className="text-xl font-semibold tracking-tight">{props.title}</h2>
-      <p className="mt-1 text-sm leading-6 text-white/70">
+      <p className="text-sm mb-8 md:text-[17px] md:font-semibold leading-6">
         {props.description}
       </p>
-      <div className="mt-6">{props.children}</div>
+      {props.children}
     </div>
   );
 }
@@ -841,11 +830,13 @@ function TextField(props: {
 }) {
   return (
     <Field>
-      <FieldLabel>{props.label}</FieldLabel>
+      <FieldLabel className="font-normal leading-none">
+        {props.label}
+      </FieldLabel>
       <Input
         aria-invalid={Boolean(props.error)}
         autoComplete={props.autoComplete}
-        className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
+        className="h-auto rounded-lg text-sm border-0 bg-[#F0EDF6] px-3 py-2 font-medium text-[#24232A] shadow-none placeholder:text-slate-400 focus-visible:border-0 focus-visible:ring-3 focus-visible:ring-[#6548E4]/20"
         required={props.required}
         type={props.type ?? "text"}
         value={props.value}
@@ -869,10 +860,10 @@ function OptionButton(props: {
   return (
     <button
       className={cn(
-        "flex w-full items-center justify-between gap-4 rounded-lg border bg-white/10 p-4 text-left transition text-white",
+        "flex w-full items-center justify-between gap-4 rounded-lg border bg-white p-4 text-left text-slate-950 shadow-sm transition",
         props.active
-          ? "border-white"
-          : "border-white/20 hover:border-white/40",
+          ? "border-[#6548E4] ring-2 ring-[#6548E4]/10"
+          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50",
       )}
       type="button"
       onClick={props.onClick}
@@ -881,16 +872,12 @@ function OptionButton(props: {
         <span className="block text-sm font-medium leading-5">
           {props.label}
         </span>
-        <span className="mt-1 block text-xs text-white/60">
-          {props.meta}
-        </span>
+        <span className="mt-1 block text-xs text-slate-500">{props.meta}</span>
       </span>
       <span
         className={cn(
           "flex size-5 shrink-0 items-center justify-center rounded-full border transition",
-          props.active
-            ? "border-[#5E41CF] bg-[#5E41CF]"
-            : "border-white/40",
+          props.active ? "border-[#5E41CF] bg-[#5E41CF]" : "border-slate-300",
         )}
       >
         {props.active ? <Check className="size-3 text-white" /> : null}

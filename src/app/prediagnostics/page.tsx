@@ -1,35 +1,23 @@
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { PrediagnosticsIntro } from "@/components/prediagnostics/prediagnostics-intro";
+import type { CoachOption } from "@/lib/coaches";
+import { prisma } from "@/lib/db";
 import { requirePageStage } from "@/lib/stage-guards";
-import { redirect } from "next/navigation";
 
 export default async function PrediagnosticsPage() {
-  await requirePageStage(["PREDIAGNOSTICS"]);
-  return redirect("/prediagnostics/screening");
+  const { user } = await requirePageStage(["PREDIAGNOSTICS"]);
+  const profile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+    select: { coach: true, preferredName: true },
+  });
 
-  // return (
-  //   <main className="flex min-h-dvh items-center justify-center bg-background px-5 py-8">
-  //     <section className="mx-auto w-full max-w-lg space-y-6 text-center">
-  //       <div className="space-y-3">
-  //         <p className="text-sm font-medium text-muted-foreground">
-  //           Pre-diagnostic
-  //         </p>
-  //         <h1 className="text-2xl font-semibold tracking-tight">
-  //           Start with a quick conversation
-  //         </h1>
-  //         <p className="text-sm leading-6 text-muted-foreground">
-  //           This short session helps us understand your goals, comfort level,
-  //           and the roles you are preparing for before diagnostics begin.
-  //         </p>
-  //       </div>
+  return (
+    <PrediagnosticsIntro
+      coach={toCoachOption(profile?.coach)}
+      name={profile?.preferredName ?? user.name}
+    />
+  );
+}
 
-  //       <Link
-  //         className={buttonVariants({ className: "mx-auto", size: "lg" })}
-  //         href="/prediagnostics/screening"
-  //       >
-  //         Take pre-diagnostic
-  //       </Link>
-  //     </section>
-  //   </main>
-  // );
+function toCoachOption(value: string | null | undefined): CoachOption | null {
+  return value === "sana" || value === "arjun" ? value : null;
 }
