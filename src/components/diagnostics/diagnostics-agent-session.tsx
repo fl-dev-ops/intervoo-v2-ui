@@ -348,7 +348,7 @@ function SessionLayout({
         <CustomAgentControlBar
           controls={{
             microphone: true,
-            camera: true,
+            camera: false,
             leave: true,
           }}
           isConnected={session.isConnected}

@@ -175,12 +175,6 @@ export function RoundCompleteClient({
               {description}
             </p>
 
-            {hasFailedReport && failureReason !== "insufficient_speech" ? (
-              <p className="mt-3 rounded-2xl bg-[#fff6e9] px-4 py-3 text-left text-xs leading-5 text-[#7a4a12]">
-                {reportErrorMessage ?? "Report generation failed."}
-              </p>
-            ) : null}
-
             <div className="mt-8 space-y-4">
               {nextRound && !canStartNext && !hasFailedReport ? (
                 <button
