@@ -6,10 +6,12 @@ import {
   getDiagnosticJobOption,
   parseDiagnosticBand,
 } from "@/lib/diagnostics/job-options";
+import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import {
   areAllDiagnosticRoundsComplete,
   countProgressableDiagnosticRounds,
-  isDiagnosticReportReady,
+  getActiveDiagnosticRoundNumber,
+  isDiagnosticRoundReadyForProgression,
   shouldShowDiagnosticBandSelection,
 } from "@/lib/diagnostics/rules";
 import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
@@ -71,6 +73,13 @@ export default async function DiagnosticsRoundsPage() {
       sessionId: round.sessionId,
       startedAt: round.session?.startedAt?.toISOString() ?? null,
       reportStatus: report?.status ?? null,
+      reportJson: hydratedReport
+        ? {
+            assessment_result: {
+              total_score: hydratedReport.assessment_result.total_score,
+            },
+          }
+        : null,
       reportShareToken: report?.shareToken ?? null,
       reportScore: hydratedReport?.assessment_result.total_score ?? null,
       reportStartedAt: report?.startedAt?.toISOString() ?? null,
@@ -78,10 +87,17 @@ export default async function DiagnosticsRoundsPage() {
   });
 
   const allCompleted = areAllDiagnosticRoundsComplete(rounds);
+  const progressableRoundCount = countProgressableDiagnosticRounds(rounds);
+  const activeRoundNumber = getActiveDiagnosticRoundNumber(
+    rounds,
+    DIAGNOSTIC_ROUNDS.map((round) => round.id),
+  );
 
   console.info("[diagnostics] rounds page state", {
+    activeRoundNumber,
     allCompleted,
     diagnosticId: diagnostic.id,
+    progressableRoundCount,
     rounds,
     selectedBand: diagnostic.selectedBand,
     selectedJob: selectedJob.title,
@@ -99,9 +115,9 @@ export default async function DiagnosticsRoundsPage() {
   }
 
   const reportsReadyCount = rounds.filter((round) =>
-    isDiagnosticReportReady(round.reportStatus),
+    isDiagnosticRoundReadyForProgression(round),
   ).length;
-  const hasCompletedRound = countProgressableDiagnosticRounds(rounds) > 0;
+  const hasCompletedRound = progressableRoundCount > 0;
 
   return (
     <DiagnosticsRoundsClient

@@ -1,3 +1,5 @@
+import { diagnosticsReportSchema } from "@/lib/diagnostics/report-schema";
+
 export const DIAGNOSTIC_TOTAL_ROUNDS = 4;
 export const DIAGNOSTIC_SESSION_STUCK_MINUTES = 15;
 
@@ -19,11 +21,13 @@ export type DiagnosticRoundWithReportInput = {
   startedAt?: string | Date | null;
   reportStatus?: ReportStatus;
   reportStartedAt?: string | Date | null;
+  reportJson?: unknown;
   session?: {
     startedAt?: string | Date | null;
     report?: {
       status?: ReportStatus;
       startedAt?: string | Date | null;
+      reportJson?: unknown;
     } | null;
   } | null;
 };
@@ -78,8 +82,32 @@ export function isDiagnosticRoundReadyForProgression<
 
   return (
     isDiagnosticSessionComplete(round.status) &&
-    isDiagnosticReportReady(getRoundReportStatus(round))
+    isDiagnosticReportReady(getRoundReportStatus(round)) &&
+    hasUsableDiagnosticReportJson(getRoundReportJson(round))
   );
+}
+
+export function hasUsableDiagnosticReportJson(reportJson: unknown) {
+  if (
+    !reportJson ||
+    typeof reportJson !== "object" ||
+    Array.isArray(reportJson)
+  ) {
+    return false;
+  }
+
+  const assessment = (reportJson as { assessment_result?: unknown })
+    .assessment_result;
+
+  if (
+    assessment &&
+    typeof assessment === "object" &&
+    "total_score" in assessment
+  ) {
+    return true;
+  }
+
+  return diagnosticsReportSchema.safeParse(reportJson).success;
 }
 
 export function isDiagnosticRoundReportProcessing<
@@ -89,7 +117,9 @@ export function isDiagnosticRoundReportProcessing<
 
   const reportStatus = getRoundReportStatus(round);
 
-  return !isDiagnosticReportReady(reportStatus) && reportStatus !== "FAILED";
+  return (
+    !isDiagnosticRoundReadyForProgression(round) && reportStatus !== "FAILED"
+  );
 }
 
 export function countProgressableDiagnosticRounds<
@@ -176,4 +206,8 @@ export function getDiagnosticRoundRecoveryState(
 
 function getRoundReportStatus(round: DiagnosticRoundWithReportInput) {
   return round.reportStatus ?? round.session?.report?.status ?? null;
+}
+
+function getRoundReportJson(round: DiagnosticRoundWithReportInput) {
+  return round.reportJson ?? round.session?.report?.reportJson ?? null;
 }

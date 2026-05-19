@@ -2,7 +2,7 @@
 
 import { IconBrandWhatsapp } from "@tabler/icons-react";
 import confetti from "canvas-confetti";
-import { CheckIcon, Loader2, Play } from "lucide-react";
+import { AlertCircle, CheckIcon, Loader2, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -16,45 +16,88 @@ type NextRound = {
 
 type RoundCompleteClientProps = {
   canStartNext: boolean;
+  completedRoundId: string;
+  completedRoundNumber: number;
   completedRoundTitle: string;
+  failureReason: "insufficient_speech" | "generation_failed" | null;
   nextRound: NextRound | null;
+  reportErrorMessage: string | null;
+  reportStatus: string | null;
 };
 
 export function RoundCompleteClient({
   canStartNext,
+  completedRoundId,
+  completedRoundNumber,
   completedRoundTitle,
+  failureReason,
   nextRound,
+  reportErrorMessage,
+  reportStatus,
 }: RoundCompleteClientProps) {
   const router = useRouter();
+  const hasFailedReport = reportStatus === "FAILED";
   const isFinalRound = !nextRound;
-  const primaryLabel = nextRound
-    ? canStartNext
-      ? `Start next Round ${nextRound.roundNumber}`
-      : "Finalizing round..."
-    : "Go to interview rounds";
-  const primaryHref = nextRound
-    ? `/diagnostics/prejoin?round=${nextRound.id}`
-    : "/diagnostics/rounds";
+  const primaryLabel = hasFailedReport
+    ? `Retake Round ${completedRoundNumber}`
+    : nextRound
+      ? canStartNext
+        ? `Start next Round ${nextRound.roundNumber}`
+        : "Finalizing round..."
+      : "Go to interview rounds";
+  const primaryHref = hasFailedReport
+    ? `/diagnostics/prejoin?round=${completedRoundId}`
+    : nextRound
+      ? `/diagnostics/prejoin?round=${nextRound.id}`
+      : "/diagnostics/rounds";
+  const heading = hasFailedReport
+    ? failureReason === "insufficient_speech"
+      ? "We need a bit more from you"
+      : "We could not prepare this report"
+    : isFinalRound
+      ? "Congratulations!"
+      : "Awesome!";
+  const description = hasFailedReport
+    ? failureReason === "insufficient_speech"
+      ? "We could not generate your round report because there were not enough spoken answers. Please retake this round and answer a few questions so we can evaluate you properly."
+      : "Something went wrong while generating your round report. Please retake this round."
+    : isFinalRound
+      ? "You have completed all 4 rounds"
+      : `You have completed ${completedRoundTitle} round!`;
 
   useEffect(() => {
     console.info("[diagnostics] round complete client state", {
       canStartNext,
+      completedRoundId,
+      completedRoundNumber,
       completedRoundTitle,
+      failureReason,
+      hasFailedReport,
       isFinalRound,
       nextRound,
       primaryHref,
       primaryLabel,
+      reportErrorMessage,
+      reportStatus,
     });
   }, [
     canStartNext,
+    completedRoundId,
+    completedRoundNumber,
     completedRoundTitle,
+    failureReason,
+    hasFailedReport,
     isFinalRound,
     nextRound,
     primaryHref,
     primaryLabel,
+    reportErrorMessage,
+    reportStatus,
   ]);
 
   useEffect(() => {
+    if (hasFailedReport) return;
+
     const end = Date.now() + 3 * 1000;
     const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
     let animationFrame = 0;
@@ -85,10 +128,10 @@ export function RoundCompleteClient({
     frame();
 
     return () => cancelAnimationFrame(animationFrame);
-  }, []);
+  }, [hasFailedReport]);
 
   useEffect(() => {
-    if (canStartNext || !nextRound) {
+    if (hasFailedReport || canStartNext || !nextRound) {
       return;
     }
 
@@ -97,7 +140,7 @@ export function RoundCompleteClient({
     }, 1500);
 
     return () => window.clearInterval(intervalId);
-  }, [canStartNext, nextRound, router]);
+  }, [canStartNext, hasFailedReport, nextRound, router]);
 
   return (
     <main className="relative grid min-h-dvh overflow-hidden bg-lavender text-foreground page-container">
@@ -105,27 +148,41 @@ export function RoundCompleteClient({
         <div className="overflow-hidden rounded-[1.6rem] border border-black/10 bg-white shadow-[0_18px_60px_rgba(21,18,35,0.08)]">
           <div className="px-8 pb-8 pt-10 text-center">
             <div className="relative mx-auto h-52 w-52">
-              <img
-                alt="Round completed"
-                className="h-full w-full object-contain"
-                src="/round-completed.svg"
-              />
-              <div className="absolute bottom-6 left-2 grid size-18 place-items-center rounded-full bg-[#58ad6f] text-white shadow-[0_10px_30px_rgba(88,173,111,0.35)]">
-                <CheckIcon className="size-9" />
-              </div>
+              {hasFailedReport ? (
+                <div className="grid h-full w-full place-items-center rounded-full bg-[#fff6e9]">
+                  <div className="grid size-24 place-items-center rounded-full bg-[#f39a3d] text-white shadow-[0_10px_30px_rgba(243,154,61,0.3)]">
+                    <AlertCircle className="size-12" />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <img
+                    alt="Round completed"
+                    className="h-full w-full object-contain"
+                    src="/round-completed.svg"
+                  />
+                  <div className="absolute bottom-6 left-2 grid size-18 place-items-center rounded-full bg-[#58ad6f] text-white shadow-[0_10px_30px_rgba(88,173,111,0.35)]">
+                    <CheckIcon className="size-9" />
+                  </div>
+                </>
+              )}
             </div>
 
             <h1 className="mt-3 text-[1.7rem] font-semibold tracking-[-0.04em] text-black">
-              {isFinalRound ? "Congratulations!" : "Awesome!"}
+              {heading}
             </h1>
-            <p className="mt-1 text-sm font-medium text-[#3f3d46]">
-              {isFinalRound
-                ? "You have completed all 4 rounds"
-                : `You have completed ${completedRoundTitle} round!`}
+            <p className="mt-1 text-sm font-medium leading-6 text-[#3f3d46]">
+              {description}
             </p>
 
+            {hasFailedReport && failureReason !== "insufficient_speech" ? (
+              <p className="mt-3 rounded-2xl bg-[#fff6e9] px-4 py-3 text-left text-xs leading-5 text-[#7a4a12]">
+                {reportErrorMessage ?? "Report generation failed."}
+              </p>
+            ) : null}
+
             <div className="mt-8 space-y-4">
-              {nextRound && !canStartNext ? (
+              {nextRound && !canStartNext && !hasFailedReport ? (
                 <button
                   className={cn(
                     buttonVariants({ size: "lg" }),
@@ -145,14 +202,14 @@ export function RoundCompleteClient({
                   )}
                   href={primaryHref}
                 >
-                  {nextRound ? (
+                  {nextRound || hasFailedReport ? (
                     <Play className="mr-2 size-4 fill-current" />
                   ) : null}
                   {primaryLabel}
                 </Link>
               )}
 
-              {!isFinalRound && (
+              {(!isFinalRound || hasFailedReport) && (
                 <Link
                   className={cn(
                     buttonVariants({ size: "lg", variant: "outline" }),
@@ -166,10 +223,16 @@ export function RoundCompleteClient({
             </div>
           </div>
 
-          <div className="flex items-center justify-center gap-2 bg-[#fffdf0] px-4 py-4 text-sm font-semibold text-[#25231d]">
-            <span>You will get report on whatsapp</span>
-            <IconBrandWhatsapp className="size-4 text-[#35b85a]" />
-          </div>
+          {hasFailedReport ? (
+            <div className="bg-[#fffdf0] px-4 py-4 text-center text-sm font-semibold text-[#25231d]">
+              Retake this round to generate your report.
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 bg-[#fffdf0] px-4 py-4 text-sm font-semibold text-[#25231d]">
+              <span>You will get report on whatsapp</span>
+              <IconBrandWhatsapp className="size-4 text-[#35b85a]" />
+            </div>
+          )}
         </div>
       </section>
     </main>

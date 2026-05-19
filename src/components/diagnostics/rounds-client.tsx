@@ -34,6 +34,7 @@ type RoundData = {
   sessionId: string;
   startedAt: string | null;
   reportStatus: string | null;
+  reportJson: unknown;
   reportShareToken: string | null;
   reportScore: number | null;
   reportStartedAt: string | null;
@@ -122,113 +123,111 @@ export function DiagnosticsRoundsClient({
   }, [activeRoundNumber]);
 
   return (
-    <>
-      <main className="min-h-dvh md:pb-10 bg-lavender">
-        <header className="bg-transparent">
-          {hasCompletedRound ? (
-            <DiagnosticsPageHeader
-              title={`${selectedJob.title} Interview`}
-              user={user}
-            />
-          ) : (
-            <div className="z-100 p-3 md:relative w-full flex flex-row items-center justify-between pb-4 bg-background md:bg-transparent">
-              {/* Back button */}
-              <button
-                className="flex items-center gap-2 text-sm font-medium text-black transition-colors hover:text-foreground"
-                onClick={() => router.push("/diagnostics/selection")}
-                type="button"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </button>
+    <main className="min-h-dvh md:pb-10 bg-lavender">
+      <header className="bg-transparent">
+        {hasCompletedRound ? (
+          <DiagnosticsPageHeader
+            title={`${selectedJob.title} Interview`}
+            user={user}
+          />
+        ) : (
+          <div className="z-100 p-3 md:relative w-full flex flex-row items-center justify-between pb-4 bg-background md:bg-transparent">
+            {/* Back button */}
+            <button
+              className="flex items-center gap-2 text-sm font-medium text-black transition-colors hover:text-foreground"
+              onClick={() => router.push("/diagnostics/selection")}
+              type="button"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+          </div>
+        )}
+      </header>
+
+      <section className={cn("mx-auto w-full max-w-4xl space-y-6 md:py-8")}>
+        {/* Header Card */}
+        <DiagnosticsJobHeader bandConfig={selectedJob} />
+
+        {/* Rounds Timeline - Dark Purple Container */}
+        <div className="mt-3 rounded-3xl bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] p-6 md:p-8 rounded-b-none md:rounded-b-3xl">
+          <div className="relative mx-auto max-w-4xl">
+            <div className="space-y-3">
+              {DIAGNOSTIC_ROUNDS.map((roundConfig, index) => {
+                const roundNumber = index + 1;
+                const roundData = initialRounds.find(
+                  (round) => round.roundType === roundConfig.id,
+                );
+                const isDone = isRoundCompleted(roundData);
+                const isFailed = isRoundFailed(roundData);
+                const isProcessing =
+                  isDiagnosticRoundReportProcessing(roundData);
+                const isStarted =
+                  Boolean(roundData) &&
+                  roundData?.status === "STARTED" &&
+                  !isFailed;
+                const isActive = roundNumber === activeRoundNumber;
+                const isLocked = roundNumber > activeRoundNumber;
+
+                return (
+                  <div
+                    key={roundConfig.id}
+                    ref={(el) => {
+                      roundRefs.current[index] = el;
+                    }}
+                  >
+                    <RoundTimelineItem
+                      config={roundConfig}
+                      isActive={isActive}
+                      isDone={isDone}
+                      isFailed={isFailed}
+                      isLast={index === DIAGNOSTIC_ROUNDS.length - 1}
+                      isLocked={isLocked}
+                      isProcessing={isProcessing}
+                      isStarted={isStarted}
+                      questions={roundConfig.questionsByBand[selectedJob.id]}
+                      roundData={roundData}
+                      roundNumber={roundNumber}
+                      onStart={() => {
+                        console.info("[diagnostics] start round clicked", {
+                          activeRoundNumber,
+                          roundId: roundConfig.id,
+                          roundNumber,
+                        });
+                        router.push(
+                          `/diagnostics/prejoin?round=${roundConfig.id}`,
+                        );
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Final Report Panel */}
+          {allCompleted && (
+            <div className="mt-8 text-center">
+              {reportsReadyCount === DIAGNOSTIC_ROUNDS.length ? (
+                <a
+                  className="inline-flex items-center justify-center rounded-full bg-button px-8 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  href="/diagnostics/final-report"
+                >
+                  View Final Diagnostic Report
+                </a>
+              ) : (
+                <p className="text-sm leading-6 text-white/60">
+                  All rounds are complete. {reportsReadyCount} of{" "}
+                  {DIAGNOSTIC_ROUNDS.length} round reports are ready. Generate
+                  or wait for the remaining reports to unlock the final
+                  diagnostic report.
+                </p>
+              )}
             </div>
           )}
-        </header>
-
-        <section className={cn("mx-auto w-full max-w-4xl space-y-6 md:py-8")}>
-          {/* Header Card */}
-          <DiagnosticsJobHeader bandConfig={selectedJob} />
-
-          {/* Rounds Timeline - Dark Purple Container */}
-          <div className="mt-3 rounded-3xl bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] p-6 md:p-8 rounded-b-none md:rounded-b-3xl">
-            <div className="relative mx-auto max-w-4xl">
-              <div className="space-y-3">
-                {DIAGNOSTIC_ROUNDS.map((roundConfig, index) => {
-                  const roundNumber = index + 1;
-                  const roundData = initialRounds.find(
-                    (round) => round.roundType === roundConfig.id,
-                  );
-                  const isDone = isRoundCompleted(roundData);
-                  const isFailed = isRoundFailed(roundData);
-                  const isProcessing =
-                    isDiagnosticRoundReportProcessing(roundData);
-                  const isStarted =
-                    Boolean(roundData) &&
-                    roundData?.status === "STARTED" &&
-                    !isFailed;
-                  const isActive = roundNumber === activeRoundNumber;
-                  const isLocked = roundNumber > activeRoundNumber;
-
-                  return (
-                    <div
-                      key={roundConfig.id}
-                      ref={(el) => {
-                        roundRefs.current[index] = el;
-                      }}
-                    >
-                      <RoundTimelineItem
-                        config={roundConfig}
-                        isActive={isActive}
-                        isDone={isDone}
-                        isFailed={isFailed}
-                        isLast={index === DIAGNOSTIC_ROUNDS.length - 1}
-                        isLocked={isLocked}
-                        isProcessing={isProcessing}
-                        isStarted={isStarted}
-                        questions={roundConfig.questionsByBand[selectedJob.id]}
-                        roundData={roundData}
-                        roundNumber={roundNumber}
-                        onStart={() => {
-                          console.info("[diagnostics] start round clicked", {
-                            activeRoundNumber,
-                            roundId: roundConfig.id,
-                            roundNumber,
-                          });
-                          router.push(
-                            `/diagnostics/prejoin?round=${roundConfig.id}`,
-                          );
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Final Report Panel */}
-            {allCompleted && (
-              <div className="mt-8 text-center">
-                {reportsReadyCount === DIAGNOSTIC_ROUNDS.length ? (
-                  <a
-                    className="inline-flex items-center justify-center rounded-full bg-button px-8 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                    href="/diagnostics/final-report"
-                  >
-                    View Final Diagnostic Report
-                  </a>
-                ) : (
-                  <p className="text-sm leading-6 text-white/60">
-                    All rounds are complete. {reportsReadyCount} of{" "}
-                    {DIAGNOSTIC_ROUNDS.length} round reports are ready. Generate
-                    or wait for the remaining reports to unlock the final
-                    diagnostic report.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-      </main>
-    </>
+        </div>
+      </section>
+    </main>
   );
 }
 

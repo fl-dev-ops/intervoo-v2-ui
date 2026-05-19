@@ -12,13 +12,13 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DiagnosticsJobHeader } from "@/components/diagnostics/diagnostics-job-header";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DiagnosticsJobHeader } from "@/components/diagnostics/diagnostics-job-header";
 import {
   Item,
   ItemActions,
@@ -84,7 +84,7 @@ export function PublicDiagnosticReport({
     <>
       {user ? <ReportHeader user={user} /> : null}
       <main className="min-h-dvh bg-lavender md:pb-10">
-        <div className="mx-auto w-full max-w-3xl space-y-6 md:py-8">
+        <div className="mx-auto w-full max-w-4xl space-y-6 md:py-8">
           {/* Job Header Card */}
           <DiagnosticsJobHeader
             bandConfig={bandConfig}
@@ -197,6 +197,8 @@ function RoundTabs({
             : "Round";
           const isEnabled =
             round.hasReport || (isOwner && round.roundNumber === currentRound);
+          const isNext =
+            !round.hasReport && isOwner && round.roundNumber === currentRound;
 
           return (
             <div className="w-full" key={round.roundNumber}>
@@ -204,7 +206,8 @@ function RoundTabs({
                 className={cn(
                   "ring-2 ring-inset ring-transparent w-full flex flex-col items-center gap-2 px-2 py-4 text-center transition p-4 rounded-lg",
                   isActive && "ring-emerald-400 bg-emerald-50",
-                  !isEnabled && "cursor-not-allowed opacity-60 pointer-events-none",
+                  !isEnabled &&
+                    "cursor-not-allowed opacity-60 pointer-events-none",
                 )}
                 disabled={!isEnabled}
                 type="button"
@@ -213,7 +216,7 @@ function RoundTabs({
                 <RoundTabIcon
                   isActive={isActive}
                   isEnabled={isEnabled}
-                  isNext={isOwner && round.roundNumber === currentRound}
+                  isNext={isNext}
                 />
                 <div>
                   <p className="text-sm font-semibold text-foreground">
@@ -464,12 +467,10 @@ function FeedbackCard({
 }
 
 function SkillItem({
-  description,
   icon,
   iconClassName,
   label,
   level,
-  meta,
 }: {
   description: string;
   icon: LucideIcon;
