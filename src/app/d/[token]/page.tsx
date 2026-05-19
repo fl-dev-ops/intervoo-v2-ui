@@ -6,7 +6,11 @@ import { prisma } from "@/lib/db";
 import { getDiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import { isDiagnosticReportReady } from "@/lib/diagnostics/rules";
-import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
+import {
+  getHydratedReportFromMetadata,
+  toHydratedDiagnosticReport,
+} from "@/lib/report-generation/diagnostic";
+import type { DiagnosticReportJson } from "@/lib/report-generation/diagnostic-report.types";
 
 export default async function PublicDiagnosticReportPage({
   params,
@@ -68,8 +72,12 @@ export default async function PublicDiagnosticReportPage({
     );
     const report = dbRound?.session?.report ?? null;
 
-    if (isDiagnosticReportReady(report?.status) && report.reportJson) {
-      const hydrated = toHydratedDiagnosticReport(report.reportJson);
+    if (isDiagnosticReportReady(report?.status)) {
+      const hydrated =
+        getHydratedReportFromMetadata(report.metadata) ??
+        (report.reportJson
+          ? toHydratedDiagnosticReport(report.reportJson)
+          : null);
       if (hydrated) {
         return {
           roundNumber,
@@ -77,7 +85,7 @@ export default async function PublicDiagnosticReportPage({
           roundTitle: config.title,
           hasReport: true as const,
           shareToken: report.shareToken ?? null,
-          report: hydrated,
+          report: hydrated as DiagnosticReportJson,
         };
       }
     }

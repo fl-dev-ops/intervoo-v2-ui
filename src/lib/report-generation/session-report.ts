@@ -77,12 +77,15 @@ export async function generateSessionReport({
   });
 
   let reportJson: unknown;
+  let metadata: unknown;
 
   try {
     if (session.type === "PREDIAGNOSTIC") {
       reportJson = await generatePreDiagnosticReport(session.id);
     } else if (session.type === "DIAGNOSTIC_ROUND") {
-      reportJson = await generateDiagnosticReport(session.id);
+      const result = await generateDiagnosticReport(session.id);
+      reportJson = result.baseReport;
+      metadata = result.metadata;
     } else {
       throw new Error(`Unsupported session type: ${session.type}`);
     }
@@ -121,6 +124,7 @@ export async function generateSessionReport({
     where: { sessionId: session.id },
     data: {
       reportJson: reportJson as object,
+      ...(metadata ? { metadata: metadata as object } : {}),
       status: "READY",
       completedAt: new Date(),
       shareToken,

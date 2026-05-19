@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
-import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
+import type { DiagnosticReportJson } from "@/lib/report-generation/diagnostic-report.types";
 import { createUniquePublicReportToken } from "@/lib/report-share";
 
 export type DerivedFinalDiagnosticReport = {
@@ -15,8 +15,8 @@ export type DerivedFinalDiagnosticReport = {
   holistic_improvements: string[];
   round_summaries: Array<{
     roundId: string;
-    thinking_level: string;
-    confidence_level: string;
+    thinking_avg: number;
+    confidence_avg: number;
     language_avg: number;
     strengths: string[];
     improvements: string[];
@@ -31,10 +31,25 @@ type RoundReportInput = {
   session: {
     report: {
       reportJson: unknown;
+      metadata: unknown;
       status: string;
     } | null;
   } | null;
 };
+
+function getHydratedReportFromMetadata(
+  metadata: unknown,
+): DiagnosticReportJson | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+  const obj = metadata as Record<string, unknown>;
+  const hydrated = obj.hydratedReport;
+  if (hydrated && typeof hydrated === "object" && !Array.isArray(hydrated)) {
+    return hydrated as DiagnosticReportJson;
+  }
+  return null;
+}
 
 export function deriveFinalDiagnosticReport(
   rounds: RoundReportInput[],
@@ -47,7 +62,7 @@ export function deriveFinalDiagnosticReport(
       return null;
     }
 
-    const hydratedReport = toHydratedDiagnosticReport(report.reportJson);
+    const hydratedReport = getHydratedReportFromMetadata(report.metadata);
     return hydratedReport
       ? { report: hydratedReport, roundId: roundConfig.id }
       : null;
@@ -85,8 +100,8 @@ export function deriveFinalDiagnosticReport(
     ),
     round_summaries: reports.map((item) => ({
       roundId: item.roundId,
-      thinking_level: item.report.assessment_result.thinking_level,
-      confidence_level: item.report.assessment_result.confidence_level,
+      thinking_avg: round(item.report.assessment_result.thinking_avg),
+      confidence_avg: round(item.report.assessment_result.confidence_avg),
       language_avg: round(item.report.assessment_result.language_avg),
       strengths: item.report.strengths,
       improvements: item.report.improvement_areas,
@@ -121,6 +136,37 @@ export async function ensureFinalDiagnosticShareToken(diagnosticId: string) {
   await prisma.diagnostic.update({
     where: { id: diagnosticId },
     data: { finalReportShareToken: shareToken, status: "COMPLETED" },
+  });
+
+  return shareToken;
+}
+
+export async function saveFinalDiagnosticReport({
+  diagnosticId,
+  report,
+}: {
+  diagnosticId: string;
+  report: DerivedFinalDiagnosticReport;
+}) {
+  const diagnostic = await prisma.diagnostic.findUnique({
+    where: { id: diagnosticId },
+    select: { finalReportShareToken: true },
+  });
+
+  if (!diagnostic) {
+    return null;
+  }
+
+  const shareToken =
+    diagnostic.finalReportShareToken ?? (await createUniquePublicReportToken());
+
+  await prisma.diagnostic.update({
+    where: { id: diagnosticId },
+    data: {
+      finalReport: report as unknown as object,
+      finalReportShareToken: shareToken,
+      status: "COMPLETED",
+    },
   });
 
   return shareToken;

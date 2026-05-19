@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   Brain,
   Check,
   Info,
@@ -10,6 +11,7 @@ import {
   Play,
   Smile,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DiagnosticsJobHeader } from "@/components/diagnostics/diagnostics-job-header";
@@ -29,8 +31,8 @@ import {
 } from "@/components/ui/item";
 import { authClient } from "@/lib/auth-client";
 import type { DiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
-import type { DiagnosticsHydratedReport } from "@/lib/diagnostics/report-schema";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import type { DiagnosticReportJson } from "@/lib/report-generation/diagnostic-report.types";
 import { cn } from "@/lib/utils";
 
 export type PublicRoundData =
@@ -40,7 +42,7 @@ export type PublicRoundData =
       roundTitle: string;
       hasReport: true;
       shareToken: string | null;
-      report: DiagnosticsHydratedReport;
+      report: DiagnosticReportJson;
     }
   | {
       roundNumber: number;
@@ -52,6 +54,8 @@ export type PublicRoundData =
     };
 
 export type PublicDiagnosticReportProps = {
+  backHref?: string;
+  backLabel?: string;
   bandConfig: DiagnosticBandConfig | undefined;
   currentRound: number;
   focusedRoundNumber: number;
@@ -66,6 +70,8 @@ export type PublicDiagnosticReportProps = {
 };
 
 export function PublicDiagnosticReport({
+  backHref,
+  backLabel,
   bandConfig,
   currentRound,
   focusedRoundNumber,
@@ -82,7 +88,9 @@ export function PublicDiagnosticReport({
 
   return (
     <>
-      {user ? <ReportHeader user={user} /> : null}
+      {user ? (
+        <ReportHeader backHref={backHref} backLabel={backLabel} user={user} />
+      ) : null}
       <main className="min-h-dvh bg-lavender md:pb-10">
         <div className="mx-auto w-full max-w-4xl space-y-6 md:py-8">
           {/* Job Header Card */}
@@ -124,8 +132,12 @@ function getUserInitial(user: { email: string | null; name: string | null }) {
 }
 
 function ReportHeader({
+  backHref,
+  backLabel,
   user,
 }: {
+  backHref?: string;
+  backLabel?: string;
   user: { email: string | null; name: string | null };
 }) {
   const router = useRouter();
@@ -140,10 +152,21 @@ function ReportHeader({
 
   return (
     <header className="bg-white shadow">
-      <div className="flex items-center justify-between gap-4 px-3 py-2 md:px-8">
-        <h1 className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground">
-          Diagnostic Report
-        </h1>
+      <div className="flex items-center justify-between gap-4 px-2 py-2">
+        <div className="flex min-w-0 items-center gap-3">
+          {backHref ? (
+            <Link
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-foreground transition hover:bg-muted"
+              href={backHref}
+              aria-label={backLabel ?? "Back"}
+            >
+              <ArrowLeft className="size-4" />
+            </Link>
+          ) : null}
+          <h1 className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground">
+            Diagnostic Report
+          </h1>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger
             className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-[#4D7ED8] bg-[#4D7ED8] text-lg font-semibold text-white shadow-[inset_0_0_0_3px_white] transition hover:bg-[#416FC1] md:size-12"
@@ -301,40 +324,7 @@ function RoundDetailView({
         strengths={report.strengths}
       />
 
-      {/* Skills Report */}
-      <div className="space-y-3">
-        <h4 className="text-base font-bold text-foreground">Skills Report</h4>
-        <ItemGroup className="gap-3">
-          <SkillItem
-            iconClassName="bg-emerald-100 text-emerald-700"
-            description={assessment.thinking_reasoning}
-            icon={Brain}
-            label="Thinking"
-            level={assessment.thinking_avg}
-            meta={assessment.thinking_level}
-          />
-          <SkillItem
-            iconClassName="bg-blue-100 text-blue-700"
-            description={Object.entries(assessment.language_reasoning)
-              .map(([dimension, reasoning]) => `${dimension}: ${reasoning}`)
-              .join(" ")}
-            icon={Languages}
-            label="Language"
-            level={assessment.language_avg}
-            meta={Object.entries(assessment.language_levels)
-              .map(([dimension, level]) => `${dimension} ${level}`)
-              .join(" · ")}
-          />
-          <SkillItem
-            iconClassName="bg-yellow-100 text-yellow-700"
-            description={assessment.confidence_reasoning}
-            icon={Smile}
-            label="Confidence"
-            level={assessment.confidence_avg}
-            meta={assessment.confidence_level}
-          />
-        </ItemGroup>
-      </div>
+      <SkillsReport assessment={assessment} />
     </div>
   );
 }
@@ -466,18 +456,48 @@ function FeedbackCard({
   );
 }
 
+function SkillsReport({
+  assessment,
+}: {
+  assessment: DiagnosticReportJson["assessment_result"];
+}) {
+  return (
+    <div className="space-y-3">
+      <h4 className="text-base font-bold text-foreground">Skills Report</h4>
+      <ItemGroup className="gap-3">
+        <SkillItem
+          iconClassName="bg-emerald-100 text-emerald-700"
+          icon={Brain}
+          label="Thinking"
+          level={assessment.thinking_avg}
+        />
+        <SkillItem
+          iconClassName="bg-blue-100 text-blue-700"
+          icon={Languages}
+          label="Language"
+          level={assessment.language_avg}
+        />
+        <SkillItem
+          iconClassName="bg-yellow-100 text-yellow-700"
+          icon={Smile}
+          label="Confidence"
+          level={assessment.confidence_avg}
+        />
+      </ItemGroup>
+    </div>
+  );
+}
+
 function SkillItem({
   icon,
   iconClassName,
   label,
   level,
 }: {
-  description: string;
   icon: LucideIcon;
   iconClassName: string;
   label: string;
   level: number;
-  meta: string;
 }) {
   const { label: levelLabel, tone } = getSkillLevel(level);
   const Icon = icon;

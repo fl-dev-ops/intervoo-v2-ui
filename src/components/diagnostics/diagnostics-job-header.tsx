@@ -14,7 +14,7 @@ export function DiagnosticsJobHeader({
 }: DiagnosticsJobHeaderProps) {
   return (
     <div className="w-full rounded-2xl md:border border-border sm:bg-white bg-transparent p-4 md:p-6 mb-4">
-      <div className="w-full grid grid-cols-1 md:grid-cols-10 gap-x-1">
+      <div className="w-full grid grid-cols-1 md:grid-cols-10 gap-x-1 gap-y-4">
         {/* Job Info */}
         <div className="col-span-1 md:col-span-6 flex-1 space-y-4">
           <div className="flex items-start justify-between gap-4">

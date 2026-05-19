@@ -43,7 +43,7 @@ export function RoundCompleteClient({
     : nextRound
       ? canStartNext
         ? `Start next Round ${nextRound.roundNumber}`
-        : "Finalizing round..."
+        : "Generating report..."
       : "Go to interview rounds";
   const primaryHref = hasFailedReport
     ? `/diagnostics/prejoin?round=${completedRoundId}`

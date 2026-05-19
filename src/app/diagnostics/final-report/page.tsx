@@ -4,12 +4,16 @@ import { prisma } from "@/lib/db";
 import { getDiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import {
   deriveFinalDiagnosticReport,
-  ensureFinalDiagnosticShareToken,
+  saveFinalDiagnosticReport,
 } from "@/lib/diagnostics/final-report";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import { isDiagnosticReportReady } from "@/lib/diagnostics/rules";
 import { updateUserStage } from "@/lib/progress";
-import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
+import {
+  getHydratedReportFromMetadata,
+  toHydratedDiagnosticReport,
+} from "@/lib/report-generation/diagnostic";
+import type { DiagnosticReportJson } from "@/lib/report-generation/diagnostic-report.types";
 import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsFinalReportPage() {
@@ -40,43 +44,6 @@ export default async function DiagnosticsFinalReportPage() {
     );
   }
 
-  const report = deriveFinalDiagnosticReport(diagnostic.rounds);
-
-  console.info("[diagnostics] final report state", {
-    diagnosticId: diagnostic.id,
-    reportReady: Boolean(report),
-    rounds: diagnostic.rounds.map((round) => ({
-      reportStatus: round.session?.report?.status ?? null,
-      roundNumber: round.roundNumber,
-      roundType: round.roundType,
-      status: round.status,
-    })),
-    stage,
-    userId: user.id,
-  });
-
-  if (!report) {
-    return (
-      <DiagnosticReportPreviewPage
-        showActions={false}
-        state={{
-          errorMessage:
-            stage === "COMPLETED"
-              ? "Your final report is not available yet. Please check your diagnostic round reports."
-              : "Your final report is being prepared. Please check back shortly.",
-          status: "processing",
-        }}
-      />
-    );
-  }
-
-  await ensureFinalDiagnosticShareToken(diagnostic.id);
-  await updateUserStage(user.id, "COMPLETED");
-  await prisma.userProgress.updateMany({
-    where: { userId: user.id },
-    data: { diagnosticsCompletedAt: new Date() },
-  });
-
   const bandConfig = getDiagnosticBandConfig(diagnostic.selectedBand);
   const preferredName = diagnostic.user.profile?.preferredName ?? null;
   const rounds = DIAGNOSTIC_ROUNDS.map((config, index) => {
@@ -86,11 +53,12 @@ export default async function DiagnosticsFinalReportPage() {
     );
     const roundReport = dbRound?.session?.report ?? null;
 
-    if (
-      isDiagnosticReportReady(roundReport?.status) &&
-      roundReport.reportJson
-    ) {
-      const hydrated = toHydratedDiagnosticReport(roundReport.reportJson);
+    if (isDiagnosticReportReady(roundReport?.status)) {
+      const hydrated =
+        getHydratedReportFromMetadata(roundReport.metadata) ??
+        (roundReport.reportJson
+          ? toHydratedDiagnosticReport(roundReport.reportJson)
+          : null);
       if (hydrated) {
         return {
           roundNumber,
@@ -98,7 +66,7 @@ export default async function DiagnosticsFinalReportPage() {
           roundTitle: config.title,
           hasReport: true as const,
           shareToken: roundReport.shareToken ?? null,
-          report: hydrated,
+          report: hydrated as DiagnosticReportJson,
         };
       }
     }
@@ -115,6 +83,10 @@ export default async function DiagnosticsFinalReportPage() {
 
   const readyRounds = rounds.filter((round) => round.hasReport);
   const allReady = readyRounds.length === 4;
+  const currentRound = Math.min(
+    readyRounds.length + 1,
+    DIAGNOSTIC_ROUNDS.length,
+  );
   const overallScore = allReady
     ? Math.round(
         readyRounds.reduce(
@@ -124,15 +96,59 @@ export default async function DiagnosticsFinalReportPage() {
       )
     : null;
 
+  const report = allReady
+    ? deriveFinalDiagnosticReport(diagnostic.rounds)
+    : null;
+
+  console.info("[diagnostics] final report state", {
+    allReady,
+    diagnosticId: diagnostic.id,
+    readyRoundCount: readyRounds.length,
+    reportReady: Boolean(report),
+    rounds: diagnostic.rounds.map((round) => ({
+      reportStatus: round.session?.report?.status ?? null,
+      roundNumber: round.roundNumber,
+      roundType: round.roundType,
+      status: round.status,
+    })),
+    stage,
+    userId: user.id,
+  });
+
+  if (!readyRounds.length) {
+    return (
+      <DiagnosticReportPreviewPage
+        showActions={false}
+        state={{
+          errorMessage:
+            "Your report is being prepared. Please check back shortly.",
+          status: "processing",
+        }}
+      />
+    );
+  }
+
+  if (report) {
+    await saveFinalDiagnosticReport({ diagnosticId: diagnostic.id, report });
+    await updateUserStage(user.id, "COMPLETED");
+    await prisma.userProgress.updateMany({
+      where: { userId: user.id },
+      data: { diagnosticsCompletedAt: new Date() },
+    });
+  }
+
   return (
     <PublicDiagnosticReport
+      backHref="/diagnostics/rounds"
+      backLabel="Back to rounds"
       bandConfig={bandConfig}
-      currentRound={diagnostic.currentRound}
+      currentRound={currentRound}
       focusedRoundNumber={readyRounds[0]?.roundNumber ?? 1}
       isOwner={true}
       overallScore={overallScore}
       preferredName={preferredName}
       rounds={rounds}
+      user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );
 }

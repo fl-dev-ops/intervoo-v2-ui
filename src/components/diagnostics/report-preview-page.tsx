@@ -187,11 +187,11 @@ function FinalDiagnosticReportPreview({
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">
                       <MiniMetric
                         label="Thinking"
-                        value={round.thinking_level}
+                        value={formatNumber(round.thinking_avg)}
                       />
                       <MiniMetric
                         label="Confidence"
-                        value={round.confidence_level}
+                        value={formatNumber(round.confidence_avg)}
                       />
                       <MiniMetric
                         label="Language"

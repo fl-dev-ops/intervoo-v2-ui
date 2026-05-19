@@ -225,6 +225,7 @@ model Report {
   id           String       @id @default(cuid())
   sessionId    String       @unique
   reportJson   Json?
+  metadata     Json?
   status       ReportStatus @default(PENDING)
   errorMessage String?
   shareToken   String?      @unique

@@ -1,9 +1,7 @@
-import { diagnosticsReportSchema } from "@/lib/diagnostics/report-schema";
-
 export const DIAGNOSTIC_TOTAL_ROUNDS = 4;
-export const DIAGNOSTIC_SESSION_STUCK_MINUTES = 15;
-
 export const DIAGNOSTIC_COMPLETED_SESSION_STATUSES = ["COMPLETED"] as const;
+
+export const DIAGNOSTIC_SESSION_STUCK_MINUTES = 15;
 
 type RoundStatus = string | null | undefined;
 type ReportStatus = string | null | undefined;
@@ -22,12 +20,14 @@ export type DiagnosticRoundWithReportInput = {
   reportStatus?: ReportStatus;
   reportStartedAt?: string | Date | null;
   reportJson?: unknown;
+  metadata?: unknown;
   session?: {
     startedAt?: string | Date | null;
     report?: {
       status?: ReportStatus;
       startedAt?: string | Date | null;
       reportJson?: unknown;
+      metadata?: unknown;
     } | null;
   } | null;
 };
@@ -75,16 +75,15 @@ export function isDiagnosticReportReady(status: ReportStatus) {
   return status === "READY";
 }
 
-export function isDiagnosticRoundReadyForProgression<
-  Round extends DiagnosticRoundWithReportInput,
->(round: Round | undefined) {
-  if (!round) return false;
-
-  return (
-    isDiagnosticSessionComplete(round.status) &&
-    isDiagnosticReportReady(getRoundReportStatus(round)) &&
-    hasUsableDiagnosticReportJson(getRoundReportJson(round))
-  );
+function getHydratedReportFromMetadata(metadata: unknown): unknown {
+  if (
+    metadata &&
+    typeof metadata === "object" &&
+    !Array.isArray(metadata)
+  ) {
+    return (metadata as Record<string, unknown>).hydratedReport ?? null;
+  }
+  return null;
 }
 
 export function hasUsableDiagnosticReportJson(reportJson: unknown) {
@@ -95,19 +94,38 @@ export function hasUsableDiagnosticReportJson(reportJson: unknown) {
   ) {
     return false;
   }
+  const obj = reportJson as Record<string, unknown>;
+  const assessment = obj.assessment_result as Record<string, unknown> | undefined;
+  if (!assessment) return false;
 
-  const assessment = (reportJson as { assessment_result?: unknown })
-    .assessment_result;
-
-  if (
-    assessment &&
-    typeof assessment === "object" &&
-    "total_score" in assessment
-  ) {
+  // New website-style base report has question_responses
+  if (Array.isArray(assessment.question_responses)) {
     return true;
   }
 
-  return diagnosticsReportSchema.safeParse(reportJson).success;
+  // Old hydrated report has total_score (no backward compat needed, but kept for safety)
+  if (typeof assessment.total_score === "number") {
+    return true;
+  }
+
+  return false;
+}
+
+export function isDiagnosticRoundReadyForProgression<
+  Round extends DiagnosticRoundWithReportInput,
+>(round: Round | undefined) {
+  if (!round) return false;
+
+  const reportStatus = getRoundReportStatus(round);
+  const reportJson = getRoundReportJson(round);
+  const metadata = getRoundMetadata(round);
+  const hydrated = getHydratedReportFromMetadata(metadata);
+
+  return (
+    isDiagnosticSessionComplete(round.status) &&
+    isDiagnosticReportReady(reportStatus) &&
+    (Boolean(hydrated) || hasUsableDiagnosticReportJson(reportJson))
+  );
 }
 
 export function isDiagnosticRoundReportProcessing<
@@ -210,4 +228,8 @@ function getRoundReportStatus(round: DiagnosticRoundWithReportInput) {
 
 function getRoundReportJson(round: DiagnosticRoundWithReportInput) {
   return round.reportJson ?? round.session?.report?.reportJson ?? null;
+}
+
+function getRoundMetadata(round: DiagnosticRoundWithReportInput) {
+  return round.metadata ?? round.session?.report?.metadata ?? null;
 }

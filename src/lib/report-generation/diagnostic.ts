@@ -1,21 +1,27 @@
 import { prisma } from "@/lib/db";
+import { buildDiagnosticReportPrompt } from "./diagnostic-prompt";
+import type {
+  DiagnosticReportJson,
+  DiagnosticReportMetadata,
+} from "./diagnostic-report.types";
 import {
-  type DiagnosticConfidenceLevel,
-  type DiagnosticLanguageDimension,
-  type DiagnosticLanguageLevel,
-  type DiagnosticsHydratedReport,
-  type DiagnosticsReport,
-  type DiagnosticThinkingLevel,
-  diagnosticsReportSchema,
-} from "@/lib/diagnostics/report-schema";
-import { generateReport } from "./generate-report";
-import { buildDiagnosticRubric } from "./rubrics";
+  DEFAULT_DIAGNOSTIC_REPORT_MODEL_ID,
+  generateDiagnosticReportWithGemini,
+  getRecordingMimeType,
+} from "./diagnostic-report-generator";
 import {
-  buildReportTranscriptPromptText,
-  getReportTranscriptMessages,
-} from "./transcript";
+  buildDiagnosticTranscriptPromptText,
+  createQuestionTypeMap,
+  parseDiagnosticStoredReportJson,
+} from "./diagnostic-schema";
+import { scoreAssessment } from "./diagnostic-scoring";
+import {
+  extractRetrievedQuestions,
+  extractTranscriptMessages,
+  fetchTranscriptFromUrl,
+} from "./diagnostic-transcript";
 
-export type DiagnosticRoundReport = DiagnosticsHydratedReport;
+export type DiagnosticRoundReport = DiagnosticReportJson;
 
 export async function generateDiagnosticReport(sessionId: string) {
   const session = await prisma.interviewSession.findUnique({
@@ -35,74 +41,109 @@ export async function generateDiagnosticReport(sessionId: string) {
   }
 
   const profile = session.user.profile;
-  const metadata = (session.metadata as Record<string, unknown>) || {};
-  const transcriptMessages = getReportTranscriptMessages(session.transcript);
-  const userMessages = transcriptMessages.filter(
-    (message) => message.role === "user",
-  );
-  const transcriptPromptText = buildReportTranscriptPromptText(
-    session.transcript,
-  );
+  const transcriptUrl = session.transcriptUrl;
+  const audioUrl = session.audioUrl;
 
-  console.info("[diagnostics] diagnostic report input", {
-    hasTranscript: Boolean(transcriptPromptText),
-    roundNumber: session.diagnosticRound?.roundNumber ?? null,
-    roundType: session.diagnosticRound?.roundType ?? null,
-    sessionId,
-    transcriptMessageCount: transcriptMessages.length,
-    userAnswerCount: userMessages.length,
-  });
+  if (!audioUrl) {
+    throw new Error("No audio recording is available for this session");
+  }
 
-  if (!transcriptPromptText) {
+  if (!transcriptUrl) {
+    throw new Error("No transcript URL is available for this session");
+  }
+
+  // 1. Fetch transcript JSON from URL
+  const transcriptJson = await fetchTranscriptFromUrl(transcriptUrl);
+  if (!transcriptJson) {
     throw new Error("No transcript is available for this session");
   }
 
+  // 2. Extract messages and questions
+  const transcriptMessages = extractTranscriptMessages(transcriptJson);
+  const retrievedQuestions = extractRetrievedQuestions(transcriptJson);
+
+  console.info("[diagnostics] diagnostic report input", {
+    hasTranscript: Boolean(transcriptJson),
+    hasAudio: Boolean(audioUrl),
+    transcriptMessageCount: transcriptMessages.length,
+    retrievedQuestionCount: retrievedQuestions.length,
+    sessionId,
+  });
+
+  if (!transcriptMessages.length) {
+    throw new Error("No transcript messages found");
+  }
+
+  const userMessages = transcriptMessages.filter((m) => m.role === "user");
   if (userMessages.length < 2) {
     throw new Error(
       "Diagnostic report is unavailable because no relevant answers were provided",
     );
   }
 
-  const roundId = session.diagnosticRound
-    ? `Round ${session.diagnosticRound.roundNumber}: ${session.diagnosticRound.roundType}`
-    : typeof metadata.roundId === "string"
-      ? metadata.roundId
-      : null;
-  const selectedJob = metadata.selected_job as
-    | { title?: unknown; id?: unknown; band?: unknown }
-    | undefined;
-  const jobTitle =
-    typeof selectedJob?.title === "string" ? selectedJob.title : null;
-  const jobBand =
-    typeof metadata.band === "string"
-      ? metadata.band
-      : typeof selectedJob?.id === "string"
-        ? selectedJob.id
-        : typeof selectedJob?.band === "string"
-          ? selectedJob.band
-          : null;
+  if (!retrievedQuestions.length) {
+    throw new Error(
+      "No asked diagnostic questions captured for this session — cannot generate report",
+    );
+  }
 
-  const prompt = buildDiagnosticRubric({
-    participantName: profile?.preferredName || session.user.name || "Learner",
-    roundId,
-    jobTitle,
-    jobBand,
+  const transcriptPromptText =
+    buildDiagnosticTranscriptPromptText(transcriptMessages);
+
+  // 3. Build prompt
+  const participantName =
+    profile?.preferredName || session.user.name || "Learner";
+  const prompt = buildDiagnosticReportPrompt({
+    participantName,
     transcriptPromptText,
+    questions: retrievedQuestions,
   });
 
-  const reportJson = await generateReport({
+  // 4. Generate report with native Gemini Files API, matching the website flow.
+  const generatedReport = await generateDiagnosticReportWithGemini({
+    sessionId,
+    audioUrl,
+    mimeType: getRecordingMimeType(audioUrl),
     prompt,
-    schema: diagnosticsReportSchema,
-    system:
-      "You are a strict diagnostic evaluation engine. Return only the structured JSON object requested by the schema.",
+    questions: retrievedQuestions,
   });
 
-  return hydrateDiagnosticReport(reportJson);
+  // 5. Parse and validate stored report
+  const storedReport = parseDiagnosticStoredReportJson(
+    generatedReport,
+    retrievedQuestions,
+  );
+
+  // 6. Score
+  const scoringResult = scoreAssessment(
+    storedReport.assessment_result.question_responses,
+    createQuestionTypeMap(retrievedQuestions),
+  );
+
+  // 7. Build hydrated report
+  const hydratedReport: DiagnosticReportJson = {
+    ...storedReport,
+    assessment_result: scoringResult,
+  };
+
+  const metadata: DiagnosticReportMetadata = {
+    scoring: scoringResult,
+    hydratedReport,
+    generatedAt: new Date().toISOString(),
+    model:
+      process.env.DIAGNOSTIC_REPORT_MODEL_ID ??
+      DEFAULT_DIAGNOSTIC_REPORT_MODEL_ID,
+  };
+
+  return {
+    baseReport: storedReport as unknown as Record<string, unknown>,
+    metadata: metadata as unknown as Record<string, unknown>,
+  };
 }
 
 export function toHydratedDiagnosticReport(
   reportJson: unknown,
-): DiagnosticsHydratedReport | null {
+): DiagnosticReportJson | null {
   if (
     !reportJson ||
     typeof reportJson !== "object" ||
@@ -111,141 +152,29 @@ export function toHydratedDiagnosticReport(
     return null;
   }
 
-  const assessment = (reportJson as { assessment_result?: unknown })
-    .assessment_result;
+  const obj = reportJson as Record<string, unknown>;
 
-  if (
-    assessment &&
-    typeof assessment === "object" &&
-    "total_score" in assessment
-  ) {
-    return reportJson as DiagnosticsHydratedReport;
+  // Already hydrated (has total_score in assessment_result)
+  const assessment = obj.assessment_result as
+    | Record<string, unknown>
+    | undefined;
+  if (assessment && typeof assessment.total_score === "number") {
+    return reportJson as DiagnosticReportJson;
   }
 
-  const parsed = diagnosticsReportSchema.safeParse(reportJson);
-  if (!parsed.success) {
+  return null;
+}
+
+export function getHydratedReportFromMetadata(
+  metadata: unknown,
+): DiagnosticReportJson | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
     return null;
   }
-
-  return hydrateDiagnosticReport(parsed.data);
-}
-
-function hydrateDiagnosticReport(
-  report: DiagnosticsReport,
-): DiagnosticsHydratedReport {
-  const thinkingScore = scoreThinking(report.assessment_result.thinking_level);
-  const confidenceScore = scoreConfidence(
-    report.assessment_result.confidence_level,
-  );
-  const languageScore = scoreLanguage(report.assessment_result.language_levels);
-  const totalScore1To5 = average([
-    thinkingScore,
-    confidenceScore,
-    languageScore,
-  ]);
-  const totalScore = score1To5AsPercent(totalScore1To5);
-
-  return {
-    ...report,
-    assessment_result: {
-      total_score: round(totalScore, 2),
-      thinking_avg: round(score1To5AsPercent(thinkingScore), 2),
-      confidence_avg: round(score1To5AsPercent(confidenceScore), 2),
-      language_avg: round(score1To5AsPercent(languageScore), 2),
-      salary_lpa: round(3.5 + (totalScore / 100) * (67 - 3.5), 2),
-      salary_band: getSalaryBandForScore(totalScore),
-      salary_percentile: round(totalScore / 100, 3),
-      thinking_level: report.assessment_result.thinking_level,
-      confidence_level: report.assessment_result.confidence_level,
-      language_levels: report.assessment_result.language_levels,
-      thinking_reasoning: report.assessment_result.thinking_reasoning,
-      confidence_reasoning: report.assessment_result.confidence_reasoning,
-      language_reasoning: report.assessment_result.language_reasoning,
-    },
-  };
-}
-
-const CEFR_SCORE_MAP: Record<DiagnosticLanguageLevel, number> = {
-  "Pre-A1": 1,
-  A1: 1,
-  A2: 2,
-  B1: 2,
-  B2: 3,
-  C1: 4,
-  C2: 5,
-};
-
-const THINKING_SCORE_MAP: Record<DiagnosticThinkingLevel, number> = {
-  TF1: 1,
-  TF2: 2,
-  TF3: 3,
-  TF4: 4,
-  TF5: 5,
-};
-
-const CONFIDENCE_SCORE_MAP: Record<DiagnosticConfidenceLevel, number> = {
-  VCP1: 1,
-  VCP2: 2.33,
-  VCP3: 3.67,
-  VCP4: 5,
-};
-
-function average(values: number[]) {
-  if (!values.length) {
-    return 0;
+  const obj = metadata as Record<string, unknown>;
+  const hydrated = obj.hydratedReport;
+  if (hydrated && typeof hydrated === "object" && !Array.isArray(hydrated)) {
+    return hydrated as DiagnosticReportJson;
   }
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function round(value: number, decimals: number) {
-  const factor = 10 ** decimals;
-  return Math.round(value * factor) / factor;
-}
-
-function score1To5AsPercent(score: number) {
-  return (score / 5) * 100;
-}
-
-function getSalaryBandForScore(totalScore: number) {
-  if (totalScore >= 80) {
-    return "₹35+ LPA";
-  }
-  if (totalScore >= 50) {
-    return "₹15-35 LPA";
-  }
-  return "₹3.5-15 LPA";
-}
-
-function scoreLanguageDimension(level: string | undefined | null) {
-  if (!level) {
-    return 0;
-  }
-  return CEFR_SCORE_MAP[level as DiagnosticLanguageLevel] ?? 0;
-}
-
-function scoreThinking(level: string | undefined | null) {
-  if (!level) {
-    return 0;
-  }
-  return THINKING_SCORE_MAP[level as DiagnosticThinkingLevel] ?? 0;
-}
-
-function scoreConfidence(level: string | undefined | null) {
-  if (!level) {
-    return 0;
-  }
-  return CONFIDENCE_SCORE_MAP[level as DiagnosticConfidenceLevel] ?? 0;
-}
-
-function scoreLanguage(
-  languageLevels:
-    | Partial<Record<DiagnosticLanguageDimension, DiagnosticLanguageLevel>>
-    | undefined,
-) {
-  if (!languageLevels) {
-    return 0;
-  }
-  return average(
-    Object.values(languageLevels).map((level) => scoreLanguageDimension(level)),
-  );
+  return null;
 }

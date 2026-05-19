@@ -14,7 +14,10 @@ import {
   isDiagnosticRoundReadyForProgression,
   shouldShowDiagnosticBandSelection,
 } from "@/lib/diagnostics/rules";
-import { toHydratedDiagnosticReport } from "@/lib/report-generation/diagnostic";
+import {
+  toHydratedDiagnosticReport,
+  getHydratedReportFromMetadata,
+} from "@/lib/report-generation/diagnostic";
 import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsRoundsPage() {
@@ -61,9 +64,11 @@ export default async function DiagnosticsRoundsPage() {
 
   const rounds = diagnostic.rounds.map((round) => {
     const report = round.session?.report ?? null;
-    const hydratedReport = report?.reportJson
-      ? toHydratedDiagnosticReport(report.reportJson)
-      : null;
+    const hydratedReport =
+      getHydratedReportFromMetadata(report?.metadata) ??
+      (report?.reportJson
+        ? toHydratedDiagnosticReport(report.reportJson)
+        : null);
 
     return {
       id: round.id,
@@ -80,6 +85,7 @@ export default async function DiagnosticsRoundsPage() {
             },
           }
         : null,
+      metadata: report?.metadata,
       reportShareToken: report?.shareToken ?? null,
       reportScore: hydratedReport?.assessment_result.total_score ?? null,
       reportStartedAt: report?.startedAt?.toISOString() ?? null,
