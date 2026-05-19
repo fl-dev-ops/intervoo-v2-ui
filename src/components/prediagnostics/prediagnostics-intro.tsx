@@ -10,19 +10,28 @@ import { cn } from "@/lib/utils";
 export function PrediagnosticsIntro({
   coach,
   name,
+  retryCode,
 }: {
   coach?: CoachOption | null;
   name?: string | null;
+  retryCode?: string | null;
 }) {
   const displayName = name?.trim() || "there";
   const selectedCoach =
     coachCards.find((item) => item.value === coach) ?? coachCards[0];
+  const screeningHref = retryCode
+    ? `/prediagnostics/screening?code=${retryCode}`
+    : "/prediagnostics/screening";
+  const title = retryCode
+    ? "Update your pre-screening"
+    : "You're all set to begin";
+  const ctaLabel = retryCode ? "Retake Pre Screening" : "Start Pre Diagnostic";
 
   return (
     <main className="flex min-h-dvh bg-white md:items-center md:bg-[#F5F3F7] md:p-8">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col md:max-w-3xl md:flex-none">
         <h1 className="mb-6 hidden text-center text-2xl font-semibold tracking-tight text-slate-950 md:block">
-          You&apos;re all set to begin
+          {title}
         </h1>
 
         <section className="flex flex-1 flex-col overflow-hidden bg-[#F5F3F7] shadow-sm md:grid md:flex-none md:grid-cols-2 md:bg-transparent md:shadow-none">
@@ -31,7 +40,7 @@ export function PrediagnosticsIntro({
             style={{ backgroundColor: selectedCoach.tint }}
           >
             <h1 className="relative z-10 mx-auto text-center text-xl font-semibold tracking-tight text-white md:hidden">
-              You&apos;re all set to begin
+              {title}
             </h1>
             <Image
               priority
@@ -49,9 +58,9 @@ export function PrediagnosticsIntro({
                 interview partner.
               </MessageBubble>
               <MessageBubble delayMs={500}>
-                Let&apos;s have a quick chat about the jobs you&apos;re
-                targeting. I&apos;ll use this to create your personalized
-                diagnostic interview.
+                {retryCode
+                  ? "Let's update your goals and awareness so your diagnostic interview is more personalized."
+                  : "Let's have a quick chat about the jobs you're targeting. I'll use this to create your personalized diagnostic interview."}
               </MessageBubble>
               <MessageBubble delayMs={800}>
                 You can speak in your native language. Takes less than 7
@@ -61,9 +70,7 @@ export function PrediagnosticsIntro({
 
             <div className="mt-auto pt-8 md:hidden">
               <Button className="h-12 w-full rounded-full! bg-button text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95">
-                <Link href="/prediagnostics/screening">
-                  Start Pre Diagnostic
-                </Link>
+                <Link href={screeningHref}>{ctaLabel}</Link>
               </Button>
             </div>
           </div>
@@ -71,7 +78,7 @@ export function PrediagnosticsIntro({
 
         <div className="mt-6 hidden justify-center md:flex">
           <Button className="h-12 min-w-72 rounded-full! bg-button px-10 text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95">
-            <Link href="/prediagnostics/screening">Start Pre Diagnostic</Link>
+            <Link href={screeningHref}>{ctaLabel}</Link>
           </Button>
         </div>
       </div>

@@ -18,7 +18,11 @@ import { Spinner } from "@/components/ui/spinner";
 
 type PermissionState = "checking" | "prompt" | "granted" | "denied";
 
-export function PrediagnosticsPreJoin() {
+export function PrediagnosticsPreJoin({
+  retryCode,
+}: {
+  retryCode?: string | null;
+}) {
   const router = useRouter();
 
   const [permissionState, setPermissionState] =
@@ -142,6 +146,7 @@ export function PrediagnosticsPreJoin() {
           type: "PREDIAGNOSTIC",
           device_id: activeAudioDeviceId || "",
           interaction_mode: "ptt",
+          ...(retryCode ? { retry_code: retryCode } : {}),
         }),
       });
 
@@ -180,7 +185,7 @@ export function PrediagnosticsPreJoin() {
       setDeviceError(message);
       setIsJoining(false);
     }
-  }, [activeAudioDeviceId, router]);
+  }, [activeAudioDeviceId, retryCode, router]);
 
   const selectedAudioLabel =
     audioDevices.find((device) => device.deviceId === activeAudioDeviceId)

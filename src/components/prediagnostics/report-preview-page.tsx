@@ -1,13 +1,19 @@
 "use client";
 
-import { IconCheck, IconCircle, IconLoader2 } from "@tabler/icons-react";
+import {
+  IconCheck,
+  IconCircle,
+  IconLoader2,
+  IconRotate,
+} from "@tabler/icons-react";
 import confetti from "canvas-confetti";
 import { Shield, Target, Trophy } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { createPrediagnosticRetryCode } from "@/lib/prediagnostics/retry-code";
 import { cn } from "@/lib/utils";
 
 const REPORT_GENERATION_STEPS = [
@@ -423,31 +429,60 @@ function PrediagnosticsReportPreview({
             </section>
 
             {showActions ? (
-              <section className="my-12 rounded-xl px-5 text-center">
-                <h2 className="text-[1.35rem] font-semibold tracking-[-0.02em] text-foreground">
-                  Ready for your diagnostic interview?
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Choose the job band you want to practice for and start a full
-                  video diagnostic interview.
-                </p>
+              <>
+                <RetakePreScreeningSection />
 
-                <Link
-                  className={buttonVariants({
-                    variant: "default",
-                    className: "mt-6 w-full bg-button rounded-full! text-white",
-                    size: "lg",
-                  })}
-                  href="/diagnostics"
-                >
-                  Start Diagnostic Interview
-                </Link>
-              </section>
+                <section className="mt-8 rounded-xl px-5 text-center">
+                  <h2 className="text-[1.35rem] font-semibold tracking-[-0.02em] text-foreground">
+                    Diagnostic interview ready
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Choose the job band you want to practice for and start a
+                    full video diagnostic interview.
+                  </p>
+                  <Button
+                    variant="default"
+                    className="h-12 mt-6 w-full bg-button rounded-full! text-white"
+                    size="lg"
+                  >
+                    <Link href="/diagnostics">Start Diagnostic Interview</Link>
+                  </Button>
+                </section>
+              </>
             ) : null}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function RetakePreScreeningSection() {
+  const [retryCode, setRetryCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRetryCode(createPrediagnosticRetryCode());
+  }, []);
+
+  return (
+    <section className="rounded-xl border-2 border-dashed border-[#C8B9D6] bg-[#F5F0FA] px-4 py-5 text-center">
+      <h2 className="text-base font-semibold text-foreground">
+        Want to update your inputs?
+      </h2>
+      <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+        You can refine your goals and awareness to get a more personalized
+        interview.
+      </p>
+      <Link
+        className="mt-4 inline-flex items-center justify-center gap-2 text-sm font-semibold text-[#6548E4] transition-colors hover:text-[#4D35B8]"
+        href={
+          retryCode ? `/prediagnostics?code=${retryCode}` : "/prediagnostics"
+        }
+      >
+        <IconRotate className="size-5 text-black" stroke={2.25} />
+        Retake Pre Screening
+      </Link>
+    </section>
   );
 }
 

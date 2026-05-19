@@ -24,6 +24,7 @@ import {
   createRoomServiceClient,
   getLiveKitCredentials,
 } from "@/lib/livekit";
+import { isValidPrediagnosticRetryCode } from "@/lib/prediagnostics/retry-code";
 import { getUserStage } from "@/lib/progress";
 
 const LIVEKIT_AGENT_NAME = "intervoo-agent-hs";
@@ -39,6 +40,7 @@ type ConnectionDetailsBody = {
   device_id?: string;
   video_device_id?: string;
   interaction_mode?: "ptt" | "auto";
+  retry_code?: unknown;
   coach?: "sana" | "arjun";
   round_id?: unknown;
 };
@@ -104,7 +106,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (stage !== "PREDIAGNOSTICS") {
+    const hasValidPrediagnosticRetryCode = isValidPrediagnosticRetryCode(
+      body.retry_code,
+    );
+
+    if (
+      stage !== "PREDIAGNOSTICS" &&
+      !(stage === "DIAGNOSTICS" && hasValidPrediagnosticRetryCode)
+    ) {
       return NextResponse.json(
         { error: "Pre-diagnostics are not available for this user stage" },
         { status: 409 },
