@@ -16,7 +16,7 @@ export const DIAGNOSTIC_ROUNDS: DiagnosticRoundConfig[] = [
     title: "Screening",
     description:
       "This round evaluates your background, communication clarity, and career intent. You’ll introduce yourself, talk about your interests, and explain the roles you're aiming for.",
-    duration: "15 min",
+    duration: "10 min",
     eyebrow: "Round 1",
     questions: [
       "Education background",
@@ -96,7 +96,7 @@ export const DIAGNOSTIC_ROUNDS: DiagnosticRoundConfig[] = [
     title: "Technical",
     description:
       "Focuses on your technical understanding, structured thinking, and ability to explain concepts clearly based on your target role.",
-    duration: "15 min",
+    duration: "20 min",
     eyebrow: "Round 3",
     questions: [
       "Technical fundamentals",
@@ -136,7 +136,7 @@ export const DIAGNOSTIC_ROUNDS: DiagnosticRoundConfig[] = [
     title: "Culture fit",
     description:
       "Evaluates your confidence, self-awareness, and readiness for interviews. You’ll reflect on your strengths, growth areas, and career direction.",
-    duration: "15 min",
+    duration: "10 min",
     eyebrow: "Round 4",
     questions: [
       "Self-awareness",

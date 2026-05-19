@@ -10,7 +10,7 @@ export default async function DiagnosticsPrejoinPage({
 }) {
   const { round: roundId } = await searchParams;
 
-  await requirePageStage(["DIAGNOSTICS"]);
+  const { user } = await requirePageStage(["DIAGNOSTICS"]);
 
   if (!roundId || !getRoundConfig(roundId)) {
     console.info("[diagnostics] redirect", {
@@ -30,6 +30,7 @@ export default async function DiagnosticsPrejoinPage({
       hideCoachSelection
       roundId={roundId}
       type="video"
+      userName={user.name ?? user.email ?? null}
     />
   );
 }

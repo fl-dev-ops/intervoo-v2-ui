@@ -1,14 +1,8 @@
 "use client";
 
-import { Track, type LocalVideoTrack } from "livekit-client";
-import {
-  Mic,
-  MicOff,
-  User,
-  Video,
-  VideoOff,
-} from "lucide-react";
-import { type RefObject } from "react";
+import type { LocalVideoTrack } from "livekit-client";
+import { Mic, MicOff, Video, VideoOff } from "lucide-react";
+import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
 import {
@@ -22,10 +16,10 @@ import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
 import {
   Header,
-  RoundInfoCard,
-  PrediagnosticsInfoCard,
   PermissionStatusCard,
+  PrediagnosticsInfoCard,
   PreJoinChecklist,
+  RoundInfoCard,
 } from "./prejoin-components";
 
 type PermissionState = "checking" | "prompt" | "granted" | "denied";
@@ -45,6 +39,7 @@ interface PreJoinReadyStateProps {
   selectedAudioLabel: string;
   selectedVideoLabel: string;
   showBackButton?: boolean;
+  userName?: string | null;
   videoDevices: MediaDeviceInfo[];
   videoRef: RefObject<HTMLVideoElement | null>;
   videoTrack: LocalVideoTrack | undefined;
@@ -70,6 +65,7 @@ export function PreJoinReadyState({
   selectedAudioLabel,
   selectedVideoLabel,
   showBackButton = true,
+  userName,
   videoDevices,
   videoRef,
   videoTrack,
@@ -80,6 +76,8 @@ export function PreJoinReadyState({
   onRequestPermission,
   onVideoDeviceChange,
 }: PreJoinReadyStateProps) {
+  const avatarFallback = getAvatarFallback(userName);
+
   return (
     <main className="flex min-h-dvh flex-col bg-background p-6">
       <Header showBackButton={showBackButton} />
@@ -111,8 +109,8 @@ export function PreJoinReadyState({
                 />
                 {(isCameraMuted || !videoTrack) && (
                   <div className="absolute inset-0 flex items-center justify-center bg-[#EDE9F7]">
-                    <div className="flex size-16 items-center justify-center rounded-full bg-[#DDD4F0]">
-                      <User className="size-8 text-[#9B8BC3]" />
+                    <div className="flex size-20 items-center justify-center rounded-full bg-[#DDD4F0] text-3xl font-semibold uppercase text-[#6548E4]">
+                      {avatarFallback}
                     </div>
                   </div>
                 )}
@@ -250,4 +248,9 @@ export function PreJoinReadyState({
       </section>
     </main>
   );
+}
+
+function getAvatarFallback(value: string | null | undefined) {
+  const source = value?.trim() || "User";
+  return source.charAt(0).toUpperCase();
 }

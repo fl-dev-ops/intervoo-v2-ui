@@ -255,10 +255,10 @@ function DiagnosticJobCard({
         </span>
       </div>
 
-      <h3 className="mt-3 text-sm font-semibold tracking-tight text-foreground">
+      <h3 className="mt-4 mb-2 text-base font-semibold tracking-tight text-foreground">
         {option.title}
       </h3>
-      <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+      <p className="mt-1.5 text-sm leading-5.5 text-muted-foreground">
         {option.description}
       </p>
 

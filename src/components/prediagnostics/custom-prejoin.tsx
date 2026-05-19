@@ -22,6 +22,7 @@ interface CustomPreJoinProps {
   roundId?: string;
   coach?: CoachOption;
   hideCoachSelection?: boolean;
+  userName?: string | null;
 }
 
 export function CustomPreJoin({
@@ -29,6 +30,7 @@ export function CustomPreJoin({
   flow = "prediagnostics",
   hideCoachSelection = false,
   roundId,
+  userName,
 }: CustomPreJoinProps) {
   const router = useRouter();
 
@@ -384,6 +386,7 @@ export function CustomPreJoin({
       selectedAudioLabel={selectedAudioLabel}
       selectedVideoLabel={selectedVideoLabel}
       showBackButton={flow !== "prediagnostics"}
+      userName={userName}
       videoDevices={videoDevices}
       videoRef={videoRef}
       videoTrack={videoTrack}

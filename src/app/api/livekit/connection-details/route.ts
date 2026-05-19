@@ -30,6 +30,17 @@ import { getUserStage } from "@/lib/progress";
 const LIVEKIT_AGENT_NAME = "intervoo-agent-hs";
 const PREDIAGNOSTIC_AGENT_ID = "pre_screen";
 const DIAGNOSTIC_AGENT_ID = "diagnostic";
+const DIAGNOSTIC_QUESTION_CATEGORY_BY_ROUND: Record<string, string> = {
+  behavioural: "behavioral",
+  "career-readiness": "closing",
+  screening: "opening",
+  "technical-thinking": "domain",
+};
+const DIAGNOSTIC_QUESTION_BAND_BY_SELECTED_BAND = {
+  band1: 1,
+  band2: 2,
+  band3: 3,
+} as const;
 const COACH_AGENT_DETAILS = {
   arjun: { name: "Arjun", voice: "rahul" },
   sana: { name: "Sana", voice: "ishita" },
@@ -454,6 +465,8 @@ async function createDiagnosticConnectionDetails({
   const agentDetails = COACH_AGENT_DETAILS[coach];
   const speakingSpeed = getSpeakingSpeed(user.profile?.speakingSpeed);
   const voice = agentDetails.voice;
+  const questionCategory = DIAGNOSTIC_QUESTION_CATEGORY_BY_ROUND[roundId];
+  const questionBand = DIAGNOSTIC_QUESTION_BAND_BY_SELECTED_BAND[band];
   const additionalContext = JSON.stringify({
     selected_job_title: selectedJob.title,
     selected_job_description: selectedJob.description,
@@ -467,6 +480,12 @@ async function createDiagnosticConnectionDetails({
     session_id: dbSession.id,
     interaction_mode: "auto",
     webhook_url: webhookUrl,
+    question_filters: {
+      band: questionBand,
+      category: questionCategory,
+      content_type: "diagnostic_question",
+      domain: "computer_science",
+    },
     config: {
       voice,
       speakingSpeed,
