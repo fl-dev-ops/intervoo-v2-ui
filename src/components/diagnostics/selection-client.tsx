@@ -105,9 +105,9 @@ export function DiagnosticsSelectionClient({
   return (
     <main className="min-h-dvh bg-lavender text-foreground">
       <DiagnosticsPageHeader title="Software Developer Interview" user={user} />
-      <section className="mx-auto flex w-full max-w-3xl flex-col justify-center page-container">
+      <section className="mx-auto flex w-full max-w-4xl flex-col justify-center page-container">
         <header className="mx-auto text-center mb-8">
-          <h1 className="text-base font-semibold tracking-tight md:text-2xl">
+          <h1 className="text-base font-semibold tracking-tight md:text-xl">
             Software Developer Interview Readiness Assessment
           </h1>
 
@@ -164,7 +164,7 @@ export function DiagnosticsSelectionClient({
 
           <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-xs text-center md:text-left text-muted-foreground md:text-sm">
-              60-minute interview · 4 rounds · 15 minutes each
+              60-minute interview · 4 rounds · 10-20 minutes each
             </p>
             <Button
               className="w-full rounded-full! bg-button px-5 text-white md:w-auto"

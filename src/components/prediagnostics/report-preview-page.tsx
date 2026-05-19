@@ -1,13 +1,9 @@
 "use client";
 
-import {
-  CheckIcon,
-  Circle,
-  Loader2,
-  Shield,
-  Target,
-  Trophy,
-} from "lucide-react";
+import { IconCheck, IconCircle, IconLoader2 } from "@tabler/icons-react";
+import confetti from "canvas-confetti";
+import { Shield, Target, Trophy } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -42,6 +38,12 @@ type CareerGoal = {
 };
 
 type CareerGoalValue = CareerGoal | string | null;
+
+type AwarenessReportRow = {
+  key: ResearchBreakdownKey;
+  label: string;
+  value: string;
+};
 
 export type PrediagnosticsReportPreviewReport = {
   dream_job: CareerGoalValue;
@@ -164,6 +166,39 @@ function PrediagnosticsGenerationState({
   const [completedSteps, setCompletedSteps] = useState(0);
 
   useEffect(() => {
+    const end = Date.now() + 3000;
+    const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
+    let animationFrame = 0;
+
+    const frame = () => {
+      if (Date.now() > end) return;
+
+      void confetti({
+        angle: 60,
+        colors,
+        origin: { x: 0, y: 0.5 },
+        particleCount: 2,
+        spread: 55,
+        startVelocity: 60,
+      });
+      void confetti({
+        angle: 120,
+        colors,
+        origin: { x: 1, y: 0.5 },
+        particleCount: 2,
+        spread: 55,
+        startVelocity: 60,
+      });
+
+      animationFrame = requestAnimationFrame(frame);
+    };
+
+    frame();
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, []);
+
+  useEffect(() => {
     if (!ready) {
       return;
     }
@@ -190,23 +225,31 @@ function PrediagnosticsGenerationState({
   const activeIndex = completedSteps < totalSteps ? completedSteps : -1;
 
   return (
-    <main className="min-h-dvh bg-white flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md mx-auto space-y-10 animate-fade-in">
-        <div className="text-center space-y-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Pre-diagnostic report
-          </p>
-          <h1 className="text-[26px] font-semibold tracking-tight text-foreground">
-            {ready ? "Your report is ready" : "Preparing your report"}
+    <main className="flex min-h-dvh items-center justify-center bg-[#F5F3F7] px-6 py-12">
+      <div className="mx-auto w-full max-w-md animate-fade-in space-y-12">
+        <div className="text-center">
+          <div className="relative mx-auto h-52 w-52">
+            <Image
+              alt="Round completed"
+              className="object-contain"
+              fill
+              sizes="208px"
+              src="/round-completed.svg"
+            />
+            <div className="absolute bottom-6 left-2 grid size-18 place-items-center rounded-full bg-[#58ad6f] text-white shadow-[0_10px_30px_rgba(88,173,111,0.35)]">
+              <IconCheck className="size-9" />
+            </div>
+          </div>
+
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground mb-2">
+            Congratulations!
           </h1>
-          <p className="mx-auto max-w-xs text-sm leading-6 text-muted-foreground">
-            {ready
-              ? "Opening your report now."
-              : "We are analyzing your conversation. This page refreshes automatically."}
+          <p className="text-base mx-auto max-w-xs leading-6 text-foreground">
+            Getting your job awareness report.
           </p>
         </div>
 
-        <ol className="space-y-2.5">
+        <ol className="mx-auto max-w-60 space-y-5">
           {REPORT_GENERATION_STEPS.map((step, index) => (
             <GenerationStepRow
               active={index === activeIndex}
@@ -273,6 +316,13 @@ function PrediagnosticsReportPreview({
   const dreamJob = normalizeCareerGoal(report.dream_job);
   const targetJob = normalizeCareerGoal(report.aiming_for);
   const backupJob = normalizeCareerGoal(report.backup);
+  const awarenessRows = getAwarenessRows(report);
+  const clearAwarenessRows = awarenessRows.filter((row) =>
+    isClearAwarenessValue(row.value),
+  );
+  const improvementAwarenessRows = awarenessRows.filter(
+    (row) => !isClearAwarenessValue(row.value),
+  );
 
   return (
     <div className="min-h-dvh bg-lavender">
@@ -289,8 +339,8 @@ function PrediagnosticsReportPreview({
 
           <div className="mt-5 space-y-4">
             <section className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-3 pb-3 border-b">
+                <div className="flex items-center gap-3 ">
                   <GreenCheckBadge className="size-7" iconClassName="size-4" />
                   <div className="text-base font-semibold text-foreground">
                     Your job goal
@@ -302,7 +352,7 @@ function PrediagnosticsReportPreview({
                 />
               </div>
 
-              <div className="mt-4 space-y-2.5">
+              <div className="mt-4 space-y-1">
                 <InfoCard
                   icon={<Trophy className="h-4 w-4" />}
                   iconClassName="bg-purple-100 text-purple-600"
@@ -345,49 +395,31 @@ function PrediagnosticsReportPreview({
                 />
               </div>
 
-              <div className="mt-4 grid gap-1 text-sm leading-7 text-muted-foreground">
-                <div className="mb-1 text-xs font-semibold uppercase tracking-[0.06em] text-foreground">
-                  You are clear about
-                </div>
-                <AwarenessRow
-                  label="Skills research"
-                  positive
-                  value={getReportBreakdownValue(report, "skills_research")}
+              {clearAwarenessRows.length > 0 ? (
+                <AwarenessGroup
+                  rows={clearAwarenessRows}
+                  title="You are clear about"
                 />
-                <AwarenessRow
-                  label="Company knowledge"
-                  value={getReportBreakdownValue(report, "company_clarity")}
-                />
-              </div>
+              ) : null}
 
-              <div className="mt-4 grid gap-1 text-sm leading-7 text-muted-foreground">
-                <div className="mb-1 text-xs font-semibold uppercase tracking-[0.06em] text-foreground">
-                  Need improvement
-                </div>
-                <AwarenessRow
-                  label="JD awareness"
-                  value={getReportBreakdownValue(report, "jd_awareness")}
-                  warning
+              {improvementAwarenessRows.length > 0 ? (
+                <AwarenessGroup
+                  rows={improvementAwarenessRows}
+                  title="Need improvement"
                 />
-                <AwarenessRow
-                  label="Role clarity"
-                  value={getReportBreakdownValue(
-                    report,
-                    "tools_and_role_clarity",
-                  )}
-                  warning
-                />
-                <AwarenessRow
-                  label="Salary understanding"
-                  value={getReportBreakdownValue(report, "salary_clarity")}
-                  warning
-                />
-              </div>
+              ) : null}
 
-              <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-amber-700 dark:text-amber-300">
-                Some key areas are not clear yet. Improving them will help you
-                perform better in interviews.
-              </div>
+              {improvementAwarenessRows.length > 0 ? (
+                <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-amber-700 dark:text-amber-300">
+                  Some key areas are not clear yet. Improving them will help you
+                  perform better in interviews.
+                </div>
+              ) : (
+                <div className="mt-4 rounded-xl bg-indigo-500/10 px-4 py-3 text-center text-sm leading-6 text-foreground">
+                  🔥 You’re clear about your job role and salary range. Good to
+                  go
+                </div>
+              )}
             </section>
 
             {showActions ? (
@@ -441,7 +473,7 @@ function InfoCard(props: {
   goal: NormalizedCareerGoal;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-3">
+    <div className="rounded-xl bg-card py-3">
       <div className="flex items-start gap-3">
         <div
           className={`mt-0.5 flex h-7 w-7 items-center justify-center rounded-full ${props.iconClassName}`}
@@ -520,21 +552,14 @@ function getCareerGoalSecondary({
   return null;
 }
 
-function AwarenessRow(props: {
-  label: string;
-  value: string;
-  positive?: boolean;
-  warning?: boolean;
-}) {
+function AwarenessRow(props: { label: string; value: string }) {
   const normalizedValue = props.value.trim().toLowerCase();
   const valueClassName =
     normalizedValue === "not yet"
       ? "text-red-500"
-      : props.positive
+      : isClearAwarenessValue(props.value)
         ? "text-emerald-600 dark:text-emerald-400"
-        : props.warning
-          ? "text-amber-600 dark:text-amber-400"
-          : "text-emerald-600 dark:text-emerald-400";
+        : "text-amber-600 dark:text-amber-400";
 
   return (
     <div className="flex items-center justify-between gap-3 py-0.5">
@@ -548,39 +573,81 @@ function AwarenessRow(props: {
   );
 }
 
+function AwarenessGroup({
+  rows,
+  title,
+}: {
+  rows: AwarenessReportRow[];
+  title: string;
+}) {
+  return (
+    <div className="mt-4 grid gap-1 text-sm leading-7 text-muted-foreground">
+      <div className="mb-1 text-xs font-semibold uppercase tracking-[0.06em] text-foreground">
+        {title}
+      </div>
+      {rows.map((row) => (
+        <AwarenessRow key={row.key} label={row.label} value={row.value} />
+      ))}
+    </div>
+  );
+}
+
+function getAwarenessRows(
+  report: PrediagnosticsReportPreviewReport,
+): AwarenessReportRow[] {
+  return [
+    {
+      key: "skills_research",
+      label: "Skills research",
+      value: getReportBreakdownValue(report, "skills_research"),
+    },
+    {
+      key: "company_clarity",
+      label: "Company knowledge",
+      value: getReportBreakdownValue(report, "company_clarity"),
+    },
+    {
+      key: "jd_awareness",
+      label: "JD awareness",
+      value: getReportBreakdownValue(report, "jd_awareness"),
+    },
+    {
+      key: "tools_and_role_clarity",
+      label: "Role clarity",
+      value: getReportBreakdownValue(report, "tools_and_role_clarity"),
+    },
+    {
+      key: "salary_clarity",
+      label: "Salary understanding",
+      value: getReportBreakdownValue(report, "salary_clarity"),
+    },
+  ];
+}
+
+function isClearAwarenessValue(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "clear" || normalized === "good" || normalized === "strong"
+  );
+}
+
 function GenerationStepRow(props: {
   label: string;
   complete: boolean;
   active?: boolean;
 }) {
   return (
-    <li
-      className={cn(
-        "flex items-center gap-3.5 rounded-xl border px-4 py-3.5 transition-all duration-300",
-        props.complete
-          ? "border-emerald-500/25 bg-emerald-500/5"
-          : props.active
-            ? "border-[#5E41CF]/30 bg-[#5E41CF]/5"
-            : "border-border bg-muted/40",
-      )}
-    >
+    <li className="flex items-center gap-4 transition-all duration-300">
       <span className="shrink-0">
         {props.complete ? (
-          <GreenCheckBadge className="size-5" iconClassName="size-3" />
+          <GreenCheckBadge className="size-6" iconClassName="size-4" />
         ) : props.active ? (
-          <Loader2 className="h-5 w-5 animate-spin text-[#5E41CF]" />
+          <IconLoader2 className="size-6 animate-spin text-[#6548E4]" />
         ) : (
-          <Circle className="h-5 w-5 text-muted-foreground/35" />
+          <IconCircle className="size-6 text-[#D8CDDE]" stroke={1.75} />
         )}
       </span>
-      <span
-        className={cn(
-          "text-sm font-medium transition-colors",
-          props.complete || props.active
-            ? "text-foreground"
-            : "text-muted-foreground",
-        )}
-      >
+      <span className="text-sm font-medium text-foreground transition-colors">
         {props.label}
       </span>
     </li>
@@ -601,7 +668,7 @@ function GreenCheckBadge({
         className,
       )}
     >
-      <CheckIcon className={iconClassName} />
+      <IconCheck className={iconClassName} stroke={3} />
     </span>
   );
 }

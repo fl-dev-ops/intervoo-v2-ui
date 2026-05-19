@@ -2,6 +2,7 @@
 
 import { useMediaDeviceSelect } from "@livekit/components-react";
 import { IconMicrophone } from "@tabler/icons-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -294,8 +295,15 @@ function MicPermissionRequest({
     <main className="flex min-h-dvh bg-white px-5 py-8">
       <section className="mx-auto flex w-full max-w-md flex-col justify-center space-y-8">
         <div className="space-y-4 text-center">
-          <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-[#F0EDF6] text-[#6548E4]">
-            <IconMicrophone className="size-10" />
+          <div className="relative mx-auto h-64 w-full max-w-72">
+            <Image
+              priority
+              alt="Person preparing for access permissions"
+              className="object-contain"
+              fill
+              sizes="288px"
+              src="/pre-join-access.svg"
+            />
           </div>
           <div className="space-y-2">
             <h1 className="text-xl font-semibold tracking-tight text-slate-950">
