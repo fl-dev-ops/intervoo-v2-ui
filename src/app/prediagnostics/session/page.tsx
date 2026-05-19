@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { SessionPageClient } from "@/components/prediagnostics/session-client";
+import type { CoachOption } from "@/lib/coaches";
+import { prisma } from "@/lib/db";
 import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function PrediagnosticsSessionPage({
@@ -16,14 +18,20 @@ export default async function PrediagnosticsSessionPage({
   const rawMode = typeof params.mode === "string" ? params.mode : "ptt";
   const interactionMode = rawMode === "auto" ? "auto" : "ptt";
 
-  await requirePageStage(["PREDIAGNOSTICS"]);
+  const { user } = await requirePageStage(["PREDIAGNOSTICS"]);
 
   if (!token || !url || !room || !session) {
     redirect("/prediagnostics");
   }
 
+  const profile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+    select: { coach: true },
+  });
+
   return (
     <SessionPageClient
+      coach={toCoachOption(profile?.coach)}
       interactionMode={interactionMode}
       roomName={room}
       serverUrl={url}
@@ -33,4 +41,8 @@ export default async function PrediagnosticsSessionPage({
       redirectUrl="/prediagnostics/report"
     />
   );
+}
+
+function toCoachOption(value: string | null | undefined): CoachOption | null {
+  return value === "sana" || value === "arjun" ? value : null;
 }

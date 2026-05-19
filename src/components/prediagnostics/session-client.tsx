@@ -8,12 +8,14 @@ import {
 import { TokenSource } from "livekit-client";
 import { useEffect, useMemo } from "react";
 import { PrediagnosticsSessionView } from "@/components/prediagnostics/prediagnostics-session-view";
+import type { CoachOption } from "@/lib/coaches";
 
 interface SessionPageClientProps {
   token: string;
   serverUrl: string;
   roomName: string;
   sessionId: string;
+  coach?: CoachOption | null;
   video?: boolean;
   interactionMode?: "ptt" | "auto";
   completeEndpoint?: string;
@@ -25,6 +27,7 @@ export function SessionPageClient({
   serverUrl,
   roomName,
   sessionId,
+  coach,
   video = false,
   interactionMode = "ptt",
   completeEndpoint = "/api/sessions/end",
@@ -49,6 +52,7 @@ export function SessionPageClient({
     <SessionProvider session={session}>
       <RoomAudioRenderer room={session.room} />
       <PrediagnosticsSessionView
+        coach={coach}
         roomName={roomName}
         sessionId={sessionId}
         video={video}

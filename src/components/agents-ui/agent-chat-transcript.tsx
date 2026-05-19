@@ -1,10 +1,9 @@
 "use client";
 
-import { type ComponentProps } from "react";
-import {
-  type AgentState,
-  type ReceivedMessage,
-} from "@livekit/components-react";
+import type { AgentState, ReceivedMessage } from "@livekit/components-react";
+import { AnimatePresence } from "motion/react";
+import type { ComponentProps } from "react";
+import { AgentChatIndicator } from "@/components/agents-ui/agent-chat-indicator";
 import {
   Conversation,
   ConversationContent,
@@ -15,8 +14,6 @@ import {
   MessageContent,
   MessageResponse,
 } from "@/components/ai-elements/message";
-import { AgentChatIndicator } from "@/components/agents-ui/agent-chat-indicator";
-import { AnimatePresence } from "motion/react";
 
 /**
  * Props for the AgentChatTranscript component.
@@ -60,32 +57,30 @@ export function AgentChatTranscript({
 }: AgentChatTranscriptProps) {
   return (
     <Conversation className={className} {...props}>
-      <div className="max-w-lg mx-auto px-4">
-        <ConversationContent className="px-0">
-          {messages.map((receivedMessage) => {
-            const { id, timestamp, from, message } = receivedMessage;
-            const time = new Date(timestamp);
-            const messageOrigin = from?.isLocal ? "user" : "assistant";
-            const locale =
-              typeof navigator !== "undefined" ? navigator.language : "en-US";
-            const title = time.toLocaleTimeString(locale, {
-              timeStyle: "full",
-            });
+      <ConversationContent className="mx-auto w-full max-w-lg px-4">
+        {messages.map((receivedMessage) => {
+          const { id, timestamp, from, message } = receivedMessage;
+          const time = new Date(timestamp);
+          const messageOrigin = from?.isLocal ? "user" : "assistant";
+          const locale =
+            typeof navigator !== "undefined" ? navigator.language : "en-US";
+          const title = time.toLocaleTimeString(locale, {
+            timeStyle: "full",
+          });
 
-            return (
-              <Message key={id} title={title} from={messageOrigin}>
-                <MessageContent>
-                  <MessageResponse>{message}</MessageResponse>
-                </MessageContent>
-              </Message>
-            );
-          })}
-          <AnimatePresence>
-            {agentState === "thinking" && <AgentChatIndicator size="sm" />}
-          </AnimatePresence>
-        </ConversationContent>
-        <ConversationScrollButton />
-      </div>
+          return (
+            <Message key={id} title={title} from={messageOrigin}>
+              <MessageContent className="group-[.is-assistant]:text-black/75">
+                <MessageResponse>{message}</MessageResponse>
+              </MessageContent>
+            </Message>
+          );
+        })}
+        <AnimatePresence>
+          {agentState === "thinking" && <AgentChatIndicator size="sm" />}
+        </AnimatePresence>
+      </ConversationContent>
+      <ConversationScrollButton />
     </Conversation>
   );
 }

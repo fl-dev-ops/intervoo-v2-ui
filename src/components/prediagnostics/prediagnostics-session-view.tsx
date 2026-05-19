@@ -14,6 +14,7 @@ import {
   RpcError,
 } from "livekit-client";
 import { PhoneOff } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   EndSessionDialog,
@@ -21,11 +22,13 @@ import {
 } from "@/components/diagnostics/end-session-dialog";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
+import { type CoachOption, coachCards } from "@/lib/coaches";
 import { AgentChatTranscript } from "../agents-ui/agent-chat-transcript";
 
 interface PrediagnosticsSessionViewProps {
   roomName: string;
   sessionId: string;
+  coach?: CoachOption | null;
   video?: boolean;
   interactionMode?: "ptt" | "auto";
   completeEndpoint?: string;
@@ -35,6 +38,7 @@ interface PrediagnosticsSessionViewProps {
 export function PrediagnosticsSessionView({
   roomName: _roomName,
   sessionId,
+  coach,
   video = false,
   interactionMode = "ptt",
   completeEndpoint = "/api/sessions/end",
@@ -63,6 +67,8 @@ export function PrediagnosticsSessionView({
   const agentParticipant = remoteParticipants.find(
     (p) => p.kind === ParticipantKind.AGENT,
   );
+  const selectedCoach =
+    coachCards.find((item) => item.value === coach) ?? coachCards[0];
 
   useEffect(() => {
     if (hasStartedRef.current) return;
@@ -200,10 +206,10 @@ export function PrediagnosticsSessionView({
     }
 
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#1B1238] px-4">
+      <div className="flex min-h-dvh items-center justify-center bg-white px-4">
         <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-4 text-center">
-          <p className="text-lg font-medium text-white">Connection lost</p>
-          <p className="text-sm text-white/60">
+          <p className="text-lg font-medium text-black">Connection lost</p>
+          <p className="text-sm text-black/60">
             The session connection was lost.
           </p>
           <div className="flex gap-3">
@@ -228,23 +234,28 @@ export function PrediagnosticsSessionView({
   }
 
   return (
-    <main className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-[#1B1238]">
-      {/* Dot pattern background */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-50"
-        style={{
-          backgroundImage: "url('/dot-pattern.svg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      />
-
+    <main className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-white text-black">
       {/* Header */}
-      <header className="relative z-10 flex shrink-0 items-center justify-between px-4 py-3 max-w-lg mx-auto w-full">
-        <h1 className="text-sm font-semibold text-white md:text-base">
-          Pre-Diagnostic Session
-        </h1>
+      <header className="relative z-10 mx-auto flex w-full max-w-lg shrink-0 items-center justify-between px-4 py-4 ">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200">
+            <Image
+              src={selectedCoach.imageSrc}
+              alt={`${selectedCoach.title} coach avatar`}
+              fill
+              className="object-cover"
+              sizes="40px"
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-black md:text-base">
+              {selectedCoach.title}
+            </p>
+            <p className="truncate text-xs font-medium text-black/55">
+              Pre-Diagnostic Session
+            </p>
+          </div>
+        </div>
         <Button
           size={"lg"}
           type="button"
@@ -261,14 +272,14 @@ export function PrediagnosticsSessionView({
         <div className="h-full flex flex-col overflow-hidden ">
           {showConnectingSpinner && (
             <div className="flex justify-center py-4">
-              <div className="rounded-full bg-white/10 px-4 py-2 text-sm text-white/60 shadow-sm backdrop-blur-md">
+              <div className="rounded-full bg-gray-100 px-4 py-2 text-sm text-black/60 shadow-sm">
                 Connecting to session...
               </div>
             </div>
           )}
 
           <AgentChatTranscript
-            className="min-h-0 w-full flex-1 overflow-y-auto text-white"
+            className="min-h-0 w-full flex-1 overflow-y-auto text-black"
             agentState={agent.state}
             messages={sessionMessages}
           />
@@ -277,11 +288,11 @@ export function PrediagnosticsSessionView({
 
       {/* Footer */}
       <footer className="relative z-10 shrink-0 px-3 pb-3 md:px-6 md:pb-6 max-w-lg mx-auto w-full">
-        {sessionMessages.length === 0 && (
-          <p className="pointer-events-none mx-auto block w-full max-w-lg pb-4 text-center text-sm font-semibold text-white/60">
+        {/*{sessionMessages.length === 0 && (
+          <p className="pointer-events-none mx-auto block w-full max-w-lg pb-4 text-center text-sm font-semibold text-black/55">
             Agent is listening, ask it a question
           </p>
-        )}
+        )}*/}
         <SessionControlBar
           chatText={chatText}
           disabled={isInputDisabled}
@@ -359,7 +370,7 @@ function SessionControlBar({
         >
           <Button
             aria-label="Toggle text response"
-            className="relative size-12 shrink-0 rounded-2xl bg-white text-slate-500 transition-all duration-200 hover:bg-[#E8E4F0] hover:text-slate-700"
+            className="relative size-12 shrink-0 rounded-2xl bg-gray-100 text-slate-700 transition-all duration-200 hover:bg-gray-200 hover:text-black disabled:bg-gray-100"
             size="icon"
             type="button"
             variant="ghost"
@@ -374,7 +385,7 @@ function SessionControlBar({
 
         <div className="min-w-0 flex-1 transition-all duration-300 ease-out">
           {isChatOpen ? (
-            <div className="flex min-h-12 min-w-0 items-end rounded-[1.5rem] border border-[#D6D2E2] bg-white py-1.5 pr-3 pl-4 transition-colors focus-within:border-[#6548E4]">
+            <div className="flex min-h-12 min-w-0 items-end rounded-[1.5rem] border border-gray-200 bg-gray-100 py-1.5 pr-3 pl-4 transition-colors focus-within:border-gray-300">
               <textarea
                 ref={setTextAreaRef}
                 autoComplete="off"
@@ -396,20 +407,20 @@ function SessionControlBar({
               />
               <Button
                 aria-label="Send response"
-                className="ml-2 size-9 shrink-0 rounded-full bg-transparent text-[#6548E4] hover:bg-[#F0EDF6] focus-visible:ring-0 active:ring-0"
+                className="ml-2 size-9 shrink-0 rounded-full bg-transparent text-slate-800 hover:bg-gray-200 focus-visible:ring-0 active:ring-0"
                 disabled={disabled || !hasTypedMessage || isRecording}
                 size="icon"
                 type="button"
                 variant="ghost"
                 onClick={() => void onSendText()}
               >
-                <IconSend2 className="size-5 shrink-0 text-[#6548E4]" />
+                <IconSend2 className="size-5 shrink-0 text-slate-800" />
               </Button>
             </div>
           ) : isRecording ? (
             <Button
               aria-label="Stop talking"
-              className="relative h-12 w-full min-w-0 overflow-hidden rounded-full border border-[#C8C7D6] bg-white px-5 text-[#6548E4] transition-all duration-300 hover:bg-white"
+              className="relative h-12 w-full min-w-0 overflow-hidden rounded-full border border-gray-200 bg-gray-100 px-5 text-slate-800 transition-all duration-300 hover:bg-gray-100"
               disabled={disabled}
               type="button"
               variant="ghost"
@@ -419,18 +430,18 @@ function SessionControlBar({
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <LiveWaveform
                     active={isRecording}
-                    className="text-[#6548E4]"
+                    className="text-gray-500"
                     height="28px"
                     mode="scrolling"
                   />
                 </div>
-                <IconSend2 className="size-5 shrink-0 text-[#6548E4]" />
+                <IconSend2 className="size-5 shrink-0 text-slate-800" />
               </div>
             </Button>
           ) : (
             <Button
               aria-label="Start talking"
-              className="relative h-12 w-full min-w-0 rounded-full bg-button text-sm text-white shadow-lg shadow-[#6548E4]/20 transition-all duration-300 hover:opacity-95"
+              className="relative h-12 w-full min-w-0 rounded-full bg-button text-sm  transition-all duration-300"
               disabled={disabled}
               type="button"
               onClick={() => void onToggleVoice()}
@@ -448,7 +459,7 @@ function SessionControlBar({
         >
           <Button
             aria-label="Start talking"
-            className="size-12 shrink-0 rounded-full bg-button text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95"
+            className="size-12 shrink-0 rounded-full bg-button"
             disabled={disabled}
             size="icon"
             type="button"
