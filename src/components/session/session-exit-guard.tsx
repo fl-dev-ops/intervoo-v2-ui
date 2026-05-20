@@ -31,6 +31,30 @@ export function SessionExitGuard({
     }
   }, [active]);
 
+  // Intercept refresh shortcuts BEFORE beforeunload fires so we can show our
+  // dialog and keep the WebSocket alive. beforeunload alone cannot prevent
+  // the browser from closing connections.
+  useEffect(() => {
+    if (!active) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!activeRef.current) return;
+
+      const isRefreshShortcut =
+        event.key === "F5" ||
+        ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "r");
+
+      if (!isRefreshShortcut) return;
+
+      event.preventDefault();
+      onExitAttempt();
+    };
+
+    // Capture phase so we receive the event even if an input calls stopPropagation()
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [active, onExitAttempt]);
+
   useEffect(() => {
     if (!active) return;
 
