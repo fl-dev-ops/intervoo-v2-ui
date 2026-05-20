@@ -16,10 +16,12 @@ import {
 import { PhoneOff } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   EndSessionDialog,
   useEndSessionDialog,
 } from "@/components/diagnostics/end-session-dialog";
+import { SessionExitGuard } from "@/components/session/session-exit-guard";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
 import { type CoachOption, coachCards } from "@/lib/coaches";
@@ -56,6 +58,7 @@ export function PrediagnosticsSessionView({
   const hasAutoRedirectedRef = useRef(false);
   const hasBeenConnectedRef = useRef(false);
   const isEndingRef = useRef(false);
+  const [guardActive, setGuardActive] = useState(true);
 
   const {
     isOpen: dialogOpen,
@@ -102,6 +105,7 @@ export function PrediagnosticsSessionView({
   const completeAndRedirect = useCallback(async () => {
     if (hasAutoRedirectedRef.current) return;
     hasAutoRedirectedRef.current = true;
+    flushSync(() => setGuardActive(false));
     await fetch(completeEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -234,86 +238,91 @@ export function PrediagnosticsSessionView({
   }
 
   return (
-    <main className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-white text-black">
-      {/* Header */}
-      <header className="relative z-10 mx-auto flex w-full max-w-lg shrink-0 items-center justify-between px-4 py-4 ">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200">
-            <Image
-              src={selectedCoach.imageSrc}
-              alt={`${selectedCoach.title} coach avatar`}
-              fill
-              className="object-cover"
-              sizes="40px"
+    <SessionExitGuard
+      active={guardActive}
+      onExitAttempt={() => promptEnd(sessionMessages.length)}
+    >
+      <main className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-white text-black">
+        {/* Header */}
+        <header className="relative z-10 mx-auto flex w-full max-w-lg shrink-0 items-center justify-between px-4 py-4 ">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200">
+              <Image
+                src={selectedCoach.imageSrc}
+                alt={`${selectedCoach.title} coach avatar`}
+                fill
+                className="object-cover"
+                sizes="40px"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-black md:text-base">
+                {selectedCoach.title}
+              </p>
+              <p className="truncate text-xs font-medium text-black/55">
+                Pre-Diagnostic Session
+              </p>
+            </div>
+          </div>
+          <Button
+            size={"lg"}
+            type="button"
+            className="rounded-full px-4 font-semibold bg-red-500 text-white"
+            onClick={() => promptEnd(sessionMessages.length)}
+          >
+            <PhoneOff className="mr-2 size-4" />
+            End
+          </Button>
+        </header>
+
+        {/* Main content */}
+        <section className="w-full flex-1 relative z-10 min-h-0 ">
+          <div className="h-full flex flex-col overflow-hidden ">
+            {showConnectingSpinner && (
+              <div className="flex justify-center py-4">
+                <div className="rounded-full bg-gray-100 px-4 py-2 text-sm text-black/60 shadow-sm">
+                  Connecting to session...
+                </div>
+              </div>
+            )}
+
+            <AgentChatTranscript
+              className="min-h-0 w-full flex-1 overflow-y-auto text-black"
+              agentState={agent.state}
+              messages={sessionMessages}
             />
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-black md:text-base">
-              {selectedCoach.title}
-            </p>
-            <p className="truncate text-xs font-medium text-black/55">
-              Pre-Diagnostic Session
-            </p>
-          </div>
-        </div>
-        <Button
-          size={"lg"}
-          type="button"
-          className="rounded-full px-4 font-semibold bg-red-500 text-white"
-          onClick={() => promptEnd(sessionMessages.length)}
-        >
-          <PhoneOff className="mr-2 size-4" />
-          End
-        </Button>
-      </header>
+        </section>
 
-      {/* Main content */}
-      <section className="w-full flex-1 relative z-10 min-h-0 ">
-        <div className="h-full flex flex-col overflow-hidden ">
-          {showConnectingSpinner && (
-            <div className="flex justify-center py-4">
-              <div className="rounded-full bg-gray-100 px-4 py-2 text-sm text-black/60 shadow-sm">
-                Connecting to session...
-              </div>
-            </div>
-          )}
-
-          <AgentChatTranscript
-            className="min-h-0 w-full flex-1 overflow-y-auto text-black"
-            agentState={agent.state}
-            messages={sessionMessages}
-          />
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="relative z-10 shrink-0 px-3 pb-3 md:px-6 md:pb-6 max-w-lg mx-auto w-full">
-        {/*{sessionMessages.length === 0 && (
+        {/* Footer */}
+        <footer className="relative z-10 shrink-0 px-3 pb-3 md:px-6 md:pb-6 max-w-lg mx-auto w-full">
+          {/*{sessionMessages.length === 0 && (
           <p className="pointer-events-none mx-auto block w-full max-w-lg pb-4 text-center text-sm font-semibold text-black/55">
             Agent is listening, ask it a question
           </p>
         )}*/}
-        <SessionControlBar
-          chatText={chatText}
-          disabled={isInputDisabled}
-          hasTypedMessage={hasTypedMessage}
-          isChatOpen={isChatOpen}
-          isRecording={isRecording}
-          onChatTextChange={setChatText}
-          onChatToggle={() => setIsChatOpen((v) => !v)}
-          onSendText={handleSendText}
-          onToggleVoice={handleToggleVoice}
-        />
-      </footer>
+          <SessionControlBar
+            chatText={chatText}
+            disabled={isInputDisabled}
+            hasTypedMessage={hasTypedMessage}
+            isChatOpen={isChatOpen}
+            isRecording={isRecording}
+            onChatTextChange={setChatText}
+            onChatToggle={() => setIsChatOpen((v) => !v)}
+            onSendText={handleSendText}
+            onToggleVoice={handleToggleVoice}
+          />
+        </footer>
 
-      <EndSessionDialog
-        isOpen={dialogOpen}
-        mode={dialogMode}
-        onClose={closeDialog}
-        onConfirmEnd={() => void handleEndCall()}
-        onContinue={closeDialog}
-      />
-    </main>
+        <EndSessionDialog
+          isOpen={dialogOpen}
+          mode={dialogMode}
+          onClose={closeDialog}
+          onConfirmEnd={() => void handleEndCall()}
+          onContinue={closeDialog}
+        />
+      </main>
+    </SessionExitGuard>
   );
 }
 

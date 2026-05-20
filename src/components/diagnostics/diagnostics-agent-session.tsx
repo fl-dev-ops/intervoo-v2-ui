@@ -20,8 +20,10 @@ import {
 } from "livekit-client";
 import { motion, type Variants } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
 import { EndSessionDialog } from "@/components/diagnostics/end-session-dialog";
+import { SessionExitGuard } from "@/components/session/session-exit-guard";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -157,6 +159,7 @@ function SessionLayout({
   );
   const hasNavigatedRef = useRef(false);
   const isEndingRef = useRef(false);
+  const [guardActive, setGuardActive] = useState(true);
 
   const cameraTrack = useMemo<TrackReference | undefined>(() => {
     if (!cameraPublication) return undefined;
@@ -175,6 +178,7 @@ function SessionLayout({
       if (hasNavigatedRef.current) return;
 
       hasNavigatedRef.current = true;
+      flushSync(() => setGuardActive(false));
       console.info("[diagnostics] agent disconnected; navigating to complete", {
         sessionId,
       });
@@ -228,6 +232,7 @@ function SessionLayout({
     setEndDialogOpen(false);
 
     hasNavigatedRef.current = true;
+    flushSync(() => setGuardActive(false));
     console.info("[diagnostics] ending live session", { sessionId });
     await session.room.localParticipant
       ?.setMicrophoneEnabled(false)
@@ -249,146 +254,148 @@ function SessionLayout({
     : "Sara";
 
   return (
-    <motion.div
-      className="relative flex min-h-dvh flex-col overflow-hidden bg-[#1B1238]"
-      variants={PAGE_SEQUENCE}
-      initial="hidden"
-      animate="visible"
-    >
-      {/* Dot pattern background */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-50"
-        style={{
-          backgroundImage: "url('/dot-pattern.svg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      />
-
-      {/* Header */}
-      <motion.header
-        className="flex shrink-0 items-center justify-between px-4 py-3"
-        variants={FADE_UP}
-      >
-        <div />
-        <SessionTimer />
-      </motion.header>
-
-      {/* Main content */}
+    <SessionExitGuard active={guardActive} onExitAttempt={promptEndSession}>
       <motion.div
-        className="flex min-h-0 flex-1 flex-col"
-        variants={MAIN_SEQUENCE}
+        className="relative flex min-h-dvh flex-col overflow-hidden bg-[#1B1238]"
+        variants={PAGE_SEQUENCE}
+        initial="hidden"
+        animate="visible"
       >
-        {/* Info + Orb section */}
+        {/* Dot pattern background */}
         <div
-          className={cn(
-            "flex flex-col items-center justify-center transition-all duration-300",
-            "flex-1",
-          )}
+          className="pointer-events-none absolute inset-0 opacity-50"
+          style={{
+            backgroundImage: "url('/dot-pattern.svg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
+
+        {/* Header */}
+        <motion.header
+          className="flex shrink-0 items-center justify-between px-4 py-3"
+          variants={FADE_UP}
         >
-          {/* Role/Company info */}
-          {jobTitle && (
+          <div />
+          <SessionTimer />
+        </motion.header>
+
+        {/* Main content */}
+        <motion.div
+          className="flex min-h-0 flex-1 flex-col"
+          variants={MAIN_SEQUENCE}
+        >
+          {/* Info + Orb section */}
+          <div
+            className={cn(
+              "flex flex-col items-center justify-center transition-all duration-300",
+              "flex-1",
+            )}
+          >
+            {/* Role/Company info */}
+            {jobTitle && (
+              <motion.div
+                className="text-center space-y-2 mb-8"
+                variants={FADE_UP}
+              >
+                <h2 className="text-lg font-semibold text-white">{jobTitle}</h2>
+                {/* Round info */}
+                {roundConfig && (
+                  <div className="text-xs font-normal text-gray-400">
+                    {roundConfig.eyebrow} · {roundConfig.title}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Orb */}
+            <motion.div variants={FADE_SCALE}>
+              <AgentAudioVisualizerAura
+                state={agent.state}
+                audioTrack={agent.microphoneTrack}
+                color="#a78bfa"
+                colorShift={0.6}
+                themeMode="dark"
+              />
+            </motion.div>
+
+            {/* Agent name */}
+            <motion.div className="text-center" variants={FADE_UP}>
+              <h3 className="text-xl font-semibold text-white">{agentName}</h3>
+              <p className="mt-0.5 text-sm text-white/60">Interviewer</p>
+            </motion.div>
+
             <motion.div
-              className="text-center space-y-2 mb-8"
+              className={cn(
+                "md:mt-20 min-h-50 px-4 transition-all",
+                "shrink-0 pb-4",
+              )}
               variants={FADE_UP}
             >
-              <h2 className="text-lg font-semibold text-white">{jobTitle}</h2>
-              {/* Round info */}
-              {roundConfig && (
-                <div className="text-xs font-normal text-gray-400">
-                  {roundConfig.eyebrow} · {roundConfig.title}
-                </div>
-              )}
+              <div className="h-full flex flex-col justify-end md:justify-start">
+                {latestMessage && agent.state !== "connecting" && (
+                  <p className="max-w-lg text-center text-sm leading-relaxed text-white/80">
+                    {latestMessage}
+                  </p>
+                )}
+              </div>
             </motion.div>
-          )}
-
-          {/* Orb */}
-          <motion.div variants={FADE_SCALE}>
-            <AgentAudioVisualizerAura
-              state={agent.state}
-              audioTrack={agent.microphoneTrack}
-              color="#a78bfa"
-              colorShift={0.6}
-              themeMode="dark"
-            />
-          </motion.div>
-
-          {/* Agent name */}
-          <motion.div className="text-center" variants={FADE_UP}>
-            <h3 className="text-xl font-semibold text-white">{agentName}</h3>
-            <p className="mt-0.5 text-sm text-white/60">Interviewer</p>
-          </motion.div>
-
-          <motion.div
-            className={cn(
-              "md:mt-20 min-h-50 px-4 transition-all",
-              "shrink-0 pb-4",
-            )}
-            variants={FADE_UP}
-          >
-            <div className="h-full flex flex-col justify-end md:justify-start">
-              {latestMessage && agent.state !== "connecting" && (
-                <p className="max-w-lg text-center text-sm leading-relaxed text-white/80">
-                  {latestMessage}
-                </p>
-              )}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Transcript section */}
-      </motion.div>
-
-      {/* Footer */}
-      <motion.footer
-        className="shrink-0 px-3 pb-3 md:px-6 md:pb-6"
-        variants={FADE_UP}
-      >
-        <CustomAgentControlBar
-          controls={{
-            microphone: true,
-            camera: false,
-            leave: true,
-          }}
-          isConnected={session.isConnected}
-          onDisconnect={promptEndSession}
-        />
-      </motion.footer>
-
-      <EndSessionDialog
-        isOpen={endDialogOpen}
-        mode={endDialogMode}
-        onClose={() => setEndDialogOpen(false)}
-        onConfirmEnd={endSession}
-        onContinue={() => setEndDialogOpen(false)}
-      />
-
-      {/* Floating camera preview */}
-      <motion.div
-        className={cn(
-          "absolute z-50 left-4 top-4 overflow-hidden rounded-2xl border border-white/15 bg-black/50 shadow-xl shadow-black/40 backdrop-blur-md",
-          "md:h-50 md:w-50 h-40 w-40",
-        )}
-        variants={FADE_SCALE}
-      >
-        {isCameraEnabled && cameraTrack ? (
-          <VideoTrack
-            trackRef={cameraTrack}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[#312260]">
-            {/*<CameraOff className="size-6 text-white/50" />*/}
-            <Avatar size="lg">
-              <AvatarFallback className={"bg-[#4F379A] text-white"}>
-                CN
-              </AvatarFallback>
-            </Avatar>
           </div>
-        )}
+
+          {/* Transcript section */}
+        </motion.div>
+
+        {/* Footer */}
+        <motion.footer
+          className="shrink-0 px-3 pb-3 md:px-6 md:pb-6"
+          variants={FADE_UP}
+        >
+          <CustomAgentControlBar
+            controls={{
+              microphone: true,
+              camera: false,
+              leave: true,
+            }}
+            isConnected={session.isConnected}
+            onDisconnect={promptEndSession}
+          />
+        </motion.footer>
+
+        <EndSessionDialog
+          isOpen={endDialogOpen}
+          mode={endDialogMode}
+          onClose={() => setEndDialogOpen(false)}
+          onConfirmEnd={endSession}
+          onContinue={() => setEndDialogOpen(false)}
+        />
+
+        {/* Floating camera preview */}
+        <motion.div
+          className={cn(
+            "absolute z-50 left-4 top-4 overflow-hidden rounded-2xl border border-white/15 bg-black/50 shadow-xl shadow-black/40 backdrop-blur-md",
+            "md:h-50 md:w-50 h-40 w-40",
+          )}
+          variants={FADE_SCALE}
+        >
+          {isCameraEnabled && cameraTrack ? (
+            <VideoTrack
+              trackRef={cameraTrack}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-[#312260]">
+              {/*<CameraOff className="size-6 text-white/50" />*/}
+              <Avatar size="lg">
+                <AvatarFallback className={"bg-[#4F379A] text-white"}>
+                  CN
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          )}
+        </motion.div>
       </motion.div>
-    </motion.div>
+    </SessionExitGuard>
   );
 }
 
