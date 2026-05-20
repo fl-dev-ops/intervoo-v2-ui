@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "@livekit/components-styles";
 import "./globals.css";
@@ -22,6 +22,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Diagnostics | Intervoo.ai",
   description: "Diagnostics by Intervoo.ai",
+  icons: {
+    icon: "/favicon.ico",
+  },
   openGraph: {
     title: "Diagnostics | Intervoo.ai",
     description: "Diagnostics by Intervoo.ai",
@@ -33,6 +36,13 @@ export const metadata: Metadata = {
     title: "Diagnostics | Intervoo.ai",
     description: "Diagnostics by Intervoo.ai",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
