@@ -1,3 +1,4 @@
+import type { DiagnosticQuestionType } from "./diagnostic-activity";
 import type {
   DiagnosticAssessmentResult,
   DiagnosticConfidenceLevel,
@@ -6,7 +7,6 @@ import type {
   DiagnosticThinkingLevel,
   SalaryBandLabel,
 } from "./diagnostic-report.types";
-import type { DiagnosticQuestionType } from "./diagnostic-activity";
 
 export type QuestionTypeMap = Map<string, DiagnosticQuestionType[]>;
 
@@ -53,6 +53,24 @@ function average(values: number[]) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function conservativeMode(values: number[]) {
+  if (!values.length) {
+    return 0;
+  }
+
+  const counts = new Map<number, number>();
+  for (const value of values) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+
+  const maxCount = Math.max(...counts.values());
+  const modes = Array.from(counts.entries())
+    .filter(([, count]) => count === maxCount)
+    .map(([value]) => value);
+
+  return Math.min(...modes);
+}
+
 function round(value: number, decimals: number) {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
@@ -86,11 +104,35 @@ export function scoreThinking(level: string | undefined | null) {
   return THINKING_SCORE_MAP[level as DiagnosticThinkingLevel] ?? 0;
 }
 
+export function scoreThinkingDimensions(
+  thinkingLevels: DiagnosticQuestionResponse["thinking_levels"] | undefined,
+) {
+  if (!thinkingLevels) {
+    return 0;
+  }
+  const scores = Object.values(thinkingLevels).map((level) =>
+    scoreThinking(level),
+  );
+  return conservativeMode(scores);
+}
+
 export function scoreConfidence(level: string | undefined | null) {
   if (!level) {
     return 0;
   }
   return CONFIDENCE_SCORE_MAP[level as DiagnosticConfidenceLevel] ?? 0;
+}
+
+export function scoreConfidenceDimensions(
+  confidenceLevels: DiagnosticQuestionResponse["confidence_levels"] | undefined,
+) {
+  if (!confidenceLevels) {
+    return 0;
+  }
+  const scores = Object.values(confidenceLevels).map((level) =>
+    scoreConfidence(level),
+  );
+  return conservativeMode(scores);
 }
 
 export function scoreLanguage(
@@ -102,7 +144,7 @@ export function scoreLanguage(
   const scores = Object.values(languageLevels).map((level) =>
     scoreLanguageDimension(level),
   );
-  return average(scores);
+  return conservativeMode(scores);
 }
 
 export function scoreQuestion(
@@ -113,10 +155,12 @@ export function scoreQuestion(
   const applicableScores: number[] = [];
 
   if (questionTypes.includes("Thinking")) {
-    applicableScores.push(scoreThinking(response.thinking_level));
+    applicableScores.push(scoreThinkingDimensions(response.thinking_levels));
   }
   if (questionTypes.includes("Confidence")) {
-    applicableScores.push(scoreConfidence(response.confidence_level));
+    applicableScores.push(
+      scoreConfidenceDimensions(response.confidence_levels),
+    );
   }
   if (questionTypes.includes("Language")) {
     applicableScores.push(scoreLanguage(response.language_levels));
@@ -152,10 +196,10 @@ export function scoreAssessment(
     );
 
   const thinkingScores = getResponsesForType("Thinking").map((response) =>
-    scoreThinking(response.thinking_level),
+    scoreThinkingDimensions(response.thinking_levels),
   );
   const confidenceScores = getResponsesForType("Confidence").map((response) =>
-    scoreConfidence(response.confidence_level),
+    scoreConfidenceDimensions(response.confidence_levels),
   );
   const languageScores = getResponsesForType("Language").map((response) =>
     scoreLanguage(response.language_levels),

@@ -77,8 +77,11 @@ export function PrediagnosticsIntro({
         </section>
 
         <div className="mt-6 hidden justify-center md:flex">
-          <Button className="h-12 min-w-72 rounded-full! bg-button px-10 text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95">
-            <Link href={screeningHref}>{ctaLabel}</Link>
+          <Button
+            className="h-12 min-w-72 rounded-full! bg-button px-10 text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95"
+            render={<a href={screeningHref} />}
+          >
+            {ctaLabel}
           </Button>
         </div>
       </div>

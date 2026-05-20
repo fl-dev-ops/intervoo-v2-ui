@@ -1,13 +1,48 @@
 import { z } from "zod";
-import type { DiagnosticQuestion, DiagnosticQuestionType } from "./diagnostic-activity";
+import type {
+  DiagnosticQuestion,
+  DiagnosticQuestionType,
+} from "./diagnostic-activity";
 import {
   DIAGNOSTIC_CONFIDENCE_LEVEL_VALUES,
   DIAGNOSTIC_LANGUAGE_LEVEL_VALUES,
   DIAGNOSTIC_THINKING_LEVEL_VALUES,
+  type DiagnosticConfidenceDimension,
+  type DiagnosticConfidenceLevel,
   type DiagnosticLanguageLevel,
   type DiagnosticStoredReportJson,
+  type DiagnosticThinkingDimension,
+  type DiagnosticThinkingLevel,
   type DiagnosticTranscriptMessage,
 } from "./diagnostic-report.types";
+
+const thinkingLevelsSchema = z.object({
+  Relevance: z.enum(DIAGNOSTIC_THINKING_LEVEL_VALUES).optional(),
+  Specificity: z.enum(DIAGNOSTIC_THINKING_LEVEL_VALUES).optional(),
+  Reasoning: z.enum(DIAGNOSTIC_THINKING_LEVEL_VALUES).optional(),
+  JobCompetency: z.enum(DIAGNOSTIC_THINKING_LEVEL_VALUES).optional(),
+});
+
+const thinkingReasoningSchema = z.object({
+  Relevance: z.string().trim().min(1).optional(),
+  Specificity: z.string().trim().min(1).optional(),
+  Reasoning: z.string().trim().min(1).optional(),
+  JobCompetency: z.string().trim().min(1).optional(),
+});
+
+const confidenceLevelsSchema = z.object({
+  Volume: z.enum(DIAGNOSTIC_CONFIDENCE_LEVEL_VALUES).optional(),
+  Pace: z.enum(DIAGNOSTIC_CONFIDENCE_LEVEL_VALUES).optional(),
+  Pause: z.enum(DIAGNOSTIC_CONFIDENCE_LEVEL_VALUES).optional(),
+  Latency: z.enum(DIAGNOSTIC_CONFIDENCE_LEVEL_VALUES).optional(),
+});
+
+const confidenceReasoningSchema = z.object({
+  Volume: z.string().trim().min(1).optional(),
+  Pace: z.string().trim().min(1).optional(),
+  Pause: z.string().trim().min(1).optional(),
+  Latency: z.string().trim().min(1).optional(),
+});
 
 const languageLevelsSchema = z.object({
   Fluency: z.enum(DIAGNOSTIC_LANGUAGE_LEVEL_VALUES).optional(),
@@ -39,14 +74,12 @@ function createDiagnosticQuestionResponseSchema(
   return z
     .object({
       question_id: z.string().trim().min(1),
-      thinking_level: z.enum(DIAGNOSTIC_THINKING_LEVEL_VALUES).optional(),
-      confidence_level: z
-        .enum(DIAGNOSTIC_CONFIDENCE_LEVEL_VALUES)
-        .optional(),
+      thinking_levels: thinkingLevelsSchema.optional(),
+      confidence_levels: confidenceLevelsSchema.optional(),
       language_levels: languageLevelsSchema.optional(),
       reasoning: z.object({
-        thinking: z.string().trim().min(1).optional(),
-        confidence: z.string().trim().min(1).optional(),
+        thinking: thinkingReasoningSchema.optional(),
+        confidence: confidenceReasoningSchema.optional(),
         language: languageReasoningSchema.optional(),
       }),
     })
@@ -66,27 +99,72 @@ function createDiagnosticQuestionResponseSchema(
       const hasLanguage = questionTypes.includes("Language");
 
       if (hasThinking) {
-        if (!value.thinking_level) {
+        if (!value.thinking_levels) {
           context.addIssue({
             code: "custom",
-            message: "thinking_level is required for Thinking questions",
-            path: ["thinking_level"],
+            message: "thinking_levels is required for Thinking questions",
+            path: ["thinking_levels"],
           });
+          return;
         }
-        if (!value.reasoning.thinking?.trim()) {
+
+        const thinkingEntries = Object.entries(value.thinking_levels).filter(
+          ([, level]) => Boolean(level),
+        ) as Array<[DiagnosticThinkingDimension, DiagnosticThinkingLevel]>;
+
+        if (!thinkingEntries.length) {
+          context.addIssue({
+            code: "custom",
+            message:
+              "thinking_levels must include at least one dimension for Thinking questions",
+            path: ["thinking_levels"],
+          });
+          return;
+        }
+
+        if (!value.reasoning.thinking) {
           context.addIssue({
             code: "custom",
             message: "reasoning.thinking is required for Thinking questions",
             path: ["reasoning", "thinking"],
           });
+          return;
+        }
+
+        for (const [dimension] of thinkingEntries) {
+          const reason = value.reasoning.thinking[dimension];
+          if (!reason?.trim()) {
+            context.addIssue({
+              code: "custom",
+              message: `reasoning.thinking.${dimension} is required when thinking_levels.${dimension} is set`,
+              path: ["reasoning", "thinking", dimension],
+            });
+          }
+        }
+
+        const thinkingReasonEntries = Object.entries(
+          value.reasoning.thinking,
+        ).filter(([, reason]) => Boolean(reason)) as Array<
+          [DiagnosticThinkingDimension, string]
+        >;
+
+        for (const [dimension] of thinkingReasonEntries) {
+          const level = value.thinking_levels[dimension];
+          if (!level) {
+            context.addIssue({
+              code: "custom",
+              message: `reasoning.thinking.${dimension} must be omitted when thinking_levels.${dimension} is omitted`,
+              path: ["reasoning", "thinking", dimension],
+            });
+          }
         }
       } else {
-        if (value.thinking_level !== undefined) {
+        if (value.thinking_levels !== undefined) {
           context.addIssue({
             code: "custom",
             message:
-              "thinking_level must be omitted for non-Thinking questions",
-            path: ["thinking_level"],
+              "thinking_levels must be omitted for non-Thinking questions",
+            path: ["thinking_levels"],
           });
         }
         if (value.reasoning.thinking !== undefined) {
@@ -100,28 +178,75 @@ function createDiagnosticQuestionResponseSchema(
       }
 
       if (hasConfidence) {
-        if (!value.confidence_level) {
+        if (!value.confidence_levels) {
           context.addIssue({
             code: "custom",
-            message: "confidence_level is required for Confidence questions",
-            path: ["confidence_level"],
+            message: "confidence_levels is required for Confidence questions",
+            path: ["confidence_levels"],
           });
+          return;
         }
-        if (!value.reasoning.confidence?.trim()) {
+
+        const confidenceEntries = Object.entries(
+          value.confidence_levels,
+        ).filter(([, level]) => Boolean(level)) as Array<
+          [DiagnosticConfidenceDimension, DiagnosticConfidenceLevel]
+        >;
+
+        if (!confidenceEntries.length) {
+          context.addIssue({
+            code: "custom",
+            message:
+              "confidence_levels must include at least one dimension for Confidence questions",
+            path: ["confidence_levels"],
+          });
+          return;
+        }
+
+        if (!value.reasoning.confidence) {
           context.addIssue({
             code: "custom",
             message:
               "reasoning.confidence is required for Confidence questions",
             path: ["reasoning", "confidence"],
           });
+          return;
+        }
+
+        for (const [dimension] of confidenceEntries) {
+          const reason = value.reasoning.confidence[dimension];
+          if (!reason?.trim()) {
+            context.addIssue({
+              code: "custom",
+              message: `reasoning.confidence.${dimension} is required when confidence_levels.${dimension} is set`,
+              path: ["reasoning", "confidence", dimension],
+            });
+          }
+        }
+
+        const confidenceReasonEntries = Object.entries(
+          value.reasoning.confidence,
+        ).filter(([, reason]) => Boolean(reason)) as Array<
+          [DiagnosticConfidenceDimension, string]
+        >;
+
+        for (const [dimension] of confidenceReasonEntries) {
+          const level = value.confidence_levels[dimension];
+          if (!level) {
+            context.addIssue({
+              code: "custom",
+              message: `reasoning.confidence.${dimension} must be omitted when confidence_levels.${dimension} is omitted`,
+              path: ["reasoning", "confidence", dimension],
+            });
+          }
         }
       } else {
-        if (value.confidence_level !== undefined) {
+        if (value.confidence_levels !== undefined) {
           context.addIssue({
             code: "custom",
             message:
-              "confidence_level must be omitted for non-Confidence questions",
-            path: ["confidence_level"],
+              "confidence_levels must be omitted for non-Confidence questions",
+            path: ["confidence_levels"],
           });
         }
         if (value.reasoning.confidence !== undefined) {
@@ -165,9 +290,7 @@ function createDiagnosticQuestionResponseSchema(
 
       const languageEntries = Object.entries(value.language_levels).filter(
         ([, level]) => Boolean(level),
-      ) as Array<
-        [keyof typeof value.language_levels, DiagnosticLanguageLevel]
-      >;
+      ) as Array<[keyof typeof value.language_levels, DiagnosticLanguageLevel]>;
 
       if (!languageEntries.length) {
         context.addIssue({
@@ -238,10 +361,10 @@ function createDiagnosticStoredReportSchema(questions: DiagnosticQuestion[]) {
 function createReasoningSchemaForTypes(types: DiagnosticQuestionType[]) {
   const shape: Record<string, z.ZodTypeAny> = {};
   if (types.includes("Thinking")) {
-    shape.thinking = z.string().trim().min(1);
+    shape.thinking = thinkingReasoningSchema;
   }
   if (types.includes("Confidence")) {
-    shape.confidence = z.string().trim().min(1);
+    shape.confidence = confidenceReasoningSchema;
   }
   if (types.includes("Language")) {
     shape.language = languageReasoningSchema;
@@ -256,10 +379,10 @@ function createQuestionResponseVariant(question: DiagnosticQuestion) {
     reasoning: createReasoningSchemaForTypes(types),
   };
   if (types.includes("Thinking")) {
-    shape.thinking_level = z.enum(DIAGNOSTIC_THINKING_LEVEL_VALUES);
+    shape.thinking_levels = thinkingLevelsSchema;
   }
   if (types.includes("Confidence")) {
-    shape.confidence_level = z.enum(DIAGNOSTIC_CONFIDENCE_LEVEL_VALUES);
+    shape.confidence_levels = confidenceLevelsSchema;
   }
   if (types.includes("Language")) {
     shape.language_levels = languageLevelsSchema;
@@ -325,10 +448,7 @@ export function getDiagnosticSessionTranscriptMessages(
     .map((turn) => ({
       id: String(turn.index),
       participantIdentity: turn.role === "user" ? "user" : "agent",
-      role:
-        turn.role === "user"
-          ? ("user" as const)
-          : ("agent" as const),
+      role: turn.role === "user" ? ("user" as const) : ("agent" as const),
       text: String(turn.text),
       timestamp: String(turn.timestamp),
     }))

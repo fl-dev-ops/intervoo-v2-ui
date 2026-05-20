@@ -142,6 +142,9 @@ Important rules:
 - For each question_response, include ONLY criteria and reasons that match that question's types from "Confirmed asked questions".
 - Omit non-applicable fields entirely (do not send null or empty placeholders).
 - Include concise reasons for every included criterion label.
+- For Thinking questions, return thinking_levels with dimension keys only: Relevance, Specificity, Reasoning, JobCompetency.
+- For Confidence questions, return confidence_levels with dimension keys only: Volume, Pace, Pause, Latency.
+- Do not return holistic thinking_level or confidence_level fields.
 
 Diagnostic conversation goal:
 - Understand the learner's background
@@ -153,23 +156,24 @@ ${askedQuestions}
 
 Scoring framework:
 - question_type can include one or more of: Language, Thinking, Confidence
-- thinking_level (when Thinking applies): TF1 to TF5
-- confidence_level (when Confidence applies): VCP1 to VCP4
+- thinking_levels per dimension (when Thinking applies): Relevance, Specificity, Reasoning, JobCompetency using TF1 to TF5
+- confidence_levels per dimension (when Confidence applies): Volume, Pace, Pause, Latency using VCP1 to VCP4
 - language_levels per dimension (when Language applies): Fluency, Grammar, Range, Coherence, Interaction using Pre-A1, A1, A2, B1, B2, C1, or C2
 - Return labels/tags only; do not return numeric scores or salary fields.
 
 CRITICAL — Field inclusion rules per question:
 - Check each question's types in "Confirmed asked questions" above.
-- If "Thinking" is listed: include thinking_level and reasoning.thinking (a plain string summary).
-- If "Confidence" is listed: include confidence_level and reasoning.confidence (a plain string summary).
+- If "Thinking" is listed: include thinking_levels (object with dimension keys) and reasoning.thinking (object with matching dimension keys).
+- If "Confidence" is listed: include confidence_levels (object with dimension keys) and reasoning.confidence (object with matching dimension keys).
 - If "Language" is listed: include language_levels (object with dimension keys) and reasoning.language (object with matching dimension keys).
 - If a question has MULTIPLE types (e.g., [Thinking, Language]), include fields for ALL listed types and omit fields for unlisted types.
 - Do NOT include fields for types that are NOT listed for that question.
+- For every dimension key you include in *_levels, include a matching concise reasoning string for the same dimension.
 
-Use this rubric to assign thinking_level:
+Use this rubric to assign thinking_levels dimensions:
 ${THINKING_RUBRIC_TEXT}
 
-Use this rubric to assign confidence_level:
+Use this rubric to assign confidence_levels dimensions:
 ${CONFIDENCE_RUBRIC_TEXT}
 
 Use this rubric to assign language_levels (Fluency/Grammar/Range/Coherence/Interaction independently):

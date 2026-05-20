@@ -33,6 +33,20 @@ export const DIAGNOSTIC_LANGUAGE_DIMENSIONS = [
   "Interaction",
 ] as const;
 
+export const DIAGNOSTIC_THINKING_DIMENSIONS = [
+  "Relevance",
+  "Specificity",
+  "Reasoning",
+  "JobCompetency",
+] as const;
+
+export const DIAGNOSTIC_CONFIDENCE_DIMENSIONS = [
+  "Volume",
+  "Pace",
+  "Pause",
+  "Latency",
+] as const;
+
 export interface DiagnosticTranscriptMessage {
   id: string;
   participantIdentity: string;
@@ -56,17 +70,25 @@ export type DiagnosticLanguageLevel =
   (typeof DIAGNOSTIC_LANGUAGE_LEVEL_VALUES)[number];
 export type DiagnosticLanguageDimension =
   (typeof DIAGNOSTIC_LANGUAGE_DIMENSIONS)[number];
+export type DiagnosticThinkingDimension =
+  (typeof DIAGNOSTIC_THINKING_DIMENSIONS)[number];
+export type DiagnosticConfidenceDimension =
+  (typeof DIAGNOSTIC_CONFIDENCE_DIMENSIONS)[number];
 
 export interface DiagnosticQuestionReasoning {
-  thinking?: string;
-  confidence?: string;
+  thinking?: Partial<Record<DiagnosticThinkingDimension, string>>;
+  confidence?: Partial<Record<DiagnosticConfidenceDimension, string>>;
   language?: Partial<Record<DiagnosticLanguageDimension, string>>;
 }
 
 export interface DiagnosticQuestionResponse {
   question_id: string;
-  thinking_level?: DiagnosticThinkingLevel;
-  confidence_level?: DiagnosticConfidenceLevel;
+  thinking_levels?: Partial<
+    Record<DiagnosticThinkingDimension, DiagnosticThinkingLevel>
+  >;
+  confidence_levels?: Partial<
+    Record<DiagnosticConfidenceDimension, DiagnosticConfidenceLevel>
+  >;
   language_levels?: Partial<
     Record<DiagnosticLanguageDimension, DiagnosticLanguageLevel>
   >;

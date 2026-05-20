@@ -6,33 +6,41 @@ import {
   Check,
   Info,
   Languages,
+  Lightbulb,
   Lock,
   type LucideIcon,
   Play,
   Smile,
+  Target,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DiagnosticsJobHeader } from "@/components/diagnostics/diagnostics-job-header";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
 import { authClient } from "@/lib/auth-client";
 import type { DiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
-import type { DiagnosticReportJson } from "@/lib/report-generation/diagnostic-report.types";
+import type {
+  DiagnosticConfidenceDimension,
+  DiagnosticConfidenceLevel,
+  DiagnosticLanguageDimension,
+  DiagnosticLanguageLevel,
+  DiagnosticReportJson,
+  DiagnosticThinkingDimension,
+  DiagnosticThinkingLevel,
+} from "@/lib/report-generation/diagnostic-report.types";
 import { cn } from "@/lib/utils";
 
 export type PublicRoundData =
@@ -461,75 +469,339 @@ function SkillsReport({
 }: {
   assessment: DiagnosticReportJson["assessment_result"];
 }) {
+  const skills = buildSkillSummaries(assessment);
+
   return (
-    <div className="space-y-3">
-      <h4 className="text-base font-bold text-foreground">Skills Report</h4>
-      <ItemGroup className="gap-3">
-        <SkillItem
-          iconClassName="bg-emerald-100 text-emerald-700"
-          icon={Brain}
-          label="Thinking"
-          level={assessment.thinking_avg}
-        />
-        <SkillItem
-          iconClassName="bg-blue-100 text-blue-700"
-          icon={Languages}
-          label="Language"
-          level={assessment.language_avg}
-        />
-        <SkillItem
-          iconClassName="bg-yellow-100 text-yellow-700"
-          icon={Smile}
-          label="Confidence"
-          level={assessment.confidence_avg}
-        />
-      </ItemGroup>
+    <div className="space-y-4">
+      <h4 className="text-2xl font-bold tracking-tight text-foreground">
+        Skills Report
+      </h4>
+      <Accordion className="gap-4" defaultValue={[skills[0]?.id ?? "thinking"]}>
+        {skills.map((skill) => (
+          <SkillAccordionItem key={skill.id} skill={skill} />
+        ))}
+      </Accordion>
     </div>
   );
 }
 
-function SkillItem({
-  icon,
-  iconClassName,
-  label,
-  level,
-}: {
+type SkillDimensionSummary = {
+  label: string;
+  levelLabel: string;
+  score: number;
+  reasoning: string;
+};
+
+type SkillSummary = {
+  id: string;
   icon: LucideIcon;
-  iconClassName: string;
   label: string;
   level: number;
-}) {
-  const { label: levelLabel, tone } = getSkillLevel(level);
-  const Icon = icon;
+  strong: SkillDimensionSummary[];
+  improve: SkillDimensionSummary[];
+};
+
+function SkillAccordionItem({ skill }: { skill: SkillSummary }) {
+  const { label: levelLabel, tone } = getSkillLevel(skill.level);
+  const Icon = skill.icon;
 
   const toneClasses: Record<string, string> = {
-    green: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    amber: "border-amber-200 bg-amber-50 text-amber-700",
-    red: "border-red-200 bg-red-50 text-red-700",
+    green: "bg-emerald-100 text-emerald-700",
+    amber: "bg-orange-100 text-orange-600",
+    red: "bg-red-100 text-red-600",
   };
 
   return (
-    <Item variant="outline" className="rounded-xl bg-white shadow-sm">
-      <ItemMedia
-        variant="icon"
-        className={cn("h-9 w-9 rounded-full", iconClassName)}
-      >
-        <Icon className="h-4 w-4" />
-      </ItemMedia>
-      <ItemContent>
-        <ItemTitle>{label}</ItemTitle>
-      </ItemContent>
-      <ItemActions>
+    <AccordionItem
+      className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm not-last:border-b-0"
+      value={skill.id}
+    >
+      <AccordionTrigger className="items-center px-4 py-5 text-left hover:no-underline md:px-5">
+        <div className="flex items-center gap-4">
+          <div className="flex size-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            <Icon className="size-4" />
+          </div>
+          <span className="text-lg font-bold text-foreground">
+            {skill.label}
+          </span>
+        </div>
         <span
           className={cn(
-            "rounded-full border px-3 py-1 text-xs font-semibold",
+            "mr-5 rounded-full px-4 py-2 text-sm font-bold",
             toneClasses[tone],
           )}
         >
           {levelLabel}
         </span>
-      </ItemActions>
-    </Item>
+      </AccordionTrigger>
+      <AccordionContent className="space-y-4 px-4 pb-5 md:px-5">
+        <DimensionSection
+          emptyText="No strong dimensions yet."
+          items={skill.strong}
+          title="Strong skills"
+          tone="strong"
+        />
+        <DimensionSection
+          emptyText="No priority improvement dimensions."
+          items={skill.improve}
+          title="Areas to improve"
+          tone="improve"
+        />
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+
+function DimensionSection({
+  emptyText,
+  items,
+  title,
+  tone,
+}: {
+  emptyText: string;
+  items: SkillDimensionSummary[];
+  title: string;
+  tone: "strong" | "improve";
+}) {
+  return (
+    <section
+      className={cn(
+        "rounded-2xl p-5",
+        tone === "strong" ? "bg-emerald-50" : "bg-red-50",
+      )}
+    >
+      <h5 className="text-lg font-bold text-foreground">{title}</h5>
+      {items.length ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {items.map((item) => (
+            <DimensionCard item={item} key={item.label} tone={tone} />
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">{emptyText}</p>
+      )}
+    </section>
+  );
+}
+
+function DimensionCard({
+  item,
+  tone,
+}: {
+  item: SkillDimensionSummary;
+  tone: "strong" | "improve";
+}) {
+  const Icon = tone === "strong" ? Target : Lightbulb;
+
+  return (
+    <article className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <Icon className="mt-0.5 size-6 shrink-0 text-muted-foreground" />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h6 className="text-base font-bold text-foreground">
+              {item.label}
+            </h6>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+              {item.levelLabel}
+            </span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {item.reasoning}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+const THINKING_DIMENSION_LABELS: Record<DiagnosticThinkingDimension, string> = {
+  Relevance: "Relevance",
+  Specificity: "Specificity",
+  Reasoning: "Reasoning",
+  JobCompetency: "Job competency",
+};
+
+const CONFIDENCE_DIMENSION_LABELS: Record<
+  DiagnosticConfidenceDimension,
+  string
+> = {
+  Volume: "Volume",
+  Pace: "Pace",
+  Pause: "Pause",
+  Latency: "Latency",
+};
+
+const LANGUAGE_DIMENSION_LABELS: Record<DiagnosticLanguageDimension, string> = {
+  Fluency: "Fluency",
+  Grammar: "Grammar",
+  Range: "Range",
+  Coherence: "Coherence",
+  Interaction: "Interaction",
+};
+
+const THINKING_SCORE_MAP: Record<DiagnosticThinkingLevel, number> = {
+  TF1: 1,
+  TF2: 2,
+  TF3: 3,
+  TF4: 4,
+  TF5: 5,
+};
+
+const CONFIDENCE_SCORE_MAP: Record<DiagnosticConfidenceLevel, number> = {
+  VCP1: 1,
+  VCP2: 2,
+  VCP3: 3,
+  VCP4: 4,
+};
+
+const LANGUAGE_SCORE_MAP: Record<DiagnosticLanguageLevel, number> = {
+  "Pre-A1": 1,
+  A1: 1,
+  A2: 2,
+  B1: 3,
+  B2: 4,
+  C1: 5,
+  C2: 5,
+};
+
+function buildSkillSummaries(
+  assessment: DiagnosticReportJson["assessment_result"],
+): SkillSummary[] {
+  return [
+    {
+      id: "thinking",
+      icon: Brain,
+      label: "Thinking",
+      level: assessment.thinking_avg,
+      ...splitDimensions(
+        buildThinkingDimensions(assessment.question_responses),
+      ),
+    },
+    {
+      id: "language",
+      icon: Languages,
+      label: "Language",
+      level: assessment.language_avg,
+      ...splitDimensions(
+        buildLanguageDimensions(assessment.question_responses),
+      ),
+    },
+    {
+      id: "confidence",
+      icon: Smile,
+      label: "Confidence",
+      level: assessment.confidence_avg,
+      ...splitDimensions(
+        buildConfidenceDimensions(assessment.question_responses),
+      ),
+    },
+  ];
+}
+
+function splitDimensions(items: SkillDimensionSummary[]) {
+  return {
+    strong: items.filter((item) => item.score >= 4),
+    improve: items.filter((item) => item.score <= 3),
+  };
+}
+
+function buildThinkingDimensions(
+  responses: DiagnosticReportJson["assessment_result"]["question_responses"],
+) {
+  return (
+    Object.keys(THINKING_DIMENSION_LABELS) as DiagnosticThinkingDimension[]
+  ).flatMap((dimension): SkillDimensionSummary[] => {
+    const levels = responses
+      .map((response) => response.thinking_levels?.[dimension])
+      .filter((level): level is DiagnosticThinkingLevel => Boolean(level));
+    const level = conservativeMode(levels, THINKING_SCORE_MAP);
+    if (!level) return [];
+    return [
+      {
+        label: THINKING_DIMENSION_LABELS[dimension],
+        levelLabel: level,
+        score: THINKING_SCORE_MAP[level],
+        reasoning: getFirstReasoning(
+          responses.map((response) => response.reasoning.thinking?.[dimension]),
+        ),
+      },
+    ];
+  });
+}
+
+function buildConfidenceDimensions(
+  responses: DiagnosticReportJson["assessment_result"]["question_responses"],
+) {
+  return (
+    Object.keys(CONFIDENCE_DIMENSION_LABELS) as DiagnosticConfidenceDimension[]
+  ).flatMap((dimension): SkillDimensionSummary[] => {
+    const levels = responses
+      .map((response) => response.confidence_levels?.[dimension])
+      .filter((level): level is DiagnosticConfidenceLevel => Boolean(level));
+    const level = conservativeMode(levels, CONFIDENCE_SCORE_MAP);
+    if (!level) return [];
+    return [
+      {
+        label: CONFIDENCE_DIMENSION_LABELS[dimension],
+        levelLabel: level,
+        score: CONFIDENCE_SCORE_MAP[level],
+        reasoning: getFirstReasoning(
+          responses.map(
+            (response) => response.reasoning.confidence?.[dimension],
+          ),
+        ),
+      },
+    ];
+  });
+}
+
+function buildLanguageDimensions(
+  responses: DiagnosticReportJson["assessment_result"]["question_responses"],
+) {
+  return (
+    Object.keys(LANGUAGE_DIMENSION_LABELS) as DiagnosticLanguageDimension[]
+  ).flatMap((dimension): SkillDimensionSummary[] => {
+    const levels = responses
+      .map((response) => response.language_levels?.[dimension])
+      .filter((level): level is DiagnosticLanguageLevel => Boolean(level));
+    const level = conservativeMode(levels, LANGUAGE_SCORE_MAP);
+    if (!level) return [];
+    return [
+      {
+        label: LANGUAGE_DIMENSION_LABELS[dimension],
+        levelLabel: level,
+        score: LANGUAGE_SCORE_MAP[level],
+        reasoning: getFirstReasoning(
+          responses.map((response) => response.reasoning.language?.[dimension]),
+        ),
+      },
+    ];
+  });
+}
+
+function conservativeMode<Level extends string>(
+  levels: Level[],
+  scoreMap: Record<Level, number>,
+) {
+  if (!levels.length) return null;
+
+  const counts = new Map<Level, number>();
+  for (const level of levels) {
+    counts.set(level, (counts.get(level) ?? 0) + 1);
+  }
+
+  const maxCount = Math.max(...counts.values());
+  return Array.from(counts.entries())
+    .filter(([, count]) => count === maxCount)
+    .map(([level]) => level)
+    .sort((left, right) => scoreMap[left] - scoreMap[right])[0];
+}
+
+function getFirstReasoning(values: Array<string | undefined>) {
+  return (
+    values.find((value) => value?.trim()) ??
+    "No written explanation was captured for this dimension."
   );
 }
 
