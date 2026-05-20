@@ -12,7 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { createPrediagnosticRetryCode } from "@/lib/prediagnostics/retry-code";
 import { cn } from "@/lib/utils";
 
@@ -440,13 +440,17 @@ function PrediagnosticsReportPreview({
                     Choose the job band you want to practice for and start a
                     full video diagnostic interview.
                   </p>
-                  <Button
-                    variant="default"
-                    className="h-12 mt-6 w-full bg-button rounded-full! text-white"
-                    size="lg"
+                  <a
+                    className={buttonVariants({
+                      className:
+                        "h-12 mt-6 w-full bg-button rounded-full! text-white",
+                      size: "lg",
+                      variant: "default",
+                    })}
+                    href="/diagnostics"
                   >
-                    <Link href="/diagnostics">Start Diagnostic Interview</Link>
-                  </Button>
+                    Start Diagnostic Interview
+                  </a>
                 </section>
               </>
             ) : null}

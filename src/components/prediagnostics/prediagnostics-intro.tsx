@@ -2,8 +2,7 @@
 
 import { motion } from "motion/react";
 import Image from "next/image";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { type CoachOption, coachCards } from "@/lib/coaches";
 import { cn } from "@/lib/utils";
 
@@ -69,20 +68,29 @@ export function PrediagnosticsIntro({
             </div>
 
             <div className="mt-auto pt-8 md:hidden">
-              <Button className="h-12 w-full rounded-full! bg-button text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95">
-                <Link href={screeningHref}>{ctaLabel}</Link>
-              </Button>
+              <a
+                className={buttonVariants({
+                  className:
+                    "h-12 w-full rounded-full! bg-button text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95",
+                })}
+                href={screeningHref}
+              >
+                {ctaLabel}
+              </a>
             </div>
           </div>
         </section>
 
         <div className="mt-6 hidden justify-center md:flex">
-          <Button
-            className="h-12 min-w-72 rounded-full! bg-button px-10 text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95"
-            render={<a href={screeningHref} />}
+          <a
+            className={buttonVariants({
+              className:
+                "h-12 min-w-72 rounded-full! bg-button px-10 text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95",
+            })}
+            href={screeningHref}
           >
             {ctaLabel}
-          </Button>
+          </a>
         </div>
       </div>
     </main>
