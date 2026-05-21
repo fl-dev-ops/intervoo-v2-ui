@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
+import { DiagnosticsIntro } from "@/components/diagnostics/diagnostics-intro";
+import type { CoachOption } from "@/lib/coaches";
 import { prisma } from "@/lib/db";
 import {
   countProgressableDiagnosticRounds,
-  isDiagnosticBandLocked,
   isFinalDiagnosticReportReady,
   shouldShowDiagnosticBandSelection,
 } from "@/lib/diagnostics/rules";
@@ -14,6 +15,7 @@ export default async function DiagnosticsPage() {
   const diagnostic = await prisma.diagnostic.findFirst({
     where: { userId: user.id },
     include: {
+      user: { include: { profile: true } },
       rounds: {
         include: { session: { include: { report: true } } },
       },
@@ -63,23 +65,32 @@ export default async function DiagnosticsPage() {
     redirect("/diagnostics/final-report");
   }
 
-  if (!isDiagnosticBandLocked(diagnostic)) {
-    console.info("[diagnostics] redirect", {
-      finalReportReady,
-      from: "/diagnostics",
-      progressableRounds,
-      reason: "band_not_locked",
-      to: "/diagnostics/selection",
+  if (diagnostic.rounds.length === 0) {
+    console.info("[diagnostics] render intro", {
+      diagnosticId: diagnostic.id,
+      selectedBand: diagnostic.selectedBand,
       userId: user.id,
     });
-    redirect("/diagnostics/selection");
+
+    const profile = diagnostic.user.profile;
+    const coach =
+      profile?.coach === "arjun" || profile?.coach === "sana"
+        ? (profile.coach as CoachOption)
+        : null;
+
+    return (
+      <DiagnosticsIntro
+        coach={coach}
+        name={profile?.preferredName || user.name || null}
+      />
+    );
   }
 
   console.info("[diagnostics] redirect", {
     finalReportReady,
     from: "/diagnostics",
     progressableRounds,
-    reason: "band_locked_by_completed_report",
+    reason: "selected_band_with_existing_rounds",
     to: "/diagnostics/rounds",
     userId: user.id,
   });
