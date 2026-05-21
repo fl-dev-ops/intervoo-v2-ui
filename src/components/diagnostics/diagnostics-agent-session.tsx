@@ -296,7 +296,7 @@ function SessionLayout({
             {/* Role/Company info */}
             {jobTitle && (
               <motion.div
-                className="text-center space-y-2 mb-8"
+                className="text-center space-y-2 mb-2"
                 variants={FADE_UP}
               >
                 <h2 className="text-lg font-semibold text-white">{jobTitle}</h2>
@@ -328,7 +328,7 @@ function SessionLayout({
 
             <motion.div
               className={cn(
-                "md:mt-20 min-h-50 px-4 transition-all",
+                "mt-2 md:mt-20 min-h-50 px-4 transition-all",
                 "shrink-0 pb-4",
               )}
               variants={FADE_UP}
