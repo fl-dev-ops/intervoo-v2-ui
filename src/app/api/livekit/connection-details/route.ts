@@ -11,11 +11,7 @@ import {
   getRoundConfig,
   getRoundNumber,
 } from "@/lib/diagnostics/rounds-config";
-import {
-  canStartDiagnosticRound,
-  countProgressableDiagnosticRounds,
-  getDiagnosticRoundRecoveryState,
-} from "@/lib/diagnostics/rules";
+import { getDiagnosticRoundRecoveryState } from "@/lib/diagnostics/rules";
 import {
   buildDiagnosticRoomName,
   buildPreDiagnosticRoomName,
@@ -386,29 +382,7 @@ async function createDiagnosticConnectionDetails({
     });
   }
 
-  const progressableCount = countProgressableDiagnosticRounds(
-    diagnostic.rounds,
-  );
   const requestedRoundNumber = getRoundNumber(roundId);
-
-  if (
-    !canStartDiagnosticRound({
-      progressableRoundCount: progressableCount,
-      requestedRoundNumber,
-    })
-  ) {
-    console.info("[diagnostics] diagnostic connection rejected", {
-      progressableCount,
-      reason: "round_sequence_violation",
-      requestedRoundNumber,
-      roundId,
-      userId: user.id,
-    });
-    return NextResponse.json(
-      { error: "Complete the previous round before starting this one" },
-      { status: 409 },
-    );
-  }
 
   const { liveKitUrl } = credentials;
   const agentName = credentials.agentName || LIVEKIT_AGENT_NAME;
@@ -426,7 +400,7 @@ async function createDiagnosticConnectionDetails({
       diagnosticRound: {
         create: {
           diagnosticId: diagnostic.id,
-          roundNumber: getRoundNumber(roundId),
+          roundNumber: requestedRoundNumber,
           roundType: roundId,
         },
       },
@@ -441,7 +415,6 @@ async function createDiagnosticConnectionDetails({
 
   console.info("[diagnostics] diagnostic session created", {
     diagnosticId: diagnostic.id,
-    progressableCount,
     roomName,
     roundId,
     roundNumber: requestedRoundNumber,

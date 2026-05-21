@@ -1,13 +1,9 @@
 import { redirect } from "next/navigation";
 import { CustomPreJoin } from "@/components/prediagnostics/custom-prejoin";
 import { prisma } from "@/lib/db";
-import {
-  getRoundConfig,
-  getRoundNumber,
-} from "@/lib/diagnostics/rounds-config";
+import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import {
   canStartDiagnosticRound,
-  countProgressableDiagnosticRounds,
   shouldShowDiagnosticBandSelection,
 } from "@/lib/diagnostics/rules";
 import { requirePageStage } from "@/lib/stage-guards";
@@ -52,34 +48,35 @@ export default async function DiagnosticsPrejoinPage({
     redirect("/diagnostics/selection");
   }
 
-  const progressableRoundCount = countProgressableDiagnosticRounds(
-    diagnostic.rounds,
+  const existingRound = diagnostic.rounds.find(
+    (round) => round.roundType === roundId,
   );
-  const requestedRoundNumber = getRoundNumber(roundId);
 
   if (
-    !canStartDiagnosticRound({
-      progressableRoundCount,
-      requestedRoundNumber,
-    })
+    !canStartDiagnosticRound(
+      existingRound
+        ? {
+            reportStartedAt: existingRound.session?.report?.startedAt ?? null,
+            reportStatus: existingRound.session?.report?.status ?? null,
+            roundType: existingRound.roundType,
+            startedAt: existingRound.session?.startedAt ?? null,
+            status: existingRound.status,
+          }
+        : undefined,
+    )
   ) {
-    console.info(
-      "[diagnostics] prejoin blocked because previous report not ready",
-      {
-        diagnosticId: diagnostic.id,
-        progressableRoundCount,
-        requestedRoundNumber,
-        roundId,
-        to: "/diagnostics/rounds",
-        userId: user.id,
-      },
-    );
+    console.info("[diagnostics] prejoin blocked because round is unavailable", {
+      diagnosticId: diagnostic.id,
+      reportStatus: existingRound?.session?.report?.status ?? null,
+      roundId,
+      roundStatus: existingRound?.status ?? null,
+      to: "/diagnostics/rounds",
+      userId: user.id,
+    });
     redirect("/diagnostics/rounds");
   }
 
   console.info("[diagnostics] render prejoin", {
-    progressableRoundCount,
-    requestedRoundNumber,
     roundId,
     userId: user.id,
   });

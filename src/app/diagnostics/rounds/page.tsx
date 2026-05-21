@@ -6,17 +6,15 @@ import {
   getDiagnosticJobOption,
   parseDiagnosticBand,
 } from "@/lib/diagnostics/job-options";
-import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import {
   areAllDiagnosticRoundsComplete,
   countProgressableDiagnosticRounds,
-  getActiveDiagnosticRoundNumber,
   isDiagnosticRoundReadyForProgression,
   shouldShowDiagnosticBandSelection,
 } from "@/lib/diagnostics/rules";
 import {
-  toHydratedDiagnosticReport,
   getHydratedReportFromMetadata,
+  toHydratedDiagnosticReport,
 } from "@/lib/report-generation/diagnostic";
 import { requirePageStage } from "@/lib/stage-guards";
 
@@ -94,13 +92,8 @@ export default async function DiagnosticsRoundsPage() {
 
   const allCompleted = areAllDiagnosticRoundsComplete(rounds);
   const progressableRoundCount = countProgressableDiagnosticRounds(rounds);
-  const activeRoundNumber = getActiveDiagnosticRoundNumber(
-    rounds,
-    DIAGNOSTIC_ROUNDS.map((round) => round.id),
-  );
 
   console.info("[diagnostics] rounds page state", {
-    activeRoundNumber,
     allCompleted,
     diagnosticId: diagnostic.id,
     progressableRoundCount,

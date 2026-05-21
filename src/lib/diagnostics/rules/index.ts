@@ -38,10 +38,16 @@ export function shouldShowDiagnosticBandSelection(
   return !diagnostic?.selectedBand;
 }
 
+export function hasDiagnosticRoundReportRecord<
+  Round extends DiagnosticRoundWithReportInput,
+>(rounds: Round[]) {
+  return rounds.length > 0;
+}
+
 export function hasCompletedDiagnosticRoundReport<
   Round extends DiagnosticRoundWithReportInput,
 >(rounds: Round[]) {
-  return rounds.some((round) => isDiagnosticRoundReadyForProgression(round));
+  return hasDiagnosticRoundReportRecord(rounds);
 }
 
 export function isDiagnosticBandLocked<
@@ -76,11 +82,7 @@ export function isDiagnosticReportReady(status: ReportStatus) {
 }
 
 function getHydratedReportFromMetadata(metadata: unknown): unknown {
-  if (
-    metadata &&
-    typeof metadata === "object" &&
-    !Array.isArray(metadata)
-  ) {
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
     return (metadata as Record<string, unknown>).hydratedReport ?? null;
   }
   return null;
@@ -95,7 +97,9 @@ export function hasUsableDiagnosticReportJson(reportJson: unknown) {
     return false;
   }
   const obj = reportJson as Record<string, unknown>;
-  const assessment = obj.assessment_result as Record<string, unknown> | undefined;
+  const assessment = obj.assessment_result as
+    | Record<string, unknown>
+    | undefined;
   if (!assessment) return false;
 
   // New website-style base report has question_responses
@@ -162,27 +166,11 @@ export function isFinalDiagnosticReportReady<
   );
 }
 
-export function getActiveDiagnosticRoundNumber<
-  Round extends DiagnosticRoundWithReportInput & { roundType: string },
->(rounds: Round[], roundOrder: string[]) {
-  const firstIncompleteIndex = roundOrder.findIndex((roundType) => {
-    const round = rounds.find((item) => item.roundType === roundType);
-    return !round || !isDiagnosticRoundReadyForProgression(round);
-  });
-
-  return firstIncompleteIndex === -1
-    ? roundOrder.length
-    : firstIncompleteIndex + 1;
-}
-
-export function canStartDiagnosticRound({
-  progressableRoundCount,
-  requestedRoundNumber,
-}: {
-  progressableRoundCount: number;
-  requestedRoundNumber: number;
-}) {
-  return requestedRoundNumber === progressableRoundCount + 1;
+export function canStartDiagnosticRound(
+  round: DiagnosticRoundStateInput | undefined,
+  nowMs = Date.now(),
+) {
+  return !round || getDiagnosticRoundRecoveryState(round, nowMs).isRecoverable;
 }
 
 export function isDiagnosticRoundStuckOrFailed(
