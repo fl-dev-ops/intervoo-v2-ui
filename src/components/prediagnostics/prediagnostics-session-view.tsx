@@ -14,9 +14,9 @@ import {
   RpcError,
 } from "livekit-client";
 import { PhoneOff } from "lucide-react";
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
 import {
   EndSessionDialog,
   useEndSessionDialog,
@@ -246,13 +246,14 @@ export function PrediagnosticsSessionView({
         {/* Header */}
         <header className="relative z-10 mx-auto flex w-full max-w-lg shrink-0 items-center justify-between px-4 py-4 ">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-gray-100 ring-1 ring-gray-200">
-              <Image
-                src={selectedCoach.imageSrc}
-                alt={`${selectedCoach.title} coach avatar`}
-                fill
-                className="object-cover"
-                sizes="40px"
+            <div className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full ">
+              <AgentAudioVisualizerAura
+                audioTrack={agent.microphoneTrack}
+                className="h-10"
+                color="#a78bfa"
+                colorShift={0.6}
+                state={agent.state}
+                themeMode="light"
               />
             </div>
             <div className="min-w-0">

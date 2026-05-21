@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import Image from "next/image";
+import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
 import { buttonVariants } from "@/components/ui/button";
 import { type CoachOption, coachCards } from "@/lib/coaches";
 import { cn } from "@/lib/utils";
@@ -36,18 +36,23 @@ export function PrediagnosticsIntro({
         <section className="flex flex-1 flex-col overflow-hidden bg-[#F5F3F7] shadow-sm md:grid md:flex-none md:grid-cols-2 md:bg-transparent md:shadow-none">
           <div
             className="relative flex min-h-96 overflow-hidden rounded-b-[2rem] px-5 pt-10 md:rounded-l-[2rem] md:rounded-br-none md:px-8 md:pt-12"
-            style={{ backgroundColor: selectedCoach.tint }}
+            style={{
+              background: "linear-gradient(180deg, #0B061E 0%, #3C2390 100%)",
+            }}
           >
             <h1 className="relative z-10 mx-auto text-center text-xl font-semibold tracking-tight text-white md:hidden">
               {title}
             </h1>
-            <Image
-              priority
-              alt={selectedCoach.title}
-              className="object-contain object-bottom scale-130 md:scale-148 md:object-center"
-              fill
-              src={selectedCoach.imageSrc}
-            />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.24),transparent_58%)]" />
+            <div className="absolute inset-0 flex items-center justify-center pt-12 md:pt-0">
+              <AgentAudioVisualizerAura
+                className="h-[230px] md:h-64"
+                color="#a78bfa"
+                colorShift={0.6}
+                state="thinking"
+                themeMode="dark"
+              />
+            </div>
           </div>
 
           <div className="flex flex-1 flex-col px-6 pb-6 pt-6 md:rounded-r-[2rem] md:bg-white md:p-8">
