@@ -1,16 +1,13 @@
 import { prisma } from "@/lib/db";
+import type { DiagnosticQuestion } from "./diagnostic-activity";
 import { buildDiagnosticReportPrompt } from "./diagnostic-prompt";
 import type {
   DiagnosticReportJson,
   DiagnosticReportMetadata,
 } from "./diagnostic-report.types";
 import {
-  DEFAULT_DIAGNOSTIC_REPORT_MODEL_ID,
-  generateDiagnosticReportWithGemini,
-  getRecordingMimeType,
-} from "./diagnostic-report-generator";
-import {
   buildDiagnosticTranscriptPromptText,
+  createDiagnosticReportGenerationSchema,
   createQuestionTypeMap,
   parseDiagnosticStoredReportJson,
 } from "./diagnostic-schema";
@@ -22,8 +19,9 @@ import {
 } from "./diagnostic-transcript";
 
 export type DiagnosticRoundReport = DiagnosticReportJson;
+export const DEFAULT_DIAGNOSTIC_REPORT_MODEL_ID = "gemini-2.5-flash";
 
-export async function generateDiagnosticReport(sessionId: string) {
+export async function prepareDiagnosticReportGeneration(sessionId: string) {
   const session = await prisma.interviewSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -99,28 +97,30 @@ export async function generateDiagnosticReport(sessionId: string) {
     questions: retrievedQuestions,
   });
 
-  // 4. Generate report with native Gemini Files API, matching the website flow.
-  const generatedReport = await generateDiagnosticReportWithGemini({
-    sessionId,
-    audioUrl,
-    mimeType: getRecordingMimeType(audioUrl),
+  return {
+    modelId:
+      process.env.DIAGNOSTIC_REPORT_MODEL_ID ??
+      DEFAULT_DIAGNOSTIC_REPORT_MODEL_ID,
     prompt,
     questions: retrievedQuestions,
-  });
+    schema: createDiagnosticReportGenerationSchema(retrievedQuestions),
+  };
+}
 
-  // 5. Parse and validate stored report
+export function buildDiagnosticReportResult(
+  generatedReport: unknown,
+  questions: DiagnosticQuestion[],
+) {
   const storedReport = parseDiagnosticStoredReportJson(
     generatedReport,
-    retrievedQuestions,
+    questions,
   );
 
-  // 6. Score
   const scoringResult = scoreAssessment(
     storedReport.assessment_result.question_responses,
-    createQuestionTypeMap(retrievedQuestions),
+    createQuestionTypeMap(questions),
   );
 
-  // 7. Build hydrated report
   const hydratedReport: DiagnosticReportJson = {
     ...storedReport,
     assessment_result: scoringResult,

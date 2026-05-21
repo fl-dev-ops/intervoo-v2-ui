@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { start } from "workflow/api";
+import { WorkflowRunFailedError } from "workflow/internal/errors";
 import { prisma } from "@/lib/db";
-import { generateSessionReport } from "@/lib/report-generation/session-report";
+import { generateDiagnosticSessionReportWorkflow } from "@/workflows/diagnostic-report";
+import { generatePrediagnosticSessionReportWorkflow } from "@/workflows/prediagnostic-report";
 
 const secret = process.env.REPORT_WEBHOOK_SECRET;
 
@@ -54,49 +57,63 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
-    // Update session with media URLs and transcript from agent payload.
-    try {
-      await prisma.interviewSession.update({
-        where: { id: session.id },
-        data: {
-          audioUrl: body.audio_url || undefined,
-          transcriptUrl: body.transcript_url || undefined,
-          videoUrl: body.video_url || undefined,
-          transcript: body.transcript || undefined,
-          status: "COMPLETED",
-          endedAt: session.endedAt ?? new Date(),
-        },
-      });
+    await prisma.interviewSession.update({
+      where: { id: session.id },
+      data: {
+        audioUrl: body.audio_url || undefined,
+        transcriptUrl: body.transcript_url || undefined,
+        videoUrl: body.video_url || undefined,
+        transcript: body.transcript || undefined,
+        status: "COMPLETED",
+        endedAt: session.endedAt ?? new Date(),
+      },
+    });
 
-      if (session.type === "DIAGNOSTIC_ROUND") {
-        await prisma.diagnosticRound.updateMany({
-          where: { sessionId: session.id, status: "STARTED" },
-          data: { status: "COMPLETED" },
-        });
-      }
-    } catch (updateError) {
-      console.warn("Failed to update session URLs:", updateError);
+    if (session.type === "DIAGNOSTIC_ROUND") {
+      await prisma.diagnosticRound.updateMany({
+        where: { sessionId: session.id, status: "STARTED" },
+        data: { status: "COMPLETED" },
+      });
     }
 
-    try {
-      const baseUrl = process.env.WEBHOOK_BASE_URL || request.nextUrl.origin;
-      await generateSessionReport({ baseUrl, sessionId: session.id });
-      console.info("[diagnostics] report webhook generated report", {
+    const baseUrl = process.env.WEBHOOK_BASE_URL || request.nextUrl.origin;
+
+    if (session.type === "DIAGNOSTIC_ROUND") {
+      const run = await start(generateDiagnosticSessionReportWorkflow, [
+        session.id,
+        baseUrl,
+      ]);
+      const result = await getReportWorkflowResult(run.returnValue, session.id);
+
+      console.info("[diagnostics] report webhook completed workflow", {
+        result,
         sessionId: session.id,
         sessionType: session.type,
       });
-    } catch (generationError) {
-      const message =
-        generationError instanceof Error
-          ? generationError.message
-          : "Report generation failed";
 
-      console.error("Report generation failed:", generationError);
-
-      return NextResponse.json({ error: message }, { status: 500 });
+      return NextResponse.json({ success: true, result });
     }
 
-    return NextResponse.json({ success: true });
+    if (session.type === "PREDIAGNOSTIC") {
+      const run = await start(generatePrediagnosticSessionReportWorkflow, [
+        session.id,
+        baseUrl,
+      ]);
+      const result = await getReportWorkflowResult(run.returnValue, session.id);
+
+      console.info("[diagnostics] report webhook completed workflow", {
+        result,
+        sessionId: session.id,
+        sessionType: session.type,
+      });
+
+      return NextResponse.json({ success: true, result });
+    }
+
+    return NextResponse.json(
+      { error: `Unsupported session type: ${session.type}` },
+      { status: 400 },
+    );
   } catch (error) {
     console.error("Report generation endpoint error:", error);
     return NextResponse.json(
@@ -104,4 +121,43 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+async function getReportWorkflowResult(
+  returnValue: Promise<unknown>,
+  sessionId: string,
+) {
+  try {
+    return await returnValue;
+  } catch (error) {
+    if (!WorkflowRunFailedError.is(error)) {
+      throw error;
+    }
+
+    const report = await prisma.report.findUnique({
+      where: { sessionId },
+      select: { errorMessage: true, status: true },
+    });
+
+    if (report?.status !== "FAILED") {
+      throw error;
+    }
+
+    const errorMessage =
+      report.errorMessage || getWorkflowRunFailedMessage(error);
+    console.info("[diagnostics] report webhook acknowledged failed workflow", {
+      error: errorMessage,
+      runId: error.runId,
+      sessionId,
+    });
+
+    return {
+      error: errorMessage,
+      status: "FAILED" as const,
+    };
+  }
+}
+
+function getWorkflowRunFailedMessage(error: WorkflowRunFailedError) {
+  return error.cause.message || error.message || "Report generation failed";
 }

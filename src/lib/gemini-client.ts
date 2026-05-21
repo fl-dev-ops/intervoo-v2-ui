@@ -2,30 +2,41 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { createWriteStream } from "node:fs";
-import { unlink } from "node:fs/promises";
+import { unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { FileState, GoogleGenAI } from "@google/genai";
-import { z } from "zod";
-
-const FILE_ACTIVE_POLL_INTERVAL_MS = 1500;
-const FILE_ACTIVE_POLL_TIMEOUT_MS = 120_000;
 
 const LOG_PREFIX = "[GeminiClient]";
 
-type GenerateFromUrlInput<Schema extends z.ZodTypeAny> = {
-  modelId: string;
-  presignedUrl: string;
+export type GeminiUploadInputFile =
+  | {
+      kind: "url";
+      presignedUrl: string;
+      mimeType: string;
+      displayName: string;
+    }
+  | {
+      kind: "content";
+      content: string;
+      mimeType: string;
+      displayName: string;
+    };
+
+export type UploadedGeminiFile = {
+  name: string;
+  uri: string | null;
   mimeType: string;
-  prompt: string;
-  schema: Schema;
-  requestId: string;
-  temperature?: number;
 };
 
-function getApiKey() {
+export type UploadedGeminiFileStatus = UploadedGeminiFile & {
+  state: FileState | undefined;
+  errorMessage: string | null;
+};
+
+export function getGeminiApiKey() {
   const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured");
@@ -49,6 +60,12 @@ async function streamUrlToTempFile(url: string): Promise<string> {
   return tempPath;
 }
 
+async function writeContentToTempFile(content: string): Promise<string> {
+  const tempPath = join(tmpdir(), `gemini-${randomUUID()}.json`);
+  await writeFile(tempPath, content, "utf8");
+  return tempPath;
+}
+
 async function safeDelete(promise: Promise<unknown>, label: string) {
   try {
     await promise;
@@ -59,119 +76,87 @@ async function safeDelete(promise: Promise<unknown>, label: string) {
   }
 }
 
-function sanitizeJsonSchema(schema: unknown): unknown {
-  if (Array.isArray(schema)) {
-    return schema.map((item) => sanitizeJsonSchema(item));
-  }
-  if (!schema || typeof schema !== "object") {
-    return schema;
-  }
-
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(
-    schema as Record<string, unknown>,
-  )) {
-    if (key === "$schema") continue;
-    out[key] = sanitizeJsonSchema(value);
-  }
-  return out;
-}
-
-export async function generateContentFromUrl<Schema extends z.ZodTypeAny>(
-  input: GenerateFromUrlInput<Schema>,
-): Promise<z.infer<Schema>> {
-  const ai = new GoogleGenAI({ apiKey: getApiKey() });
-
+export async function uploadGeminiFile(input: {
+  file: GeminiUploadInputFile;
+  requestId: string;
+}): Promise<UploadedGeminiFile> {
+  const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
   let tempFilePath: string | null = null;
-  let geminiFileName: string | null = null;
 
   try {
-    tempFilePath = await streamUrlToTempFile(input.presignedUrl);
+    tempFilePath =
+      input.file.kind === "url"
+        ? await streamUrlToTempFile(input.file.presignedUrl)
+        : await writeContentToTempFile(input.file.content);
+
     console.info(LOG_PREFIX, "File streamed to temp", {
+      displayName: input.file.displayName,
       requestId: input.requestId,
     });
 
-    let uploaded = await ai.files.upload({
+    const uploaded = await ai.files.upload({
       file: tempFilePath,
       config: {
-        mimeType: input.mimeType,
-        displayName: input.requestId,
+        mimeType: input.file.mimeType,
+        displayName: input.file.displayName,
       },
     });
 
-    geminiFileName = uploaded.name ?? null;
-    console.info(LOG_PREFIX, "Uploaded to Gemini, awaiting ACTIVE", {
+    if (!uploaded.name) {
+      throw new Error("Gemini upload returned no file name");
+    }
+
+    console.info(LOG_PREFIX, "Uploaded to Gemini", {
       requestId: input.requestId,
-      fileName: geminiFileName,
+      fileName: uploaded.name,
+      mimeType: input.file.mimeType,
+      state: uploaded.state ?? null,
     });
 
-    const deadline = Date.now() + FILE_ACTIVE_POLL_TIMEOUT_MS;
-    while (uploaded.state === FileState.PROCESSING) {
-      if (Date.now() > deadline) {
-        throw new Error("Gemini file did not become ACTIVE before timeout");
-      }
-      await new Promise((resolve) =>
-        setTimeout(resolve, FILE_ACTIVE_POLL_INTERVAL_MS),
-      );
-      if (!uploaded.name) {
-        throw new Error("Gemini upload returned no file name");
-      }
-      uploaded = await ai.files.get({ name: uploaded.name });
-    }
-
-    if (uploaded.state === FileState.FAILED) {
-      throw new Error(
-        `Gemini file processing failed: ${uploaded.error?.message ?? "unknown error"}`,
-      );
-    }
-    if (!uploaded.uri) {
-      throw new Error("Gemini upload returned no file URI");
-    }
-
-    console.info(LOG_PREFIX, "Generating content", {
-      requestId: input.requestId,
-      modelId: input.modelId,
-    });
-
-    const result = await ai.models.generateContent({
-      model: input.modelId,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: input.prompt },
-            {
-              fileData: {
-                fileUri: uploaded.uri,
-                mimeType: input.mimeType,
-              },
-            },
-          ],
-        },
-      ],
-      config: {
-        temperature: input.temperature ?? 0,
-        responseMimeType: "application/json",
-        responseJsonSchema: sanitizeJsonSchema(z.toJSONSchema(input.schema)),
-      },
-    });
-
-    const text = result.text;
-    if (!text) {
-      throw new Error("Gemini returned an empty response");
-    }
-
-    const parsed = JSON.parse(text);
-    return input.schema.parse(parsed) as z.infer<Schema>;
+    return {
+      name: uploaded.name,
+      uri: uploaded.uri ?? null,
+      mimeType: input.file.mimeType,
+    };
   } finally {
-    if (geminiFileName) {
-      await safeDelete(
-        ai.files.delete({ name: geminiFileName }),
-        "Gemini file",
-      );
-    }
     if (tempFilePath) {
       await safeDelete(unlink(tempFilePath), "Temp file");
     }
   }
 }
+
+export async function uploadedGeminiFileStatus(
+  file: UploadedGeminiFile,
+): Promise<UploadedGeminiFileStatus> {
+  const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
+  const status = await ai.files.get({ name: file.name });
+
+  return {
+    name: file.name,
+    uri: status.uri ?? file.uri,
+    mimeType: file.mimeType,
+    state: status.state,
+    errorMessage: status.error?.message ?? null,
+  };
+}
+
+export async function deleteGeminiFiles(files: UploadedGeminiFile[]) {
+  const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
+  for (const file of files) {
+    await safeDelete(ai.files.delete({ name: file.name }), "Gemini file");
+  }
+}
+
+export function getRecordingMimeType(url: string) {
+  const normalized = url.toLowerCase();
+
+  if (normalized.includes(".mp3")) return "audio/mpeg";
+  if (normalized.includes(".mp4")) return "audio/mp4";
+  if (normalized.includes(".m4a")) return "audio/mp4";
+  if (normalized.includes(".webm")) return "audio/webm";
+  if (normalized.includes(".wav")) return "audio/wav";
+
+  return "audio/mpeg";
+}
+
+export { FileState };
