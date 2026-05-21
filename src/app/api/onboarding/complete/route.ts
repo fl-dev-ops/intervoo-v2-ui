@@ -162,11 +162,11 @@ export async function POST(request: NextRequest) {
         where: { userId: session.user.id },
         create: {
           userId: session.user.id,
-          stage: "PREDIAGNOSTICS",
+          stage: "DIAGNOSTICS",
           onboardingCompletedAt: new Date(),
         },
         update: {
-          stage: "PREDIAGNOSTICS",
+          stage: "DIAGNOSTICS",
           onboardingCompletedAt: new Date(),
         },
       }),

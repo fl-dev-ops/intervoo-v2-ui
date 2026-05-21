@@ -178,7 +178,7 @@ export default function OnboardingPage() {
           const data = (await response.json()) as { stage?: string };
 
           if (data.stage === "PREDIAGNOSTICS") {
-            router.replace("/prediagnostics");
+            router.replace("/diagnostics");
             return;
           }
           if (data.stage === "DIAGNOSTICS") {
@@ -655,9 +655,6 @@ function CoachStep(props: {
                 <span className="block text-sm font-medium leading-5">
                   {coach.title}
                 </span>
-                <span className="mt-1 block text-sm font-semibold text-slate-500">
-                  Voice coach
-                </span>
               </span>
             </div>
             <span
@@ -712,7 +709,7 @@ function OnboardingSubmitButton(props: {
         throw new Error("Failed to complete onboarding");
       }
 
-      router.push("/prediagnostics");
+      router.push("/diagnostics");
     } catch (submitError) {
       setError(
         submitError instanceof Error

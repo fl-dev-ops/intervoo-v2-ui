@@ -19,7 +19,7 @@ export default async function Home() {
   }
 
   if (stage === "PREDIAGNOSTICS") {
-    redirect("/prediagnostics");
+    redirect("/diagnostics");
   }
 
   if (stage === "DIAGNOSTICS") {
