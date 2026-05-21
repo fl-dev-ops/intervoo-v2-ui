@@ -98,12 +98,12 @@ const academyOptions = [
 ] as const;
 
 const languageOptions = [
-  { value: "tamil", label: "Tamil", nativeLabel: "Tamil" },
-  { value: "hindi", label: "Hindi", nativeLabel: "Hindi" },
-  { value: "telugu", label: "Telugu", nativeLabel: "Telugu" },
-  { value: "kannada", label: "Kannada", nativeLabel: "Kannada" },
-  { value: "malayalam", label: "Malayalam", nativeLabel: "Malayalam" },
-  { value: "bengali", label: "Bengali", nativeLabel: "Bengali" },
+  { value: "tamil", label: "Tamil", nativeLabel: "தமிழ்" },
+  { value: "hindi", label: "Hindi", nativeLabel: "हिन्दी" },
+  { value: "telugu", label: "Telugu", nativeLabel: "తెలుగు" },
+  { value: "kannada", label: "Kannada", nativeLabel: "ಕನ್ನಡ" },
+  { value: "malayalam", label: "Malayalam", nativeLabel: "മലയാളം" },
+  { value: "bengali", label: "Bengali", nativeLabel: "বাংলা" },
 ] as const satisfies Array<{
   value: NativeLanguage;
   label: string;
@@ -626,12 +626,12 @@ function CoachStep(props: {
 }) {
   return (
     <StepContent description={stepDetails.coach.description}>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3">
         {coachCards.map((coach) => (
           <button
             key={coach.value}
             className={cn(
-              "overflow-hidden rounded-xl border-2 bg-white text-left text-slate-950 shadow-sm transition",
+              "flex w-full items-center justify-between gap-4 rounded-lg border bg-white p-4 text-left text-slate-950 shadow-sm transition",
               props.form.coach === coach.value
                 ? "border-[#6548E4] ring-2 ring-[#6548E4]/10"
                 : "border-slate-200 hover:border-slate-300 hover:bg-slate-50",
@@ -639,26 +639,43 @@ function CoachStep(props: {
             type="button"
             onClick={() => props.onChange({ coach: coach.value })}
           >
-            <div
-              className="relative aspect-[1.15] overflow-hidden"
-              style={{ backgroundColor: coach.tint }}
+            <div className="flex min-w-0 items-center gap-4">
+              <div
+                className="relative size-14 shrink-0 overflow-hidden rounded-full"
+                style={{ backgroundColor: coach.tint }}
+              >
+                <Image
+                  alt={coach.title}
+                  className="object-cover"
+                  fill
+                  src={coach.imageSrc}
+                />
+              </div>
+              <span>
+                <span className="block text-sm font-medium leading-5">
+                  {coach.title}
+                </span>
+                <span className="mt-1 block text-sm font-semibold text-slate-500">
+                  Voice coach
+                </span>
+              </span>
+            </div>
+            <span
+              className={cn(
+                "flex size-5 shrink-0 items-center justify-center rounded-full border transition",
+                props.form.coach === coach.value
+                  ? "border-[#5E41CF] bg-[#5E41CF]"
+                  : "border-slate-300",
+              )}
             >
-              <Image
-                alt={coach.title}
-                className="object-cover"
-                fill
-                src={coach.imageSrc}
-              />
-            </div>
-            <div className="p-3 text-center text-sm font-medium">
-              {coach.title}
-            </div>
+              {props.form.coach === coach.value ? (
+                <Check className="size-3 text-white" />
+              ) : null}
+            </span>
           </button>
         ))}
         {props.errors.coach ? (
-          <p className="col-span-2 text-sm text-destructive">
-            {props.errors.coach}
-          </p>
+          <p className="text-sm text-destructive">{props.errors.coach}</p>
         ) : null}
       </div>
     </StepContent>
@@ -876,7 +893,9 @@ function OptionButton(props: {
         <span className="block text-sm font-medium leading-5">
           {props.label}
         </span>
-        <span className="mt-1 block text-xs text-slate-500">{props.meta}</span>
+        <span className="mt-1 block text-sm font-semibold text-slate-500">
+          {props.meta}
+        </span>
       </span>
       <span
         className={cn(
