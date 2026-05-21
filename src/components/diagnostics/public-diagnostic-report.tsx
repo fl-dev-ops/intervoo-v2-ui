@@ -7,7 +7,6 @@ import {
   Info,
   Languages,
   Lightbulb,
-  Lock,
   type LucideIcon,
   Play,
   Smile,
@@ -65,9 +64,7 @@ export type PublicDiagnosticReportProps = {
   backHref?: string;
   backLabel?: string;
   bandConfig: DiagnosticBandConfig | undefined;
-  currentRound: number;
   focusedRoundNumber: number;
-  isOwner: boolean;
   overallScore: number | null;
   preferredName: string | null;
   rounds: PublicRoundData[];
@@ -81,9 +78,7 @@ export function PublicDiagnosticReport({
   backHref,
   backLabel,
   bandConfig,
-  currentRound,
   focusedRoundNumber,
-  isOwner,
   overallScore,
   preferredName: _preferredName,
   rounds,
@@ -111,8 +106,6 @@ export function PublicDiagnosticReport({
             {/* Round Tabs */}
             <RoundTabs
               activeRoundNumber={activeRoundNumber}
-              currentRound={currentRound}
-              isOwner={isOwner}
               rounds={rounds}
               onSelect={setActiveRoundNumber}
             />
@@ -120,12 +113,8 @@ export function PublicDiagnosticReport({
             {/* Round Detail */}
             {activeRound?.hasReport ? (
               <RoundDetailView round={activeRound} />
-            ) : activeRound &&
-              isOwner &&
-              activeRound.roundNumber === currentRound ? (
-              <RoundStartCard round={activeRound} />
             ) : activeRound ? (
-              <LockedRoundPlaceholder round={activeRound} />
+              <RoundStartCard round={activeRound} />
             ) : null}
           </section>
         </div>
@@ -198,14 +187,10 @@ function ReportHeader({
 
 function RoundTabs({
   activeRoundNumber,
-  currentRound,
-  isOwner,
   rounds,
   onSelect,
 }: {
   activeRoundNumber: number;
-  currentRound: number;
-  isOwner: boolean;
   rounds: PublicRoundData[];
   onSelect: (roundNumber: number) => void;
 }) {
@@ -226,29 +211,17 @@ function RoundTabs({
                     ? "Culture fit"
                     : config.title
             : "Round";
-          const isEnabled =
-            round.hasReport || (isOwner && round.roundNumber === currentRound);
-          const isNext =
-            !round.hasReport && isOwner && round.roundNumber === currentRound;
-
           return (
             <div className="w-full" key={round.roundNumber}>
               <button
                 className={cn(
                   "ring-2 ring-inset ring-transparent w-full flex flex-col items-center gap-2 px-2 py-4 text-center transition p-4 rounded-lg",
                   isActive && "ring-[#6C47FF] bg-[#F6F3FF]",
-                  !isEnabled &&
-                    "cursor-not-allowed opacity-60 pointer-events-none",
                 )}
-                disabled={!isEnabled}
                 type="button"
-                onClick={() => isEnabled && onSelect(round.roundNumber)}
+                onClick={() => onSelect(round.roundNumber)}
               >
-                <RoundTabIcon
-                  isActive={isActive}
-                  isEnabled={isEnabled}
-                  isNext={isNext}
-                />
+                <RoundTabIcon hasReport={round.hasReport} />
                 <div>
                   <p className="text-sm font-semibold text-foreground">
                     Round {round.roundNumber}
@@ -264,42 +237,18 @@ function RoundTabs({
   );
 }
 
-function RoundTabIcon({
-  isActive,
-  isEnabled,
-  isNext,
-}: {
-  isActive: boolean;
-  isEnabled: boolean;
-  isNext: boolean;
-}) {
-  if (isEnabled && !isNext) {
+function RoundTabIcon({ hasReport }: { hasReport: boolean }) {
+  if (hasReport) {
     return (
-      <div
-        className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(180deg,#3DD24A_0%,#00B400_100%)]",
-        )}
-      >
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(180deg,#3DD24A_0%,#00B400_100%)]">
         <Check className="h-5 w-5 text-white" />
       </div>
     );
   }
 
-  if (isNext) {
-    return (
-      <div
-        className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#6C47FF] bg-white",
-        )}
-      >
-        <Play className="h-4 w-4 fill-[#6C47FF]" />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-muted-foreground/50 bg-muted text-muted-foreground">
-      <Lock className="h-4 w-4" />
+    <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#6C47FF] bg-white">
+      <Play className="h-4 w-4 fill-[#6C47FF]" />
     </div>
   );
 }
@@ -331,57 +280,6 @@ function RoundDetailView({
       />
 
       <SkillsReport assessment={assessment} />
-    </div>
-  );
-}
-
-function RoundStartCard({ round }: { round: PublicRoundData }) {
-  const router = useRouter();
-  const config = DIAGNOSTIC_ROUNDS[round.roundNumber - 1];
-  const roundName = config?.title ?? `Round ${round.roundNumber}`;
-
-  return (
-    <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-base font-bold text-foreground">
-          Round {round.roundNumber} - {roundName}
-        </h3>
-      </div>
-
-      <p className="text-sm leading-6 text-muted-foreground">
-        {config?.description ?? ""}
-      </p>
-
-      {config && (
-        <div className="mt-4 grid items-end gap-4 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <p className="text-sm font-medium text-[#6B6B7A]">
-              Questions may cover
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {config.questions.map((question) => (
-                <span
-                  key={question}
-                  className="rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs text-gray-600"
-                >
-                  {question}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <button
-            className="col-span-2 w-full rounded-full bg-button px-10 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 md:col-span-1 md:ml-auto inline-flex items-center justify-center gap-2"
-            type="button"
-            onClick={() =>
-              router.push(`/diagnostics/prejoin?round=${round.roundType}`)
-            }
-          >
-            <Play className="mr-1 size-3 fill-current" />
-            Start Round {round.roundNumber}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -803,7 +701,7 @@ function getFirstReasoning(values: Array<string | undefined>) {
   );
 }
 
-function LockedRoundPlaceholder({
+function RoundStartCard({
   round,
 }: {
   round: PublicRoundData & { hasReport: false };
@@ -812,14 +710,44 @@ function LockedRoundPlaceholder({
   const roundName = config?.title ?? `Round ${round.roundNumber}`;
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white p-10 text-center shadow-sm">
-      <Lock className="h-8 w-8 text-muted-foreground/40" />
-      <p className="mt-3 text-sm font-medium text-muted-foreground">
-        Round {round.roundNumber} - {roundName}
+    <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-base font-bold text-foreground">
+          Round {round.roundNumber} - {roundName}
+        </h3>
+      </div>
+
+      <p className="text-sm leading-6 text-muted-foreground">
+        {config?.description ?? ""}
       </p>
-      <p className="mt-1 text-xs text-muted-foreground/70">
-        This round report is not available yet.
-      </p>
+
+      {config && (
+        <div className="mt-4 grid items-end gap-4 md:grid-cols-3">
+          <div className="md:col-span-2">
+            <p className="text-sm font-medium text-[#6B6B7A]">
+              Questions may cover
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {config.questions.map((question) => (
+                <span
+                  key={question}
+                  className="rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs text-gray-600"
+                >
+                  {question}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <a
+            className="col-span-2 w-full rounded-full bg-button px-10 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 md:col-span-1 md:ml-auto inline-flex items-center justify-center gap-2"
+            href={`/diagnostics/prejoin?round=${round.roundType}`}
+          >
+            <Play className="mr-1 size-3 fill-current" />
+            Start Round {round.roundNumber}
+          </a>
+        </div>
+      )}
     </div>
   );
 }

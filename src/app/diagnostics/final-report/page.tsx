@@ -83,10 +83,6 @@ export default async function DiagnosticsFinalReportPage() {
 
   const readyRounds = rounds.filter((round) => round.hasReport);
   const allReady = readyRounds.length === 4;
-  const currentRound = Math.min(
-    readyRounds.length + 1,
-    DIAGNOSTIC_ROUNDS.length,
-  );
   const overallScore = allReady
     ? Math.round(
         readyRounds.reduce(
@@ -142,9 +138,7 @@ export default async function DiagnosticsFinalReportPage() {
       backHref="/diagnostics/rounds"
       backLabel="Back to rounds"
       bandConfig={bandConfig}
-      currentRound={currentRound}
       focusedRoundNumber={readyRounds[0]?.roundNumber ?? 1}
-      isOwner={true}
       overallScore={overallScore}
       preferredName={preferredName}
       rounds={rounds}

@@ -102,10 +102,6 @@ export default async function PublicDiagnosticReportPage({
 
   const readyRounds = rounds.filter((r) => r.hasReport);
   const allReady = readyRounds.length === 4;
-  const currentRound = Math.min(
-    readyRounds.length + 1,
-    DIAGNOSTIC_ROUNDS.length,
-  );
 
   const overallScore = allReady
     ? Math.round(
@@ -124,7 +120,6 @@ export default async function PublicDiagnosticReportPage({
     1;
 
   console.info("[diagnostics] public report state", {
-    currentRound,
     diagnosticId: diagnostic.id,
     focusedRoundNumber,
     isOwner,
@@ -135,9 +130,7 @@ export default async function PublicDiagnosticReportPage({
   return (
     <PublicDiagnosticReport
       bandConfig={bandConfig}
-      currentRound={currentRound}
       focusedRoundNumber={focusedRoundNumber}
-      isOwner={isOwner}
       overallScore={overallScore}
       preferredName={preferredName}
       rounds={rounds}
