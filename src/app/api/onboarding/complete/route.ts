@@ -38,7 +38,6 @@ function validateBody(body: unknown): body is Record<string, string> {
 
 function getValidationError(body: Record<string, string>) {
   if (!body.firstName?.trim()) return "First name is required";
-  if (!body.preferredName?.trim()) return "Preferred name is required";
   if (!EMAIL_PATTERN.test(body.email?.trim() ?? "")) {
     return "A valid email address is required";
   }
@@ -50,8 +49,8 @@ function getValidationError(body: Record<string, string>) {
   }
   if (!body.nativeLanguage?.trim()) return "Comfort language is required";
   if (!body.englishLevel?.trim()) return "English level is required";
-  if (body.coach !== "sana" && body.coach !== "arjun") {
-    return "Coach selection is required";
+  if (body.coach && body.coach !== "sana" && body.coach !== "arjun") {
+    return "Coach selection is invalid";
   }
   if (
     body.placementPreparation === "training_academy" &&
@@ -117,6 +116,8 @@ export async function POST(request: NextRequest) {
       englishLevel,
       coach,
     } = body;
+    const displayName = preferredName.trim() || firstName.trim();
+    const selectedCoach = coach === "arjun" ? "arjun" : "sana";
 
     await prisma.$transaction([
       prisma.user.update({
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
         where: { userId: session.user.id },
         create: {
           userId: session.user.id,
-          preferredName,
+          preferredName: displayName,
           institution,
           degree,
           stream,
@@ -139,12 +140,12 @@ export async function POST(request: NextRequest) {
           academyName,
           nativeLanguage: nativeLanguage || "",
           englishLevel: englishLevel || "",
-          coach,
+          coach: selectedCoach,
           speakingSpeed: "",
           yearOfStudy: "",
         },
         update: {
-          preferredName,
+          preferredName: displayName,
           institution,
           degree,
           stream,
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
           academyName,
           nativeLanguage: nativeLanguage || "",
           englishLevel: englishLevel || "",
-          coach,
+          coach: selectedCoach,
           speakingSpeed: "",
           yearOfStudy: "",
         },

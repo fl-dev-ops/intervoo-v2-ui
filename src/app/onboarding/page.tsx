@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { type CoachOption, coachCards } from "@/lib/coaches";
 import { cn } from "@/lib/utils";
 
 const steps = [
@@ -28,7 +26,6 @@ const steps = [
   { id: "education", label: "Education" },
   { id: "language", label: "Language" },
   { id: "english", label: "English" },
-  { id: "coach", label: "Coach" },
 ] as const;
 
 type StepId = (typeof steps)[number]["id"];
@@ -42,10 +39,6 @@ type NativeLanguage =
 type EnglishLevel = "beginner" | "intermediate" | "advanced" | "native";
 
 const stepDetails = {
-  coach: {
-    description: "Choose your preferred agent and speak comfortably",
-    title: "Pick your voice coach",
-  },
   education: {
     description:
       "This helps us personalize interview prompts around your placement context.",
@@ -79,7 +72,7 @@ type OnboardingForm = {
   academyName: string;
   nativeLanguage?: NativeLanguage;
   englishLevel?: EnglishLevel;
-  coach?: CoachOption;
+  coach: "sana" | "arjun";
 };
 
 type FieldErrors = Partial<Record<keyof OnboardingForm, string>>;
@@ -150,7 +143,7 @@ const initialForm: OnboardingForm = {
   academyName: "",
   nativeLanguage: undefined,
   englishLevel: undefined,
-  coach: undefined,
+  coach: "sana",
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -282,13 +275,7 @@ export default function OnboardingPage() {
                 form={form}
                 onChange={updateForm}
               />
-            ) : (
-              <CoachStep
-                errors={validationErrors}
-                form={form}
-                onChange={updateForm}
-              />
-            )}
+            ) : null}
           </div>
 
           {isFinalStep ? (
@@ -409,7 +396,6 @@ function ProfileStep(props: {
         <TextField
           error={props.errors.preferredName}
           label="How should we call you?"
-          required={true}
           value={props.form.preferredName}
           onChange={(value) => props.onChange({ preferredName: value })}
         />
@@ -619,66 +605,6 @@ function EnglishStep(props: {
   );
 }
 
-function CoachStep(props: {
-  errors: FieldErrors;
-  form: OnboardingForm;
-  onChange: (patch: Partial<OnboardingForm>) => void;
-}) {
-  return (
-    <StepContent description={stepDetails.coach.description}>
-      <div className="grid gap-3">
-        {coachCards.map((coach) => (
-          <button
-            key={coach.value}
-            className={cn(
-              "flex w-full items-center justify-between gap-4 rounded-lg border bg-white p-4 text-left text-slate-950 shadow-sm transition",
-              props.form.coach === coach.value
-                ? "border-[#6548E4] ring-2 ring-[#6548E4]/10"
-                : "border-slate-200 hover:border-slate-300 hover:bg-slate-50",
-            )}
-            type="button"
-            onClick={() => props.onChange({ coach: coach.value })}
-          >
-            <div className="flex min-w-0 items-center gap-4">
-              <div
-                className="relative size-14 shrink-0 overflow-hidden rounded-full"
-                style={{ backgroundColor: coach.tint }}
-              >
-                <Image
-                  alt={coach.title}
-                  className="object-cover"
-                  fill
-                  src={coach.imageSrc}
-                />
-              </div>
-              <span>
-                <span className="block text-sm font-medium leading-5">
-                  {coach.title}
-                </span>
-              </span>
-            </div>
-            <span
-              className={cn(
-                "flex size-5 shrink-0 items-center justify-center rounded-full border transition",
-                props.form.coach === coach.value
-                  ? "border-[#5E41CF] bg-[#5E41CF]"
-                  : "border-slate-300",
-              )}
-            >
-              {props.form.coach === coach.value ? (
-                <Check className="size-3 text-white" />
-              ) : null}
-            </span>
-          </button>
-        ))}
-        {props.errors.coach ? (
-          <p className="text-sm text-destructive">{props.errors.coach}</p>
-        ) : null}
-      </div>
-    </StepContent>
-  );
-}
-
 function OnboardingSubmitButton(props: {
   form: OnboardingForm;
   showBack: boolean;
@@ -762,9 +688,6 @@ function validateStep(step: StepId, form: OnboardingForm) {
   if (step === "profile") {
     if (!form.firstName.trim()) errors.firstName = "Enter your first name.";
     if (!form.lastName.trim()) errors.lastName = "Enter your last name.";
-    if (!form.preferredName.trim()) {
-      errors.preferredName = "Enter what we should call you.";
-    }
     if (!EMAIL_PATTERN.test(form.email.trim())) {
       errors.email = form.email.trim()
         ? "Enter a valid email address."
@@ -804,10 +727,6 @@ function validateStep(step: StepId, form: OnboardingForm) {
 
   if (step === "english" && !form.englishLevel) {
     errors.englishLevel = "Select your English fluency level.";
-  }
-
-  if (step === "coach" && !form.coach) {
-    errors.coach = "Select your coach.";
   }
 
   return errors;
