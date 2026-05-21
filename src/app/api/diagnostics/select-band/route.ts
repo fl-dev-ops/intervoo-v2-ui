@@ -80,12 +80,12 @@ export async function POST(request: NextRequest) {
     if (!canChangeDiagnosticBand(existingDiagnostic?.rounds ?? [])) {
       console.info("[diagnostics] select-band rejected", {
         diagnosticId: existingDiagnostic?.id ?? null,
-        reason: "completed_round_report_exists",
+        reason: "round_report_record_exists",
         roundCount: existingRoundCount,
         userId: session.user.id,
       });
       return NextResponse.json(
-        { error: "Diagnostic band cannot be changed after a completed report" },
+        { error: "Diagnostic band cannot be changed after starting a round" },
         { status: 409 },
       );
     }
