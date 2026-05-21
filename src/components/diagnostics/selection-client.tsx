@@ -84,7 +84,7 @@ export function DiagnosticsSelectionClient({
         throw new Error(payload?.error ?? "Failed to start diagnostics.");
       }
 
-      router.push("/diagnostics");
+      router.push("/diagnostics/rounds");
     } catch (startError) {
       console.info("[diagnostics] selection start failed", {
         error:
