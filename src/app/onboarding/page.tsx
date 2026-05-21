@@ -86,9 +86,9 @@ type FieldErrors = Partial<Record<keyof OnboardingForm, string>>;
 
 const placementOptions = [
   { value: "through_college", label: "Through my college" },
+  { value: "training_academy", label: "Through a training academy" },
   { value: "self_preparing", label: "Preparing on my own" },
   { value: "not_preparing", label: "I'm not preparing currently" },
-  { value: "training_academy", label: "Through a training academy" },
 ] as const;
 
 const academyOptions = [
@@ -483,10 +483,12 @@ function EducationStep(props: {
               aria-required="true"
               className="h-auto w-full rounded-lg border-0 bg-[#F0EDF6] px-3 py-2 font-normal text-[#24232A] shadow-none focus-visible:border-0 focus-visible:ring-3 focus-visible:ring-[#6548E4]/20 data-placeholder:text-slate-400"
             >
-              <SelectValue placeholder="Select preparation mode">
-                {placementOptions.find(
-                  (o) => o.value === props.form.placementPreparation,
-                )?.label ?? "Select preparation mode"}
+              <SelectValue>
+                {
+                  placementOptions.find(
+                    (o) => o.value === props.form.placementPreparation,
+                  )?.label
+                }
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -524,12 +526,14 @@ function EducationStep(props: {
               <SelectTrigger
                 aria-invalid={Boolean(props.errors.academySelection)}
                 aria-required="true"
-                className="h-auto w-full rounded-lg border-0 bg-[#F0EDF6] px-3 py-2 font-medium text-[#24232A] shadow-none focus-visible:border-0 focus-visible:ring-3 focus-visible:ring-[#6548E4]/20 data-placeholder:text-slate-400 md:text-xl"
+                className="h-auto w-full rounded-lg border-0 bg-[#F0EDF6] px-3 py-2 font-medium text-[#24232A] shadow-none focus-visible:border-0 focus-visible:ring-3 focus-visible:ring-[#6548E4]/20 data-placeholder:text-slate-400"
               >
-                <SelectValue placeholder="Select academy">
-                  {academyOptions.find(
-                    (o) => o.value === props.form.academySelection,
-                  )?.label ?? "Select academy"}
+                <SelectValue>
+                  {
+                    academyOptions.find(
+                      (o) => o.value === props.form.academySelection,
+                    )?.label
+                  }
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
