@@ -20,7 +20,7 @@ export const auth = betterAuth({
   },
   plugins: [
     phoneNumber({
-      otpLength: 6,
+      otpLength: 4,
       expiresIn: 300,
       signUpOnVerification: {
         getTempEmail,

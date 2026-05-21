@@ -11,6 +11,8 @@ import {
 import { formatPhoneNumberForDisplay } from "@/lib/phone";
 import { Spinner } from "../ui/spinner";
 
+const OTP_LENGTH = 4;
+
 type OtpFormProps = {
   phone: string;
   otp: string;
@@ -45,7 +47,7 @@ export function OtpForm({
           Enter verification code
         </h1>
         <p className="text-sm text-muted-foreground">
-          We sent a 6-digit code to{" "}
+          We sent a 4-digit code to{" "}
           <button
             type="button"
             className="block text-center text-base font-semibold w-full my-2 text-muted-foreground hover:text-foreground transition-colors"
@@ -62,7 +64,7 @@ export function OtpForm({
           <Field>
             <InputOTP
               id="otp"
-              maxLength={6}
+              maxLength={OTP_LENGTH}
               value={otp}
               disabled={loading}
               containerClassName="justify-center"
@@ -70,7 +72,7 @@ export function OtpForm({
               autoFocus
             >
               <InputOTPGroup className="gap-2 border-0">
-                {[0, 1, 2, 3, 4, 5].map((index) => (
+                {Array.from({ length: OTP_LENGTH }, (_, index) => (
                   <InputOTPSlot
                     key={`otp-slot-${index}`}
                     index={index}
@@ -98,7 +100,7 @@ export function OtpForm({
             <Button
               size={"lg"}
               type="submit"
-              disabled={loading || otp.length !== 6}
+              disabled={loading || otp.length !== OTP_LENGTH}
               className="w-full bg-button rounded-full"
             >
               {loading ? <Spinner /> : "Verify & Continue"}
