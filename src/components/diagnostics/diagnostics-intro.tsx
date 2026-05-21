@@ -1,15 +1,17 @@
 "use client";
 
 import { motion } from "motion/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
 import { buttonVariants } from "@/components/ui/button";
 import { type CoachOption, coachCards } from "@/lib/coaches";
-import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import { cn } from "@/lib/utils";
 
 const DIAGNOSTIC_INTRO_AUDIO_SRC = "/diag-agent-audio.mp3";
 const MESSAGE_DELAYS_MS = [200, 3200, 13_200] as const;
+const START_HREF = "/diagnostics/selection";
 
 export function DiagnosticsIntro({
   coach,
@@ -18,16 +20,15 @@ export function DiagnosticsIntro({
   coach?: CoachOption | null;
   name?: string | null;
 }) {
+  const router = useRouter();
   const displayName = name?.trim() || "there";
   const selectedCoach =
     coachCards.find((item) => item.value === coach) ?? coachCards[0];
   const audioRef = useRef<HTMLAudioElement>(null);
-  const firstRound = DIAGNOSTIC_ROUNDS[0];
-  const startHref = firstRound
-    ? `/diagnostics/prejoin?round=${firstRound.id}`
-    : "/diagnostics/rounds";
 
   useEffect(() => {
+    router.prefetch(START_HREF);
+
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -43,7 +44,7 @@ export function DiagnosticsIntro({
       audio.pause();
       audio.currentTime = 0;
     };
-  }, []);
+  }, [router]);
 
   return (
     <main className="flex min-h-dvh bg-white md:items-center md:bg-[#F5F3F7] md:p-8">
@@ -102,29 +103,29 @@ export function DiagnosticsIntro({
             </div>
 
             <div className="mt-auto pt-8 md:hidden">
-              <a
+              <Link
                 className={buttonVariants({
                   className:
                     "h-12 w-full rounded-full! bg-button text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95",
                 })}
-                href={startHref}
+                href={START_HREF}
               >
                 Start Diagnostic
-              </a>
+              </Link>
             </div>
           </div>
         </section>
 
         <div className="mt-6 hidden justify-center md:flex">
-          <a
+          <Link
             className={buttonVariants({
               className:
                 "h-12 min-w-72 rounded-full! bg-button px-10 text-sm font-semibold text-white shadow-lg shadow-[#6548E4]/20 hover:opacity-95",
             })}
-            href={startHref}
+            href={START_HREF}
           >
             Start Diagnostic
-          </a>
+          </Link>
         </div>
       </div>
     </main>

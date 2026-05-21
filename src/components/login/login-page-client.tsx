@@ -147,7 +147,7 @@ export function LoginPageClient() {
 
   return (
     <main className="flex min-h-dvh p-3 md:p-10">
-      <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center space-y-8">
+      <div className="mx-auto flex w-full md:max-w-sm flex-col items-center justify-center space-y-8">
         <div className="flex flex-1 flex-col items-center justify-center gap-3 font-medium md:flex-0">
           <a href="/" className="flex flex-col items-center gap-3">
             <IntervooLogo className="h-10 text-white" />

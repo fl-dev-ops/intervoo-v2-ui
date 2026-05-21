@@ -84,7 +84,7 @@ export function OtpForm({
             <div className="text-sm text-center">
               <button
                 type="button"
-                className="text-muted-foreground text-sm underline-offset-4 hover:text-foreground my-4 font-semibold"
+                className="text-muted-foreground text-sm underline-offset-4 hover:text-foreground my-2 font-semibold"
                 disabled={loading || resendCooldown > 0}
                 onClick={onResend}
               >
@@ -96,12 +96,12 @@ export function OtpForm({
             </div>
           </Field>
           {/*{error ? <FieldError>{error}</FieldError> : null}*/}
-          <div className="w-full">
+          <div className="w-fit mx-auto">
             <Button
               size={"lg"}
               type="submit"
               disabled={loading || otp.length !== OTP_LENGTH}
-              className="w-full bg-button rounded-full"
+              className="w-fit bg-button rounded-full px-15 mx-auto"
             >
               {loading ? <Spinner /> : "Verify & Continue"}
             </Button>

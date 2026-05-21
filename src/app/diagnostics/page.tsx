@@ -15,7 +15,6 @@ export default async function DiagnosticsPage() {
   const diagnostic = await prisma.diagnostic.findFirst({
     where: { userId: user.id },
     include: {
-      user: { include: { profile: true } },
       rounds: {
         include: { session: { include: { report: true } } },
       },
@@ -37,15 +36,32 @@ export default async function DiagnosticsPage() {
     roundSummary: roundSummary ?? [],
   });
 
-  // No diagnostic choice yet -> selection page.
+  const profile = await prisma.profile.findUnique({
+    where: { userId: user.id },
+  });
+
+  const coach =
+    profile?.coach === "arjun" || profile?.coach === "sana"
+      ? (profile.coach as CoachOption)
+      : null;
+
+  function renderIntro() {
+    return (
+      <DiagnosticsIntro
+        coach={coach}
+        name={profile?.preferredName || user.name || null}
+      />
+    );
+  }
+
   if (!diagnostic || shouldShowDiagnosticBandSelection(diagnostic)) {
-    console.info("[diagnostics] redirect", {
+    console.info("[diagnostics] render intro", {
+      diagnosticId: diagnostic?.id ?? null,
       from: "/diagnostics",
       reason: "missing_selected_band",
-      to: "/diagnostics/selection",
       userId: user.id,
     });
-    redirect("/diagnostics/selection");
+    return renderIntro();
   }
 
   const progressableRounds = countProgressableDiagnosticRounds(
@@ -72,18 +88,7 @@ export default async function DiagnosticsPage() {
       userId: user.id,
     });
 
-    const profile = diagnostic.user.profile;
-    const coach =
-      profile?.coach === "arjun" || profile?.coach === "sana"
-        ? (profile.coach as CoachOption)
-        : null;
-
-    return (
-      <DiagnosticsIntro
-        coach={coach}
-        name={profile?.preferredName || user.name || null}
-      />
-    );
+    return renderIntro();
   }
 
   console.info("[diagnostics] redirect", {

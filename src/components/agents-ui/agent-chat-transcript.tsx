@@ -57,7 +57,7 @@ export function AgentChatTranscript({
 }: AgentChatTranscriptProps) {
   return (
     <Conversation className={className} {...props}>
-      <ConversationContent className="mx-auto w-full max-w-lg px-4">
+      <ConversationContent className="mx-auto w-full max-w-lg px-4 gap-4">
         {messages.map((receivedMessage) => {
           const { id, timestamp, from, message } = receivedMessage;
           const time = new Date(timestamp);
