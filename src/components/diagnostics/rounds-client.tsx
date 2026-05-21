@@ -6,9 +6,9 @@ import {
   IconUserCheck,
   IconUsersGroup,
 } from "@tabler/icons-react";
-import { ArrowLeft, CheckIcon, Lock, Play } from "lucide-react";
+import { ArrowLeft, CheckIcon, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { DiagnosticsJobHeader } from "@/components/diagnostics/diagnostics-job-header";
 import { DiagnosticsPageHeader } from "@/components/diagnostics/diagnostics-page-header";
 import type { DiagnosticJobOption } from "@/lib/diagnostics/job-options";
@@ -17,7 +17,7 @@ import {
   type DiagnosticRoundConfig,
 } from "@/lib/diagnostics/rounds-config";
 import {
-  getActiveDiagnosticRoundNumber,
+  canStartDiagnosticRound,
   isDiagnosticReportReady,
   isDiagnosticRoundReadyForProgression,
   isDiagnosticRoundReportProcessing,
@@ -81,16 +81,8 @@ export function DiagnosticsRoundsClient({
     return () => window.clearInterval(intervalId);
   }, [initialRounds, router]);
 
-  const activeRoundNumber = getActiveDiagnosticRoundNumber(
-    initialRounds,
-    DIAGNOSTIC_ROUNDS.map((round) => round.id),
-  );
-
   useEffect(() => {
-    const activeRound = DIAGNOSTIC_ROUNDS[activeRoundNumber - 1];
     console.info("[diagnostics] rounds client state", {
-      activeRoundId: activeRound?.id ?? null,
-      activeRoundNumber,
       allCompleted,
       hasCompletedRound,
       reportsReadyCount,
@@ -105,22 +97,12 @@ export function DiagnosticsRoundsClient({
       selectedJob: selectedJob.title,
     });
   }, [
-    activeRoundNumber,
     allCompleted,
     hasCompletedRound,
     initialRounds,
     reportsReadyCount,
     selectedJob.title,
   ]);
-
-  const roundRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  useEffect(() => {
-    const activeEl = roundRefs.current[activeRoundNumber - 1];
-    if (activeEl) {
-      activeEl.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  }, [activeRoundNumber]);
 
   return (
     <main className="min-h-dvh md:pb-10 bg-lavender">
@@ -166,40 +148,29 @@ export function DiagnosticsRoundsClient({
                   Boolean(roundData) &&
                   roundData?.status === "STARTED" &&
                   !isFailed;
-                const isActive = roundNumber === activeRoundNumber;
-                const isLocked = roundNumber > activeRoundNumber;
 
                 return (
-                  <div
+                  <RoundTimelineItem
                     key={roundConfig.id}
-                    ref={(el) => {
-                      roundRefs.current[index] = el;
+                    config={roundConfig}
+                    isDone={isDone}
+                    isFailed={isFailed}
+                    isLast={index === DIAGNOSTIC_ROUNDS.length - 1}
+                    isProcessing={isProcessing}
+                    isStarted={isStarted}
+                    questions={roundConfig.questionsByBand[selectedJob.id]}
+                    roundData={roundData}
+                    roundNumber={roundNumber}
+                    onStart={() => {
+                      console.info("[diagnostics] start round clicked", {
+                        roundId: roundConfig.id,
+                        roundNumber,
+                      });
+                      router.push(
+                        `/diagnostics/prejoin?round=${roundConfig.id}`,
+                      );
                     }}
-                  >
-                    <RoundTimelineItem
-                      config={roundConfig}
-                      isActive={isActive}
-                      isDone={isDone}
-                      isFailed={isFailed}
-                      isLast={index === DIAGNOSTIC_ROUNDS.length - 1}
-                      isLocked={isLocked}
-                      isProcessing={isProcessing}
-                      isStarted={isStarted}
-                      questions={roundConfig.questionsByBand[selectedJob.id]}
-                      roundData={roundData}
-                      roundNumber={roundNumber}
-                      onStart={() => {
-                        console.info("[diagnostics] start round clicked", {
-                          activeRoundNumber,
-                          roundId: roundConfig.id,
-                          roundNumber,
-                        });
-                        router.push(
-                          `/diagnostics/prejoin?round=${roundConfig.id}`,
-                        );
-                      }}
-                    />
-                  </div>
+                  />
                 );
               })}
             </div>
@@ -233,11 +204,9 @@ export function DiagnosticsRoundsClient({
 
 function RoundTimelineItem({
   config,
-  isActive,
   isDone,
   isFailed,
   isLast,
-  isLocked,
   isProcessing,
   isStarted,
   onStart,
@@ -246,11 +215,9 @@ function RoundTimelineItem({
   roundNumber,
 }: {
   config: DiagnosticRoundConfig;
-  isActive: boolean;
   isDone: boolean;
   isFailed: boolean;
   isLast: boolean;
-  isLocked: boolean;
   isProcessing: boolean;
   isStarted: boolean;
   onStart: () => void;
@@ -258,19 +225,17 @@ function RoundTimelineItem({
   roundData: RoundData | undefined;
   roundNumber: number;
 }) {
-  const canStart = (isActive && !isStarted && !isProcessing) || isFailed;
-  const isCurrent = canStart || isProcessing || isStarted;
+  const canStart =
+    canStartDiagnosticRound(roundData) &&
+    !isDone &&
+    !isStarted &&
+    !isProcessing;
+  const isCurrent = canStart || isProcessing;
 
   return (
     <article className="relative grid grid-cols-[3rem_1fr] gap-x-2 md:gap-x-4 gap-y-2 md:gap-y-0">
       <div className="flex items-center justify-center">
-        <RoundStateIcon
-          config={config}
-          isCurrent={isCurrent}
-          isDone={isDone}
-          isLocked={isLocked}
-          isStarted={isStarted}
-        />
+        <RoundStateIcon config={config} isCurrent={isCurrent} isDone={isDone} />
       </div>
 
       <div className="flex min-w-0 items-center justify-between gap-3">
@@ -290,10 +255,6 @@ function RoundTimelineItem({
         </span>
         {isDone ? (
           <RoundResultBadge score={roundData?.reportScore ?? null} />
-        ) : isProcessing ? (
-          <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white">
-            Processing
-          </span>
         ) : (
           <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white">
             {config.duration}
@@ -348,7 +309,7 @@ function RoundTimelineItem({
             {config.description}
           </p>
 
-          {canStart && (
+          {(canStart || isProcessing) && (
             <div className="grid items-end gap-4 md:grid-cols-3">
               <div className="md:col-span-2">
                 <p className="mt-4 text-sm font-medium text-[#6B6B7A]">
@@ -366,24 +327,24 @@ function RoundTimelineItem({
                 </div>
               </div>
 
-              <Button
-                className="col-span-2 w-full rounded-full bg-button px-10 py-6 md:col-span-1 md:ml-auto"
-                type="button"
-                size={"lg"}
-                onClick={onStart}
-              >
-                <Play className="mr-1 size-3 fill-current" />
-                Start Round {roundNumber}
-              </Button>
-            </div>
-          )}
-
-          {isProcessing && (
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/70">
-                <span className="size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                Report processing
-              </span>
+              {isProcessing ? (
+                <span className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-10 py-6 md:col-span-1 md:ml-auto text-xs font-medium text-white/70">
+                  <span className="size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Report processing
+                </span>
+              ) : (
+                <Button
+                  className="col-span-2 w-full rounded-full bg-button px-10 py-6 md:col-span-1 md:ml-auto"
+                  type="button"
+                  size={"lg"}
+                  onClick={onStart}
+                >
+                  <Play className="mr-1 size-3 fill-current" />
+                  {isFailed
+                    ? `Retry Round ${roundNumber}`
+                    : `Start Round ${roundNumber}`}
+                </Button>
+              )}
             </div>
           )}
 
@@ -412,14 +373,10 @@ function RoundStateIcon({
   config,
   isCurrent,
   isDone,
-  isLocked,
-  isStarted,
 }: {
   config: DiagnosticRoundConfig;
   isCurrent: boolean;
   isDone: boolean;
-  isLocked: boolean;
-  isStarted: boolean;
 }) {
   const Icon = getRoundIcon(config.id);
 
@@ -427,23 +384,17 @@ function RoundStateIcon({
     <div
       className={cn(
         "relative z-10 flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full border-2",
-        isCurrent
-          ? "border-[#6C47FF] bg-[#6C47FF] text-white"
-          : isDone
-            ? "h-10 w-10 border-emerald-500 bg-[linear-gradient(180deg,#3DD24A_0%,#00B400_100%)] text-white"
-            : isLocked
-              ? "border-white/20 bg-[#1a0b2e] text-white/40"
-              : isStarted
-                ? "border-amber-500/50 bg-amber-500/20 text-amber-400"
-                : "border-white/20 bg-[#1a0b2e] text-white/40",
+        isDone
+          ? "h-10 w-10 border-emerald-500 bg-[linear-gradient(180deg,#3DD24A_0%,#00B400_100%)] text-white"
+          : isCurrent
+            ? "border-[#6C47FF] bg-[#6C47FF] text-white"
+            : "border-white/20 bg-[#1a0b2e] text-white/40",
       )}
     >
       {isDone ? (
         <CheckIcon className="h-5 w-5" />
-      ) : isCurrent ? (
-        <Icon className="h-5 w-5" />
       ) : (
-        <Lock className="h-4 w-4" />
+        <Icon className="h-5 w-5" />
       )}
     </div>
   );
