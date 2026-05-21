@@ -236,7 +236,7 @@ function RoundTabs({
               <button
                 className={cn(
                   "ring-2 ring-inset ring-transparent w-full flex flex-col items-center gap-2 px-2 py-4 text-center transition p-4 rounded-lg",
-                  isActive && "ring-emerald-400 bg-emerald-50",
+                  isActive && "ring-[#6C47FF] bg-[#F6F3FF]",
                   !isEnabled &&
                     "cursor-not-allowed opacity-60 pointer-events-none",
                 )}
@@ -278,7 +278,6 @@ function RoundTabIcon({
       <div
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(180deg,#3DD24A_0%,#00B400_100%)]",
-          isActive && "ring-2 ring-emerald-600/20",
         )}
       >
         <Check className="h-5 w-5 text-white" />
@@ -290,11 +289,10 @@ function RoundTabIcon({
     return (
       <div
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#6C47FF] bg-[#6C47FF] text-white",
-          isActive && "ring-2 ring-[#6C47FF]/20",
+          "flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#6C47FF] bg-white",
         )}
       >
-        <Play className="h-4 w-4 fill-current" />
+        <Play className="h-4 w-4 fill-[#6C47FF]" />
       </div>
     );
   }
