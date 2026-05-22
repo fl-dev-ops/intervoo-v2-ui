@@ -26,7 +26,7 @@ export function DiagnosticsJobHeader({
                 {bandConfig?.description ??
                   "Problem solving, behavioural communication, and technical fundamentals expected in growing product companies."}
               </p>
-              <span className="mt-3 w-fit hidden md:block shrink-0 rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white">
+              <span className="mt-3 w-fit shrink-0 rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white">
                 {bandConfig?.salary ?? "₹8–15 LPA"}
               </span>
             </div>

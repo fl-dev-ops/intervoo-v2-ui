@@ -360,7 +360,7 @@ function SessionLayout({
           <CustomAgentControlBar
             controls={{
               microphone: true,
-              camera: false,
+              camera: true,
               leave: true,
             }}
             isConnected={session.isConnected}
@@ -387,7 +387,7 @@ function SessionLayout({
           {isCameraEnabled && cameraTrack ? (
             <VideoTrack
               trackRef={cameraTrack}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover scale-x-[-1]"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-[#312260]">
