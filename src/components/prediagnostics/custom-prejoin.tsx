@@ -2,6 +2,7 @@
 
 import {
   useMediaDeviceSelect,
+  usePersistentUserChoices,
   usePreviewTracks,
 } from "@livekit/components-react";
 import { type LocalVideoTrack, Track } from "livekit-client";
@@ -42,8 +43,12 @@ export function CustomPreJoin({
   const [selectedCoach, setSelectedCoach] = useState<CoachOption | undefined>(
     coach ?? (hideCoachSelection ? undefined : "sana"),
   );
-  const [isCameraMuted, setIsCameraMuted] = useState(false);
-  const [isMicMuted, setIsMicMuted] = useState(false);
+  const { userChoices, saveAudioInputEnabled, saveVideoInputEnabled } =
+    usePersistentUserChoices({
+      defaults: { audioEnabled: true, videoEnabled: true },
+    });
+  const isCameraMuted = !userChoices.videoEnabled;
+  const isMicMuted = !userChoices.audioEnabled;
 
   useEffect(() => {
     setSelectedCoach(coach ?? (hideCoachSelection ? undefined : "sana"));
@@ -391,9 +396,9 @@ export function CustomPreJoin({
       videoRef={videoRef}
       videoTrack={videoTrack}
       onAudioDeviceChange={handleAudioDeviceChange}
-      onCameraMuteToggle={() => setIsCameraMuted((v) => !v)}
+      onCameraMuteToggle={() => saveVideoInputEnabled(isCameraMuted)}
       onJoin={handleJoin}
-      onMicMuteToggle={() => setIsMicMuted((v) => !v)}
+      onMicMuteToggle={() => saveAudioInputEnabled(isMicMuted)}
       onRequestPermission={requestPermission}
       onVideoDeviceChange={handleVideoDeviceChange}
     />

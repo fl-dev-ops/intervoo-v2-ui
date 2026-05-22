@@ -1,5 +1,6 @@
 "use client";
 
+import { loadUserChoices } from "@livekit/components-core";
 import {
   RoomAudioRenderer,
   SessionProvider,
@@ -19,6 +20,7 @@ import {
   Track,
 } from "livekit-client";
 import { motion, type Variants } from "motion/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
@@ -108,14 +110,17 @@ export function DiagnosticsAgentSession({
     if (session.connectionState !== ConnectionState.Disconnected) return;
 
     hasStartedRef.current = true;
+    const savedChoices = loadUserChoices();
     console.info("[diagnostics] live session starting", {
+      cameraEnabled: savedChoices.videoEnabled,
+      microphoneEnabled: savedChoices.audioEnabled,
       roundId: roundId ?? null,
       sessionId,
     });
     void session.start({
       tracks: {
-        microphone: { enabled: true },
-        camera: { enabled: true },
+        microphone: { enabled: savedChoices.audioEnabled },
+        camera: { enabled: savedChoices.videoEnabled },
       },
     });
   }, [roundId, session, sessionId]);
@@ -144,6 +149,7 @@ function SessionLayout({
   jobTitle?: string;
   coach?: string;
 }) {
+  const router = useRouter();
   const session = useSessionContext();
   const agent = useAgent();
   const { messages } = useSessionMessages(session);
@@ -179,10 +185,10 @@ function SessionLayout({
 
       hasNavigatedRef.current = true;
       flushSync(() => setGuardActive(false));
-      console.info("[diagnostics] agent disconnected; navigating to complete", {
+      console.info("[diagnostics] agent disconnected; navigating to rounds", {
         sessionId,
       });
-      window.location.href = `/diagnostics/round-complete?session_id=${encodeURIComponent(sessionId)}`;
+      router.push("/diagnostics/rounds");
     };
 
     session.room.on(RoomEvent.ParticipantDisconnected, handleAgentDisconnected);
@@ -193,7 +199,7 @@ function SessionLayout({
         handleAgentDisconnected,
       );
     };
-  }, [session.room, sessionId]);
+  }, [session.room, sessionId, router]);
 
   useEffect(() => {
     const agentMessages = messages.filter(
@@ -245,7 +251,7 @@ function SessionLayout({
       body: JSON.stringify({ sessionId }),
     }).catch(() => {});
 
-    window.location.href = `/diagnostics/round-complete?session_id=${encodeURIComponent(sessionId)}`;
+    router.push("/diagnostics/rounds");
   };
 
   const roundConfig = roundId ? getRoundConfig(roundId) : undefined;
