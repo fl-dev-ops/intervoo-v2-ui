@@ -55,7 +55,6 @@ model User {
   interviewSessions   InterviewSession[]
   diagnostics         Diagnostic[]
 
-  @@unique([email])
   @@map("user")
 }
 
