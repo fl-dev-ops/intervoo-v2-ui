@@ -139,9 +139,7 @@ export function isDiagnosticRoundReportProcessing<
 
   const reportStatus = getRoundReportStatus(round);
 
-  return (
-    !isDiagnosticRoundReadyForProgression(round) && reportStatus !== "FAILED"
-  );
+  return reportStatus === "PROCESSING";
 }
 
 export function countProgressableDiagnosticRounds<
