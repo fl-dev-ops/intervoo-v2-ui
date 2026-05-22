@@ -25,6 +25,19 @@ export async function completeInterviewSessionById(sessionId: string) {
       where: { sessionId, status: "STARTED" },
       data: { status: "COMPLETED" },
     });
+
+    const existingReport = await prisma.report.findUnique({
+      where: { sessionId },
+    });
+    if (!existingReport) {
+      await prisma.report.create({
+        data: {
+          sessionId,
+          status: "PROCESSING",
+          startedAt: new Date(),
+        },
+      });
+    }
   }
 
   console.info("[diagnostics] session completed by id", {
@@ -62,6 +75,19 @@ export async function completeInterviewSessionByRoom(roomName: string) {
       where: { sessionId: session.id, status: "STARTED" },
       data: { status: "COMPLETED" },
     });
+
+    const existingReport = await prisma.report.findUnique({
+      where: { sessionId: session.id },
+    });
+    if (!existingReport) {
+      await prisma.report.create({
+        data: {
+          sessionId: session.id,
+          status: "PROCESSING",
+          startedAt: new Date(),
+        },
+      });
+    }
   }
 
   console.info("[diagnostics] session completed by room", {
