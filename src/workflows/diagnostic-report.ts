@@ -211,7 +211,6 @@ async function generateDiagnosticReportStep(
 
     return buildDiagnosticReportResult(
       generation.schema.parse(JSON.parse(result.text)),
-      generation.questions,
     );
   } catch (error) {
     const status = getErrorStatus(error);

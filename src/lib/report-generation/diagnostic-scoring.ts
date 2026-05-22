@@ -1,4 +1,3 @@
-import type { DiagnosticQuestionType } from "./diagnostic-activity";
 import type {
   DiagnosticAssessmentResult,
   DiagnosticConfidenceLevel,
@@ -7,8 +6,6 @@ import type {
   DiagnosticThinkingLevel,
   SalaryBandLabel,
 } from "./diagnostic-report.types";
-
-export type QuestionTypeMap = Map<string, DiagnosticQuestionType[]>;
 
 // Normalize rubric labels to a 1-5 scale first, then convert to percent for output.
 const CEFR_SCORE_MAP: Record<DiagnosticLanguageLevel, number> = {
@@ -147,31 +144,18 @@ export function scoreLanguage(
   return conservativeMode(scores);
 }
 
-export function scoreQuestion(
-  response: DiagnosticQuestionResponse,
-  questionTypeMap: QuestionTypeMap,
-) {
-  const questionTypes = questionTypeMap.get(response.question_id) ?? [];
-  const applicableScores: number[] = [];
+export function scoreQuestion(response: DiagnosticQuestionResponse) {
+  const scores = [
+    scoreThinkingDimensions(response.thinking_levels),
+    scoreConfidenceDimensions(response.confidence_levels),
+    scoreLanguage(response.language_levels),
+  ];
 
-  if (questionTypes.includes("Thinking")) {
-    applicableScores.push(scoreThinkingDimensions(response.thinking_levels));
-  }
-  if (questionTypes.includes("Confidence")) {
-    applicableScores.push(
-      scoreConfidenceDimensions(response.confidence_levels),
-    );
-  }
-  if (questionTypes.includes("Language")) {
-    applicableScores.push(scoreLanguage(response.language_levels));
-  }
-
-  return average(applicableScores);
+  return average(scores);
 }
 
 export function scoreAssessment(
   questionResponses: DiagnosticQuestionResponse[],
-  questionTypeMap: QuestionTypeMap,
 ): DiagnosticAssessmentResult {
   if (!questionResponses.length) {
     return {
@@ -187,21 +171,16 @@ export function scoreAssessment(
   }
 
   const questionScores = questionResponses.map((response) =>
-    scoreQuestion(response, questionTypeMap),
+    scoreQuestion(response),
   );
 
-  const getResponsesForType = (type: DiagnosticQuestionType) =>
-    questionResponses.filter((response) =>
-      (questionTypeMap.get(response.question_id) ?? []).includes(type),
-    );
-
-  const thinkingScores = getResponsesForType("Thinking").map((response) =>
+  const thinkingScores = questionResponses.map((response) =>
     scoreThinkingDimensions(response.thinking_levels),
   );
-  const confidenceScores = getResponsesForType("Confidence").map((response) =>
+  const confidenceScores = questionResponses.map((response) =>
     scoreConfidenceDimensions(response.confidence_levels),
   );
-  const languageScores = getResponsesForType("Language").map((response) =>
+  const languageScores = questionResponses.map((response) =>
     scoreLanguage(response.language_levels),
   );
 

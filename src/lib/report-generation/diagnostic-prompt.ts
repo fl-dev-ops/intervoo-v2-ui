@@ -139,11 +139,8 @@ Important rules:
 - Never return empty arrays for required fields.
 - For language_levels, return ONLY exact CEFR labels: Pre-A1, A1, A2, B1, B2, C1, or C2.
 - Never return rubric labels such as L1, L2, L3, L4, L5, or mixed labels like "L3 (B1)".
-- For each question_response, include ONLY criteria and reasons that match that question's types from "Confirmed asked questions".
-- Omit non-applicable fields entirely (do not send null or empty placeholders).
-- Include concise reasons for every included criterion label.
-- For Thinking questions, return thinking_levels with dimension keys only: Relevance, Specificity, Reasoning, JobCompetency.
-- For Confidence questions, return confidence_levels with dimension keys only: Volume, Pace, Pause, Latency.
+- For every question, assess and return ALL three dimension sets: thinking_levels, confidence_levels, and language_levels, regardless of the question's primary type.
+- Include concise reasons for every dimension key in the matching reasoning sub-object.
 - Do not return holistic thinking_level or confidence_level fields.
 
 Diagnostic conversation goal:
@@ -155,20 +152,20 @@ Confirmed asked questions:
 ${askedQuestions}
 
 Scoring framework:
-- question_type can include one or more of: Language, Thinking, Confidence
-- thinking_levels per dimension (when Thinking applies): Relevance, Specificity, Reasoning, JobCompetency using TF1 to TF5
-- confidence_levels per dimension (when Confidence applies): Volume, Pace, Pause, Latency using VCP1 to VCP4
-- language_levels per dimension (when Language applies): Fluency, Grammar, Range, Coherence, Interaction using Pre-A1, A1, A2, B1, B2, C1, or C2
+- question_type indicates the primary focus of the question, but you must assess ALL three dimensions for every question.
+- thinking_levels per dimension: Relevance, Specificity, Reasoning, JobCompetency using TF1 to TF5
+- confidence_levels per dimension: Volume, Pace, Pause, Latency using VCP1 to VCP4
+- language_levels per dimension: Fluency, Grammar, Range, Coherence, Interaction using Pre-A1, A1, A2, B1, B2, C1, or C2
 - Return labels/tags only; do not return numeric scores or salary fields.
 
-CRITICAL — Field inclusion rules per question:
-- Check each question's types in "Confirmed asked questions" above.
-- If "Thinking" is listed: include thinking_levels (object with dimension keys) and reasoning.thinking (object with matching dimension keys).
-- If "Confidence" is listed: include confidence_levels (object with dimension keys) and reasoning.confidence (object with matching dimension keys).
-- If "Language" is listed: include language_levels (object with dimension keys) and reasoning.language (object with matching dimension keys).
-- If a question has MULTIPLE types (e.g., [Thinking, Language]), include fields for ALL listed types and omit fields for unlisted types.
-- Do NOT include fields for types that are NOT listed for that question.
-- For every dimension key you include in *_levels, include a matching concise reasoning string for the same dimension.
+CRITICAL — Every question must include ALL of the following:
+- thinking_levels (object with keys: Relevance, Specificity, Reasoning, JobCompetency)
+- confidence_levels (object with keys: Volume, Pace, Pause, Latency)
+- language_levels (object with keys: Fluency, Grammar, Range, Coherence, Interaction)
+- reasoning.thinking (object with matching dimension keys and concise reasons)
+- reasoning.confidence (object with matching dimension keys and concise reasons)
+- reasoning.language (object with matching dimension keys and concise reasons)
+- For every dimension key in *_levels, include a matching concise reasoning string.
 
 Use this rubric to assign thinking_levels dimensions:
 ${THINKING_RUBRIC_TEXT}

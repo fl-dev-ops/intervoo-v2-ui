@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import type { DiagnosticQuestion } from "./diagnostic-activity";
 import { buildDiagnosticReportPrompt } from "./diagnostic-prompt";
 import type {
   DiagnosticReportJson,
@@ -8,7 +7,6 @@ import type {
 import {
   buildDiagnosticTranscriptPromptText,
   createDiagnosticReportGenerationSchema,
-  createQuestionTypeMap,
   parseDiagnosticStoredReportJson,
 } from "./diagnostic-schema";
 import { scoreAssessment } from "./diagnostic-scoring";
@@ -107,18 +105,11 @@ export async function prepareDiagnosticReportGeneration(sessionId: string) {
   };
 }
 
-export function buildDiagnosticReportResult(
-  generatedReport: unknown,
-  questions: DiagnosticQuestion[],
-) {
-  const storedReport = parseDiagnosticStoredReportJson(
-    generatedReport,
-    questions,
-  );
+export function buildDiagnosticReportResult(generatedReport: unknown) {
+  const storedReport = parseDiagnosticStoredReportJson(generatedReport);
 
   const scoringResult = scoreAssessment(
     storedReport.assessment_result.question_responses,
-    createQuestionTypeMap(questions),
   );
 
   const hydratedReport: DiagnosticReportJson = {
