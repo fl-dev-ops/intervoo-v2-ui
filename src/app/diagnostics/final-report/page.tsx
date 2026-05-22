@@ -7,7 +7,10 @@ import {
   saveFinalDiagnosticReport,
 } from "@/lib/diagnostics/final-report";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
-import { isDiagnosticReportReady } from "@/lib/diagnostics/rules";
+import {
+  isDiagnosticReportReady,
+  isDiagnosticRoundStuckOrFailed,
+} from "@/lib/diagnostics/rules";
 import { updateUserStage } from "@/lib/progress";
 import {
   getHydratedReportFromMetadata,
@@ -71,6 +74,16 @@ export default async function DiagnosticsFinalReportPage() {
       }
     }
 
+    const isFailed = dbRound
+      ? isDiagnosticRoundStuckOrFailed({
+          roundType: dbRound.roundType,
+          status: dbRound.status,
+          startedAt: dbRound.session?.startedAt ?? null,
+          reportStatus: dbRound.session?.report?.status ?? null,
+          reportStartedAt: dbRound.session?.report?.startedAt ?? null,
+        })
+      : false;
+
     return {
       roundNumber,
       roundType: config.id,
@@ -78,6 +91,7 @@ export default async function DiagnosticsFinalReportPage() {
       hasReport: false as const,
       shareToken: roundReport?.shareToken ?? null,
       report: null,
+      isFailed,
     };
   });
 
@@ -139,6 +153,7 @@ export default async function DiagnosticsFinalReportPage() {
       backLabel="Back to rounds"
       bandConfig={bandConfig}
       focusedRoundNumber={readyRounds[0]?.roundNumber ?? 1}
+      isOwner={true}
       overallScore={overallScore}
       preferredName={preferredName}
       rounds={rounds}

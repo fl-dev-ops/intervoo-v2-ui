@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/auth-client";
 import type { DiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
@@ -58,6 +59,7 @@ export type PublicRoundData =
       hasReport: false;
       shareToken: string | null;
       report: null;
+      isFailed: boolean;
     };
 
 export type PublicDiagnosticReportProps = {
@@ -65,6 +67,7 @@ export type PublicDiagnosticReportProps = {
   backLabel?: string;
   bandConfig: DiagnosticBandConfig | undefined;
   focusedRoundNumber: number;
+  isOwner: boolean;
   overallScore: number | null;
   preferredName: string | null;
   rounds: PublicRoundData[];
@@ -79,6 +82,7 @@ export function PublicDiagnosticReport({
   backLabel,
   bandConfig,
   focusedRoundNumber,
+  isOwner,
   overallScore,
   preferredName: _preferredName,
   rounds,
@@ -114,7 +118,7 @@ export function PublicDiagnosticReport({
             {activeRound?.hasReport ? (
               <RoundDetailView round={activeRound} />
             ) : activeRound ? (
-              <RoundStartCard round={activeRound} />
+              <RoundStartCard round={activeRound} isOwner={isOwner} />
             ) : null}
           </section>
         </div>
@@ -703,9 +707,13 @@ function getFirstReasoning(values: Array<string | undefined>) {
 
 function RoundStartCard({
   round,
+  isOwner,
 }: {
   round: PublicRoundData & { hasReport: false };
+  isOwner: boolean;
 }) {
+  const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState(false);
   const config = DIAGNOSTIC_ROUNDS[round.roundNumber - 1];
   const roundName = config?.title ?? `Round ${round.roundNumber}`;
 
@@ -739,13 +747,26 @@ function RoundStartCard({
             </div>
           </div>
 
-          <a
+          <button
             className="col-span-2 w-full rounded-full bg-button px-10 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 md:col-span-1 md:ml-auto inline-flex items-center justify-center gap-2"
-            href={`/diagnostics/prejoin?round=${round.roundType}`}
+            disabled={isNavigating}
+            type="button"
+            onClick={() => {
+              setIsNavigating(true);
+              router.push(`/diagnostics/prejoin?round=${round.roundType}`);
+            }}
           >
-            <Play className="mr-1 size-3 fill-current" />
-            Start Round {round.roundNumber}
-          </a>
+            {isNavigating ? (
+              <Spinner className="size-4" />
+            ) : (
+              <Play className="mr-1 size-3 fill-current" />
+            )}
+            {isNavigating
+              ? "Starting..."
+              : isOwner && round.isFailed
+                ? `Retry Round ${round.roundNumber}`
+                : `Start Round ${round.roundNumber}`}
+          </button>
         </div>
       )}
     </div>

@@ -5,7 +5,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getDiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
-import { isDiagnosticReportReady } from "@/lib/diagnostics/rules";
+import {
+  isDiagnosticReportReady,
+  isDiagnosticRoundStuckOrFailed,
+} from "@/lib/diagnostics/rules";
 import {
   getHydratedReportFromMetadata,
   toHydratedDiagnosticReport,
@@ -90,6 +93,16 @@ export default async function PublicDiagnosticReportPage({
       }
     }
 
+    const isFailed = dbRound
+      ? isDiagnosticRoundStuckOrFailed({
+          roundType: dbRound.roundType,
+          status: dbRound.status,
+          startedAt: dbRound.session?.startedAt ?? null,
+          reportStatus: dbRound.session?.report?.status ?? null,
+          reportStartedAt: dbRound.session?.report?.startedAt ?? null,
+        })
+      : false;
+
     return {
       roundNumber,
       roundType: config.id,
@@ -97,6 +110,7 @@ export default async function PublicDiagnosticReportPage({
       hasReport: false as const,
       shareToken: report?.shareToken ?? null,
       report: null,
+      isFailed,
     };
   });
 
@@ -131,6 +145,7 @@ export default async function PublicDiagnosticReportPage({
     <PublicDiagnosticReport
       bandConfig={bandConfig}
       focusedRoundNumber={focusedRoundNumber}
+      isOwner={isOwner}
       overallScore={overallScore}
       preferredName={preferredName}
       rounds={rounds}
