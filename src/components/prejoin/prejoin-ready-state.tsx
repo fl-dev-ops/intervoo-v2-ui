@@ -103,7 +103,7 @@ export function PreJoinReadyState({
                   muted
                   playsInline
                   className={cn(
-                    "h-full w-full object-cover",
+                    "h-full w-full object-cover scale-x-[-1]",
                     isCameraMuted && "hidden",
                   )}
                 />
