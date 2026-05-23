@@ -7,30 +7,30 @@ import type {
   SalaryBandLabel,
 } from "./diagnostic-report.types";
 
-// Normalize rubric labels to a 1-5 scale first, then convert to percent for output.
+// Normalize rubric labels to a 1-3 scale, then convert to percent for output.
 const CEFR_SCORE_MAP: Record<DiagnosticLanguageLevel, number> = {
   "Pre-A1": 1,
   A1: 1,
-  A2: 2,
+  A2: 1,
   B1: 2,
   B2: 3,
-  C1: 4,
-  C2: 5,
+  C1: 3,
+  C2: 3,
 };
 
 const THINKING_SCORE_MAP: Record<DiagnosticThinkingLevel, number> = {
   TF1: 1,
-  TF2: 2,
-  TF3: 3,
-  TF4: 4,
-  TF5: 5,
+  TF2: 1,
+  TF3: 2,
+  TF4: 3,
+  TF5: 3,
 };
 
 const CONFIDENCE_SCORE_MAP: Record<DiagnosticConfidenceLevel, number> = {
   VCP1: 1,
-  VCP2: 2.33,
-  VCP3: 3.67,
-  VCP4: 5,
+  VCP2: 1,
+  VCP3: 2,
+  VCP4: 3,
 };
 
 const SALARY_CONFIG = {
@@ -73,8 +73,8 @@ function round(value: number, decimals: number) {
   return Math.round(value * factor) / factor;
 }
 
-function score1To5AsPercent(score: number) {
-  return (score / 5) * 100;
+function score1To3AsPercent(score: number) {
+  return (score / 3) * 100;
 }
 
 export function getSalaryBandForScore(totalScore: number): SalaryBandLabel {
@@ -184,14 +184,14 @@ export function scoreAssessment(
     scoreLanguage(response.language_levels),
   );
 
-  const totalScore1To5 = average(questionScores);
-  const thinkingAvg1To5 = average(thinkingScores);
-  const confidenceAvg1To5 = average(confidenceScores);
-  const languageAvg1To5 = average(languageScores);
-  const totalScore = score1To5AsPercent(totalScore1To5);
-  const thinkingAvg = score1To5AsPercent(thinkingAvg1To5);
-  const confidenceAvg = score1To5AsPercent(confidenceAvg1To5);
-  const languageAvg = score1To5AsPercent(languageAvg1To5);
+  const totalScore1To3 = average(questionScores);
+  const thinkingAvg1To3 = average(thinkingScores);
+  const confidenceAvg1To3 = average(confidenceScores);
+  const languageAvg1To3 = average(languageScores);
+  const totalScore = score1To3AsPercent(totalScore1To3);
+  const thinkingAvg = score1To3AsPercent(thinkingAvg1To3);
+  const confidenceAvg = score1To3AsPercent(confidenceAvg1To3);
+  const languageAvg = score1To3AsPercent(languageAvg1To3);
   const salaryLpa =
     SALARY_CONFIG.minLpa +
     (totalScore / 100) * (SALARY_CONFIG.maxLpa - SALARY_CONFIG.minLpa);
