@@ -19,10 +19,10 @@ export function DiagnosticsJobHeader({
         <div className="col-span-1 md:col-span-6 flex-1 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="font-semibold tracking-tight text-xl md:text-[26px] md:mb-2">
+              <h1 className="font-semibold tracking-tight text-xl md:text-[26px] mb-2">
                 {bandConfig?.title ?? "SDE at Product companies"}
               </h1>
-              <p className="mt-2 text-sm md:text-[15px] text-muted-foreground leading-6 md:mb-4">
+              <p className="mt-2 text-sm md:text-[15px] text-muted-foreground leading-6 mb-4">
                 {bandConfig?.description ??
                   "Problem solving, behavioural communication, and technical fundamentals expected in growing product companies."}
               </p>

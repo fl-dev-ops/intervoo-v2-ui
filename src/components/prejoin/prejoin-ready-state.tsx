@@ -115,7 +115,7 @@ export function PreJoinReadyState({
                   </div>
                 )}
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/40 backdrop-blur-sm rounded-full overflow-hidden px-3 h-13">
-                  <Button
+                  {/*<Button
                     type="button"
                     onClick={onCameraMuteToggle}
                     className="flex-1 bg-transparent flex size-9 items-center justify-center text-white transition hover:bg-transparent rounded-full"
@@ -125,7 +125,7 @@ export function PreJoinReadyState({
                     ) : (
                       <Video className="size-6" />
                     )}
-                  </Button>
+                  </Button>*/}
                   <Button
                     type="button"
                     onClick={onMicMuteToggle}
