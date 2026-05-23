@@ -166,6 +166,8 @@ function SessionLayout({
   const hasNavigatedRef = useRef(false);
   const isEndingRef = useRef(false);
   const [guardActive, setGuardActive] = useState(true);
+  const [showOverlay, setShowOverlay] = useState(true);
+  const [countdown, setCountdown] = useState(5);
 
   const cameraTrack = useMemo<TrackReference | undefined>(() => {
     if (!cameraPublication) return undefined;
@@ -228,6 +230,30 @@ function SessionLayout({
         .length,
     [messages],
   );
+
+  // Countdown timer for connecting overlay
+  useEffect(() => {
+    if (!showOverlay) return;
+
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [showOverlay]);
+
+  // Hide overlay when agent starts speaking
+  useEffect(() => {
+    if (agent.state === "speaking" || agent.state === "failed") {
+      setShowOverlay(false);
+    }
+  }, [agent.state]);
 
   const promptEndSession = () => {
     setEndDialogMode(conversationMessageCount >= 8 ? "confirm" : "need-more");
@@ -407,6 +433,42 @@ function SessionLayout({
             </div>
           )}
         </motion.div>
+
+        {/* Connecting overlay */}
+        {showOverlay && (
+          <motion.div
+            className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-[#1B1238]"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="text-center space-y-6">
+              <div>
+                <h2 className="text-lg font-semibold text-white">{jobTitle}</h2>
+                {roundConfig && (
+                  <p className="text-sm text-white/60">
+                    {roundConfig.eyebrow} · {roundConfig.title}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-base text-white/80">
+                Connecting to {agentName}..
+              </p>
+
+              <div className="text-7xl font-bold text-white">{countdown}</div>
+
+              <div className="w-48 h-1.5 mx-auto bg-white/20 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-[#6C47FF] rounded-full"
+                  initial={{ width: "100%" }}
+                  animate={{ width: `${(countdown / 5) * 100}%` }}
+                  transition={{ duration: 1, ease: "linear" }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
     </SessionExitGuard>
   );
