@@ -15,6 +15,10 @@ import {
   buildDiagnosticReportResult,
   prepareDiagnosticReportGeneration,
 } from "@/lib/report-generation/diagnostic";
+import {
+  buildDiagnosticSheetRows,
+  postRowsToReportSheet,
+} from "@/lib/report-sheet-sync";
 import { createUniquePublicReportToken } from "@/lib/report-share";
 import { buildPublicReportUrl } from "@/lib/share-token";
 import { sendWhatsAppReportLink } from "@/lib/twilio";
@@ -50,6 +54,7 @@ export async function generateDiagnosticSessionReportWorkflow(
       uploadedFiles,
     );
     const persisted = await persistDiagnosticReportStep(sessionId, generated);
+    await syncDiagnosticReportToSheetStep(sessionId);
     await sendDiagnosticReportLinkStep(
       sessionId,
       baseUrl,
@@ -364,6 +369,64 @@ async function persistDiagnosticReportStep(
   });
 
   return { sessionId, shareToken, status: "READY" };
+}
+
+async function syncDiagnosticReportToSheetStep(sessionId: string) {
+  "use step";
+
+  try {
+    const report = await prisma.report.findUnique({
+      where: { sessionId },
+      include: {
+        session: {
+          include: {
+            user: { select: { name: true } },
+            diagnosticRound: {
+              include: {
+                diagnostic: { select: { selectedBand: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!report?.reportJson) {
+      console.warn("[report-sync] report missing or empty; skipping", {
+        sessionId,
+      });
+      return;
+    }
+
+    const session = report.session;
+    const round = session.diagnosticRound;
+    const scoring = (report.metadata as { scoring?: { salary_band?: string } } | null)
+      ?.scoring;
+
+    const rows = buildDiagnosticSheetRows({
+      studentName: session.user.name,
+      sessionId: report.sessionId,
+      band: round?.diagnostic?.selectedBand ?? null,
+      addedAt: (report.completedAt ?? report.createdAt).toISOString(),
+      salaryRange: scoring?.salary_band ?? null,
+      audioUrl: session.audioUrl,
+      videoUrl: session.videoUrl,
+      round: round?.roundNumber ?? null,
+      reportJson: report.reportJson,
+    });
+
+    await postRowsToReportSheet(rows);
+
+    console.info("[report-sync] synced diagnostic report to sheet", {
+      rowCount: rows.length,
+      sessionId,
+    });
+  } catch (error) {
+    console.error("[report-sync] non-fatal sheet sync failure", {
+      error: error instanceof Error ? error.message : String(error),
+      sessionId,
+    });
+  }
 }
 
 async function sendDiagnosticReportLinkStep(
