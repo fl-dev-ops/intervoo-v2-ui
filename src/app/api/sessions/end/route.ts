@@ -15,7 +15,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as { sessionId?: string };
+    const body = (await request.json()) as {
+      sessionId?: string;
+      userTurnCount?: number;
+    };
 
     if (!body.sessionId) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await completeInterviewSessionById(body.sessionId);
+    await completeInterviewSessionById(body.sessionId, body.userTurnCount);
 
     console.info("[diagnostics] end-session completed", {
       sessionId: body.sessionId,

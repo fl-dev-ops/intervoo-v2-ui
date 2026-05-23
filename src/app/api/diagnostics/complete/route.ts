@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json()) as {
       sessionId?: string;
+      userTurnCount?: number;
       transcript?: {
         messages?: ReportTranscriptMessage[];
         turns?: ReportTranscriptMessage[];
@@ -84,11 +85,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (!interviewSession.report) {
+      const hasInsufficientTurns =
+        body.userTurnCount != null && body.userTurnCount < 4;
       await prisma.report.create({
         data: {
           sessionId: interviewSession.id,
-          status: "PENDING",
+          status: hasInsufficientTurns ? "FAILED" : "PENDING",
           startedAt: new Date(),
+          errorMessage: hasInsufficientTurns
+            ? "Diagnostic report is unavailable because no relevant answers were provided"
+            : null,
         },
       });
     }

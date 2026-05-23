@@ -5,6 +5,26 @@ import { prisma } from "@/lib/db";
 import { generateDiagnosticSessionReportWorkflow } from "@/workflows/diagnostic-report";
 import { generatePrediagnosticSessionReportWorkflow } from "@/workflows/prediagnostic-report";
 
+const INSUFFICIENT_SPEECH_ERROR =
+  "Diagnostic report is unavailable because no relevant answers were provided";
+
+function countUserTurns(transcript: unknown): number {
+  if (
+    !transcript ||
+    typeof transcript !== "object" ||
+    Array.isArray(transcript)
+  ) {
+    return 0;
+  }
+  const obj = transcript as Record<string, unknown>;
+  const messages = (obj.messages ?? obj.turns) as
+    | Array<Record<string, unknown>>
+    | undefined;
+  if (!Array.isArray(messages)) return 0;
+  return messages.filter((m) => m.role === "user" || m.role === "student")
+    .length;
+}
+
 const secret = process.env.REPORT_WEBHOOK_SECRET;
 
 export async function POST(request: NextRequest) {
@@ -79,6 +99,43 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.WEBHOOK_BASE_URL || request.nextUrl.origin;
 
     if (session.type === "DIAGNOSTIC_ROUND") {
+      const userTurnCount = countUserTurns(body.transcript);
+      console.info("[diagnostics] report webhook user turn count", {
+        userTurnCount,
+        sessionId: session.id,
+      });
+
+      if (userTurnCount < 4) {
+        if (!session.report) {
+          await prisma.report.create({
+            data: {
+              sessionId: session.id,
+              status: "FAILED",
+              startedAt: new Date(),
+              errorMessage: INSUFFICIENT_SPEECH_ERROR,
+            },
+          });
+        } else {
+          await prisma.report.update({
+            where: { sessionId: session.id },
+            data: {
+              status: "FAILED",
+              errorMessage: INSUFFICIENT_SPEECH_ERROR,
+            },
+          });
+        }
+
+        console.info("[diagnostics] report webhook insufficient turns", {
+          sessionId: session.id,
+          userTurnCount,
+        });
+
+        return NextResponse.json({
+          success: true,
+          result: "skipped_insufficient_turns",
+        });
+      }
+
       const run = await start(generateDiagnosticSessionReportWorkflow, [
         session.id,
         baseUrl,

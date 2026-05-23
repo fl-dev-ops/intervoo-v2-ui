@@ -99,6 +99,7 @@ function DiagnosticsVideoRoom({
   const [isEnding, setIsEnding] = useState(false);
   const lastSpeakerRef = useRef<string | null>(null);
   const turnCountRef = useRef(0);
+  const userTurnCountRef = useRef(0);
 
   const {
     isOpen: dialogOpen,
@@ -151,6 +152,9 @@ function DiagnosticsVideoRoom({
       if (speakerId !== lastSpeakerRef.current) {
         lastSpeakerRef.current = speakerId;
         turnCountRef.current += 1;
+        if (speakerId === room.localParticipant?.identity) {
+          userTurnCountRef.current += 1;
+        }
       }
     };
 
@@ -186,7 +190,10 @@ function DiagnosticsVideoRoom({
     await fetch(completeEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId }),
+      body: JSON.stringify({
+        sessionId,
+        userTurnCount: userTurnCountRef.current,
+      }),
     }).catch(() => {});
     window.location.href = redirectUrl;
   }, [completeEndpoint, redirectUrl, room, sessionId]);

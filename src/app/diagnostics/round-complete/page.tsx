@@ -15,6 +15,7 @@ const ROUND_DISPLAY_TITLES: Record<string, string> = {
 const INSUFFICIENT_SPEECH_PATTERNS = [
   "no relevant answers were provided",
   "no transcript is available",
+  "no relevant answers",
 ] as const;
 
 export default async function DiagnosticsRoundCompletePage({

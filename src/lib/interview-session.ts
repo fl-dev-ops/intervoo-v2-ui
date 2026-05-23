@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/db";
 
-export async function completeInterviewSessionById(sessionId: string) {
+const INSUFFICIENT_SPEECH_ERROR =
+  "Diagnostic report is unavailable because no relevant answers were provided";
+
+export async function completeInterviewSessionById(
+  sessionId: string,
+  userTurnCount?: number,
+) {
   const existingSession = await prisma.interviewSession.findUnique({
     where: { id: sessionId },
   });
@@ -10,6 +16,7 @@ export async function completeInterviewSessionById(sessionId: string) {
     foundSession: Boolean(existingSession),
     sessionId,
     sessionType: existingSession?.type ?? null,
+    userTurnCount: userTurnCount ?? null,
   });
 
   const session = await prisma.interviewSession.update({
@@ -30,11 +37,13 @@ export async function completeInterviewSessionById(sessionId: string) {
       where: { sessionId },
     });
     if (!existingReport) {
+      const hasInsufficientTurns = userTurnCount != null && userTurnCount < 4;
       await prisma.report.create({
         data: {
           sessionId,
-          status: "PROCESSING",
+          status: hasInsufficientTurns ? "FAILED" : "PROCESSING",
           startedAt: new Date(),
+          errorMessage: hasInsufficientTurns ? INSUFFICIENT_SPEECH_ERROR : null,
         },
       });
     }
@@ -49,7 +58,10 @@ export async function completeInterviewSessionById(sessionId: string) {
   return session;
 }
 
-export async function completeInterviewSessionByRoom(roomName: string) {
+export async function completeInterviewSessionByRoom(
+  roomName: string,
+  userTurnCount?: number,
+) {
   const existingSession = await prisma.interviewSession.findUnique({
     where: { roomName },
   });
@@ -60,6 +72,7 @@ export async function completeInterviewSessionByRoom(roomName: string) {
     roomName,
     sessionId: existingSession?.id ?? null,
     sessionType: existingSession?.type ?? null,
+    userTurnCount: userTurnCount ?? null,
   });
 
   const session = await prisma.interviewSession.update({
@@ -80,11 +93,13 @@ export async function completeInterviewSessionByRoom(roomName: string) {
       where: { sessionId: session.id },
     });
     if (!existingReport) {
+      const hasInsufficientTurns = userTurnCount != null && userTurnCount < 4;
       await prisma.report.create({
         data: {
           sessionId: session.id,
-          status: "PROCESSING",
+          status: hasInsufficientTurns ? "FAILED" : "PROCESSING",
           startedAt: new Date(),
+          errorMessage: hasInsufficientTurns ? INSUFFICIENT_SPEECH_ERROR : null,
         },
       });
     }

@@ -222,6 +222,13 @@ function SessionLayout({
     [messages],
   );
 
+  const userTurnCount = useMemo(
+    () =>
+      messages.filter((msg) => !!msg.message?.trim() && msg.from?.isLocal)
+        .length,
+    [messages],
+  );
+
   const promptEndSession = () => {
     setEndDialogMode(conversationMessageCount >= 8 ? "confirm" : "need-more");
     setEndDialogOpen(true);
@@ -248,7 +255,7 @@ function SessionLayout({
     await fetch("/api/sessions/end", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId }),
+      body: JSON.stringify({ sessionId, userTurnCount }),
     }).catch(() => {});
 
     router.push("/diagnostics/rounds");
@@ -257,7 +264,7 @@ function SessionLayout({
   const roundConfig = roundId ? getRoundConfig(roundId) : undefined;
   const agentName = coach
     ? coach.charAt(0).toUpperCase() + coach.slice(1)
-    : "Sara";
+    : "Sana";
 
   return (
     <SessionExitGuard active={guardActive} onExitAttempt={promptEndSession}>
@@ -360,7 +367,7 @@ function SessionLayout({
           <CustomAgentControlBar
             controls={{
               microphone: true,
-              camera: true,
+              camera: false,
               leave: true,
             }}
             isConnected={session.isConnected}
