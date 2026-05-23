@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
 import { buttonVariants } from "@/components/ui/button";
 import { type CoachOption, coachCards } from "@/lib/coaches";
@@ -25,12 +25,21 @@ export function DiagnosticsIntro({
   const selectedCoach =
     coachCards.find((item) => item.value === coach) ?? coachCards[0];
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [orbState, setOrbState] = useState<"idle" | "speaking">("idle");
 
   useEffect(() => {
     router.prefetch(START_HREF);
 
     const audio = audioRef.current;
     if (!audio) return;
+
+    const handlePlay = () => setOrbState("speaking");
+    const handleEnded = () => setOrbState("idle");
+    const handlePause = () => setOrbState("idle");
+
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("pause", handlePause);
 
     audio.currentTime = 0;
     const timeoutId = window.setTimeout(() => {
@@ -41,6 +50,9 @@ export function DiagnosticsIntro({
 
     return () => {
       window.clearTimeout(timeoutId);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("pause", handlePause);
       audio.pause();
       audio.currentTime = 0;
     };
@@ -79,7 +91,7 @@ export function DiagnosticsIntro({
                 className="h-[230px] md:h-64"
                 color="#a78bfa"
                 colorShift={0.6}
-                state="thinking"
+                state={orbState}
                 themeMode="dark"
               />
             </div>
