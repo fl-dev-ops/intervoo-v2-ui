@@ -1,7 +1,12 @@
 type SheetCell = string | number;
 type SheetRow = SheetCell[];
 
-export const REPORT_SHEET_COLUMN_COUNT = 35;
+export const REPORT_SHEET_COLUMN_COUNT = 36;
+
+function deriveTranscriptUrl(audioUrl: string | null): string {
+  if (!audioUrl) return "";
+  return audioUrl.replace(/audio\.mp3$/i, "transcript.json");
+}
 
 interface DiagnosticSheetRowContext {
   studentName: string;
@@ -33,15 +38,15 @@ interface QuestionResponseShape {
 /**
  * Flattens a diagnostic report's question_responses into sheet rows.
  *
- * Layout (35 cols, no gaps):
- *   A–H  session metadata — populated ONLY on the first question's row
- *   I    Question ID
- *   J–N  Language levels (Fluency, Grammar, Coherence, Interaction, Range)
- *   O–R  Thinking levels (Relevance, Specificity, Reasoning, Job competency)
- *   S–V  Confidence levels (Pace, Pause, Volume, Latency)
- *   W–AA Language rationales (Fluency, Grammar, Coherence, Interaction, Range)
- *   AB–AE Thinking rationales (Relevance, Specificity, Reasoning, Job competency)
- *   AF–AI Confidence rationales (Pace, Pause, Volume, Latency)
+ * Layout (36 cols, no gaps):
+ *   A–I   session metadata — populated ONLY on the first question's row
+ *   J     Question ID
+ *   K–O   Language levels (Fluency, Grammar, Coherence, Interaction, Range)
+ *   P–S   Thinking levels (Relevance, Specificity, Reasoning, Job competency)
+ *   T–W   Confidence levels (Pace, Pause, Volume, Latency)
+ *   X–AB  Language rationales (Fluency, Grammar, Coherence, Interaction, Range)
+ *   AC–AF Thinking rationales (Relevance, Specificity, Reasoning, Job competency)
+ *   AG–AJ Confidence rationales (Pace, Pause, Volume, Latency)
  */
 export function buildDiagnosticSheetRows(
   ctx: DiagnosticSheetRowContext,
@@ -69,35 +74,36 @@ export function buildDiagnosticSheetRows(
       isFirst ? ctx.addedAt : "",                     // D  Added At
       isFirst ? (ctx.salaryRange ?? "") : "",         // E  Salary Range
       isFirst ? (ctx.audioUrl ?? "") : "",            // F  Audio URL
-      isFirst ? (ctx.videoUrl ?? "") : "",            // G  Video URL
-      isFirst ? (ctx.round ?? "") : "",               // H  Round
-      qr.question_id ?? "",                           // I  Question ID
-      lang.Fluency ?? "",                             // J  Fluency
-      lang.Grammar ?? "",                             // K  Grammar
-      lang.Coherence ?? "",                           // L  Coherence
-      lang.Interaction ?? "",                         // M  Interaction
-      lang.Range ?? "",                               // N  Range
-      think.Relevance ?? "",                          // O  Relevance
-      think.Specificity ?? "",                        // P  Specificity
-      think.Reasoning ?? "",                          // Q  Reasoning
-      think.JobCompetency ?? "",                      // R  Job competency
-      conf.Pace ?? "",                                // S  Pace
-      conf.Pause ?? "",                               // T  Pause
-      conf.Volume ?? "",                              // U  Volume
-      conf.Latency ?? "",                             // V  Latency
-      rLang.Fluency ?? "",                            // W  Fluency Rationale
-      rLang.Grammar ?? "",                            // X  Grammar Rationale
-      rLang.Coherence ?? "",                          // Y  Coherence Rationale
-      rLang.Interaction ?? "",                        // Z  Interaction Rationale
-      rLang.Range ?? "",                              // AA Range Rationale
-      rThink.Relevance ?? "",                         // AB Relevance Rationale
-      rThink.Specificity ?? "",                       // AC Specificity Rationale
-      rThink.Reasoning ?? "",                         // AD Reasoning Rationale
-      rThink.JobCompetency ?? "",                     // AE Job competency Rationale
-      rConf.Pace ?? "",                               // AF Pace Rationale
-      rConf.Pause ?? "",                              // AG Pause Rationale
-      rConf.Volume ?? "",                             // AH Volume Rationale
-      rConf.Latency ?? "",                            // AI Latency Rationale
+      isFirst ? deriveTranscriptUrl(ctx.audioUrl) : "", // G  Transcript URL
+      isFirst ? (ctx.videoUrl ?? "") : "",            // H  Video URL
+      isFirst ? (ctx.round ?? "") : "",               // I  Round
+      qr.question_id ?? "",                           // J  Question ID
+      lang.Fluency ?? "",                             // K  Fluency
+      lang.Grammar ?? "",                             // L  Grammar
+      lang.Coherence ?? "",                           // M  Coherence
+      lang.Interaction ?? "",                         // N  Interaction
+      lang.Range ?? "",                               // O  Range
+      think.Relevance ?? "",                          // P  Relevance
+      think.Specificity ?? "",                        // Q  Specificity
+      think.Reasoning ?? "",                          // R  Reasoning
+      think.JobCompetency ?? "",                      // S  Job competency
+      conf.Pace ?? "",                                // T  Pace
+      conf.Pause ?? "",                               // U  Pause
+      conf.Volume ?? "",                              // V  Volume
+      conf.Latency ?? "",                             // W  Latency
+      rLang.Fluency ?? "",                            // X  Fluency Rationale
+      rLang.Grammar ?? "",                            // Y  Grammar Rationale
+      rLang.Coherence ?? "",                          // Z  Coherence Rationale
+      rLang.Interaction ?? "",                        // AA Interaction Rationale
+      rLang.Range ?? "",                              // AB Range Rationale
+      rThink.Relevance ?? "",                         // AC Relevance Rationale
+      rThink.Specificity ?? "",                       // AD Specificity Rationale
+      rThink.Reasoning ?? "",                         // AE Reasoning Rationale
+      rThink.JobCompetency ?? "",                     // AF Job competency Rationale
+      rConf.Pace ?? "",                               // AG Pace Rationale
+      rConf.Pause ?? "",                              // AH Pause Rationale
+      rConf.Volume ?? "",                             // AI Volume Rationale
+      rConf.Latency ?? "",                            // AJ Latency Rationale
     ];
   });
 }
