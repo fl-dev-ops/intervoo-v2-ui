@@ -187,10 +187,13 @@ function SessionLayout({
 
       hasNavigatedRef.current = true;
       flushSync(() => setGuardActive(false));
-      console.info("[diagnostics] agent disconnected; navigating to rounds", {
-        sessionId,
-      });
-      router.push("/diagnostics/rounds");
+      console.info(
+        "[diagnostics] agent disconnected; navigating to round complete",
+        {
+          sessionId,
+        },
+      );
+      router.push(`/diagnostics/round-complete?session_id=${sessionId}`);
     };
 
     session.room.on(RoomEvent.ParticipantDisconnected, handleAgentDisconnected);
@@ -284,7 +287,7 @@ function SessionLayout({
       body: JSON.stringify({ sessionId, userTurnCount }),
     }).catch(() => {});
 
-    router.push("/diagnostics/rounds");
+    router.push(`/diagnostics/round-complete?session_id=${sessionId}`);
   };
 
   const roundConfig = roundId ? getRoundConfig(roundId) : undefined;
