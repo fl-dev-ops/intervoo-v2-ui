@@ -16,7 +16,7 @@ export type DiagnosticPromptContext = {
 
 const PRE_DIAGNOSTIC_RUBRIC = `You are an extraction and analysis engine for Intervoo, an AI-powered career readiness platform for Indian college students.
 
-Your job is to review a conversation between Sana, an AI voice agent, and a student, then extract structured information about the student's job plans. You must also classify the student's level of job awareness based on the conversation.
+Your job is to review a conversation between Sara, an AI voice agent, and a student, then extract structured information about the student's job plans. You must also classify the student's level of job awareness based on the conversation.
 
 Student profile:
 Name: {name}

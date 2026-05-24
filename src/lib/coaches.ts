@@ -1,9 +1,9 @@
-export type CoachOption = "sana" | "arjun";
+export type CoachOption = "Sara" | "arjun";
 
 export const coachCards = [
   {
-    value: "sana",
-    title: "Sana",
+    value: "Sara",
+    title: "Sara",
     imageSrc: "/agent/sara.png",
     tint: "#b8b25b",
   },

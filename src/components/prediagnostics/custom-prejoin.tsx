@@ -41,7 +41,7 @@ export function CustomPreJoin({
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState<CoachOption | undefined>(
-    coach ?? (hideCoachSelection ? undefined : "sana"),
+    coach ?? (hideCoachSelection ? undefined : "Sara"),
   );
   const { userChoices, saveAudioInputEnabled, saveVideoInputEnabled } =
     usePersistentUserChoices({
@@ -51,7 +51,7 @@ export function CustomPreJoin({
   const isMicMuted = !userChoices.audioEnabled;
 
   useEffect(() => {
-    setSelectedCoach(coach ?? (hideCoachSelection ? undefined : "sana"));
+    setSelectedCoach(coach ?? (hideCoachSelection ? undefined : "Sara"));
   }, [coach, hideCoachSelection]);
 
   // Audio devices

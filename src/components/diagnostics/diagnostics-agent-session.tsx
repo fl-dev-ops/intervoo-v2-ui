@@ -293,7 +293,7 @@ function SessionLayout({
   const roundConfig = roundId ? getRoundConfig(roundId) : undefined;
   const agentName = coach
     ? coach.charAt(0).toUpperCase() + coach.slice(1)
-    : "Sana";
+    : "Sara";
 
   return (
     <SessionExitGuard active={guardActive} onExitAttempt={promptEndSession}>

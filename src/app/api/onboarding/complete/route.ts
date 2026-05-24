@@ -49,7 +49,7 @@ function getValidationError(body: Record<string, string>) {
   }
   if (!body.nativeLanguage?.trim()) return "Comfort language is required";
   if (!body.englishLevel?.trim()) return "English level is required";
-  if (body.coach && body.coach !== "sana" && body.coach !== "arjun") {
+  if (body.coach && body.coach !== "Sara" && body.coach !== "arjun") {
     return "Coach selection is invalid";
   }
   if (
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       coach,
     } = body;
     const displayName = preferredName.trim() || firstName.trim();
-    const selectedCoach = coach === "arjun" ? "arjun" : "sana";
+    const selectedCoach = coach === "arjun" ? "arjun" : "Sara";
 
     await prisma.$transaction([
       prisma.user.update({

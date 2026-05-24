@@ -39,7 +39,7 @@ const DIAGNOSTIC_QUESTION_BAND_BY_SELECTED_BAND = {
 } as const;
 const COACH_AGENT_DETAILS = {
   arjun: { name: "Arjun", voice: "rahul" },
-  sana: { name: "Sana", voice: "ishita" },
+  Sara: { name: "Sara", voice: "ishita" },
 } as const;
 
 type ConnectionDetailsBody = {
@@ -48,7 +48,7 @@ type ConnectionDetailsBody = {
   video_device_id?: string;
   interaction_mode?: "ptt" | "auto";
   retry_code?: unknown;
-  coach?: "sana" | "arjun";
+  coach?: "Sara" | "arjun";
   round_id?: unknown;
 };
 
@@ -175,7 +175,7 @@ async function createPrediagnosticConnectionDetails({
       ? "arjun"
       : user.profile?.coach === "arjun"
         ? "arjun"
-        : "sana";
+        : "Sara";
   const agentDetails = COACH_AGENT_DETAILS[coach];
   const speakingSpeed = getSpeakingSpeed(user.profile?.speakingSpeed);
 
@@ -434,7 +434,7 @@ async function createDiagnosticConnectionDetails({
       ? "arjun"
       : user.profile?.coach === "arjun"
         ? "arjun"
-        : "sana";
+        : "Sara";
   const agentDetails = COACH_AGENT_DETAILS[coach];
   const speakingSpeed = getSpeakingSpeed(user.profile?.speakingSpeed);
   const voice = agentDetails.voice;

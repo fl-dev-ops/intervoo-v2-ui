@@ -72,7 +72,7 @@ type OnboardingForm = {
   academyName: string;
   nativeLanguage?: NativeLanguage;
   englishLevel?: EnglishLevel;
-  coach: "sana" | "arjun";
+  coach: "Sara" | "arjun";
 };
 
 type FieldErrors = Partial<Record<keyof OnboardingForm, string>>;
@@ -143,7 +143,7 @@ const initialForm: OnboardingForm = {
   academyName: "",
   nativeLanguage: undefined,
   englishLevel: undefined,
-  coach: "sana",
+  coach: "Sara",
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

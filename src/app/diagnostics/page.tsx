@@ -41,7 +41,7 @@ export default async function DiagnosticsPage() {
   });
 
   const coach =
-    profile?.coach === "arjun" || profile?.coach === "sana"
+    profile?.coach === "arjun" || profile?.coach === "Sara"
       ? (profile.coach as CoachOption)
       : null;
 
