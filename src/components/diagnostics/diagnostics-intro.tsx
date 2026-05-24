@@ -88,7 +88,7 @@ export function DiagnosticsIntro({
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.24),transparent_58%)]" />
             <div className="absolute inset-0 flex items-center justify-center pt-12 md:pt-0">
               <AgentAudioVisualizerAura
-                className="h-[230px] md:h-64"
+                className="h-57.5 md:h-64"
                 color="#a78bfa"
                 colorShift={0.6}
                 state={orbState}
@@ -97,7 +97,7 @@ export function DiagnosticsIntro({
             </div>
           </div>
 
-          <div className="flex flex-1 flex-col px-6 pb-6 pt-6 md:rounded-r-[2rem] md:bg-white md:p-8">
+          <div className="flex flex-1 flex-col px-6 pb-20 pt-6 md:rounded-r-[2rem] md:bg-white md:p-8">
             <div className="space-y-4">
               <MessageBubble delayMs={MESSAGE_DELAYS_MS[0]}>
                 Hi {displayName}, I&apos;m {selectedCoach.title} your
@@ -114,7 +114,7 @@ export function DiagnosticsIntro({
               </MessageBubble>
             </div>
 
-            <div className="mt-auto pt-8 md:hidden">
+            <div className="fixed bottom-0 z-20 -mx-6 mt-auto  px-6 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 md:hidden w-full">
               <Link
                 className={buttonVariants({
                   className:
@@ -128,7 +128,7 @@ export function DiagnosticsIntro({
           </div>
         </section>
 
-        <div className="mt-6 hidden justify-center md:flex">
+        <div className=" mt-6 hidden justify-center md:flex">
           <Link
             className={buttonVariants({
               className:

@@ -86,6 +86,15 @@ export function CustomPreJoin({
     }
   }, [audioDevices, activeAudioDeviceId, setActiveAudioDevice]);
 
+  const hasAudioDevice =
+    audioDevices.length > 0 && Boolean(activeAudioDeviceId);
+  const canJoin = permissionState === "granted" && hasAudioDevice;
+  const joinDisabledReason = getJoinDisabledReason({
+    hasAudioDevice,
+    isMicMuted,
+    permissionState,
+  });
+
   useEffect(() => {
     if (
       videoDevices.length > 0 &&
@@ -105,7 +114,7 @@ export function CustomPreJoin({
     {
       audio: false,
       video:
-        permissionState === "granted"
+        permissionState === "granted" && videoDevices.length > 0
           ? {
               deviceId:
                 activeVideoDeviceId && activeVideoDeviceId !== "default"
@@ -148,36 +157,50 @@ export function CustomPreJoin({
 
     async function check() {
       try {
-        if (navigator.permissions) {
-          try {
-            const status = await navigator.permissions.query({
-              name: "camera" as PermissionName,
-            });
-            if (cancelled) return;
-
-            if (status.state === "granted") {
-              setPermissionState("granted");
-            } else if (status.state === "denied") {
-              setPermissionState("denied");
-            } else {
-              setPermissionState("prompt");
-            }
-
-            status.onchange = () => {
-              if (status.state === "granted") {
-                setPermissionState("granted");
-                setDeviceError(null);
-              } else if (status.state === "denied") {
-                setPermissionState("denied");
-              }
-            };
-            return;
-          } catch {
-            // Some browsers don't support camera permission querying
-          }
+        if (!navigator.permissions) {
+          if (!cancelled) setPermissionState("prompt");
+          return;
         }
 
-        if (!cancelled) setPermissionState("prompt");
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const hasCameraDevice = devices.some(
+            (device) => device.kind === "videoinput",
+          );
+          const statuses = await Promise.all([
+            navigator.permissions.query({
+              name: "microphone" as PermissionName,
+            }),
+            hasCameraDevice
+              ? navigator.permissions.query({
+                  name: "camera" as PermissionName,
+                })
+              : Promise.resolve(null),
+          ]);
+
+          const updatePermissionState = () => {
+            if (cancelled) return;
+            const [microphoneStatus, cameraStatus] = statuses;
+            setPermissionState(
+              getCombinedPermissionState(microphoneStatus, cameraStatus),
+            );
+            if (
+              getCombinedPermissionState(microphoneStatus, cameraStatus) ===
+              "granted"
+            ) {
+              setDeviceError(null);
+            }
+          };
+
+          updatePermissionState();
+          statuses.forEach((status) => {
+            if (!status) return;
+            status.onchange = updatePermissionState;
+          });
+        } catch {
+          // Some browsers don't support media permission querying reliably.
+          if (!cancelled) setPermissionState("prompt");
+        }
       } catch {
         if (!cancelled) setPermissionState("prompt");
       }
@@ -189,21 +212,37 @@ export function CustomPreJoin({
     };
   }, []);
 
-  // Request microphone (and optionally camera) permission
+  // Request microphone and camera permission when a camera exists.
   const requestPermission = useCallback(async () => {
     setHasRequested(true);
     setDeviceError(null);
 
     try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasMicrophoneDevice = devices.some(
+        (device) => device.kind === "audioinput",
+      );
+      const hasCameraDevice = devices.some(
+        (device) => device.kind === "videoinput",
+      );
+
+      if (!hasMicrophoneDevice) {
+        throw new Error(
+          "No microphone found. Connect a microphone to start the interview.",
+        );
+      }
+
       const constraints: MediaStreamConstraints = {
         audio:
           activeAudioDeviceId && activeAudioDeviceId !== "default"
             ? { deviceId: { exact: activeAudioDeviceId } }
             : true,
         video:
-          activeVideoDeviceId && activeVideoDeviceId !== "default"
+          hasCameraDevice &&
+          activeVideoDeviceId &&
+          activeVideoDeviceId !== "default"
             ? { deviceId: { exact: activeVideoDeviceId } }
-            : true,
+            : hasCameraDevice,
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -238,6 +277,11 @@ export function CustomPreJoin({
   );
 
   const handleJoin = useCallback(async () => {
+    if (!canJoin) {
+      setDeviceError(joinDisabledReason);
+      return;
+    }
+
     setIsJoining(true);
     setDeviceError(null);
     console.info("[diagnostics] prejoin join clicked", {
@@ -340,19 +384,25 @@ export function CustomPreJoin({
   }, [
     activeAudioDeviceId,
     activeVideoDeviceId,
+    canJoin,
     flow,
+    joinDisabledReason,
     roundId,
     router,
     selectedCoach,
   ]);
 
   const selectedAudioLabel =
-    audioDevices.find((d) => d.deviceId === activeAudioDeviceId)?.label ||
-    "Select microphone";
+    audioDevices.length === 0
+      ? "No microphone found"
+      : audioDevices.find((d) => d.deviceId === activeAudioDeviceId)?.label ||
+        "Select microphone";
 
   const selectedVideoLabel =
-    videoDevices.find((d) => d.deviceId === activeVideoDeviceId)?.label ||
-    "Select camera";
+    videoDevices.length === 0
+      ? "No camera found"
+      : videoDevices.find((d) => d.deviceId === activeVideoDeviceId)?.label ||
+        "Select camera";
 
   if (permissionState === "checking") {
     return (
@@ -381,6 +431,7 @@ export function CustomPreJoin({
       activeAudioDeviceId={activeAudioDeviceId}
       activeVideoDeviceId={activeVideoDeviceId}
       audioDevices={audioDevices}
+      canJoin={canJoin}
       deviceError={deviceError}
       flow={flow}
       isCameraMuted={isCameraMuted}
@@ -390,6 +441,7 @@ export function CustomPreJoin({
       roundId={roundId}
       selectedAudioLabel={selectedAudioLabel}
       selectedVideoLabel={selectedVideoLabel}
+      joinDisabledReason={joinDisabledReason}
       showBackButton={flow !== "prediagnostics"}
       userName={userName}
       videoDevices={videoDevices}
@@ -403,4 +455,46 @@ export function CustomPreJoin({
       onVideoDeviceChange={handleVideoDeviceChange}
     />
   );
+}
+
+function getCombinedPermissionState(
+  microphoneStatus: PermissionStatus,
+  cameraStatus: PermissionStatus | null,
+): PermissionState {
+  if (microphoneStatus.state === "denied" || cameraStatus?.state === "denied") {
+    return "denied";
+  }
+
+  if (
+    microphoneStatus.state === "granted" &&
+    cameraStatus?.state !== "prompt"
+  ) {
+    return "granted";
+  }
+
+  return "prompt";
+}
+
+function getJoinDisabledReason({
+  hasAudioDevice,
+  isMicMuted,
+  permissionState,
+}: {
+  hasAudioDevice: boolean;
+  isMicMuted: boolean;
+  permissionState: PermissionState;
+}) {
+  if (permissionState !== "granted") {
+    return "Allow microphone and camera access to start the interview.";
+  }
+
+  if (!hasAudioDevice) {
+    return "No microphone found. Connect a microphone to start the interview.";
+  }
+
+  // if (isMicMuted) {
+  //   return "Turn on your microphone to start the interview.";
+  // }
+
+  return null;
 }

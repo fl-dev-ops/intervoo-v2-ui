@@ -34,7 +34,7 @@ export const DIAGNOSTIC_BANDS: DiagnosticBandConfig[] = [
   {
     id: "band3",
     label: "Band 3",
-    title: "SDE at FAANG companies",
+    title: "SDE at MAANG+ companies",
     salary: "₹20-40 LPA",
     description:
       "Advanced interviews that assess problem solving, system thinking, communication clarity, and depth of technical understanding.",

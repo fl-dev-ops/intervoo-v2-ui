@@ -1,7 +1,7 @@
 "use client";
 
 import type { LocalVideoTrack } from "livekit-client";
-import { Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { Mic, MicOff, Video } from "lucide-react";
 import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { LiveWaveform } from "@/components/ui/live-waveform";
@@ -29,11 +29,13 @@ interface PreJoinReadyStateProps {
   activeAudioDeviceId: string | undefined;
   activeVideoDeviceId: string | undefined;
   audioDevices: MediaDeviceInfo[];
+  canJoin: boolean;
   deviceError: string | null;
   flow?: FlowType;
   isCameraMuted: boolean;
   isJoining: boolean;
   isMicMuted: boolean;
+  joinDisabledReason: string | null;
   permissionState: PermissionState;
   roundId?: string;
   selectedAudioLabel: string;
@@ -55,11 +57,13 @@ export function PreJoinReadyState({
   activeAudioDeviceId,
   activeVideoDeviceId,
   audioDevices,
+  canJoin,
   deviceError,
   flow,
   isCameraMuted,
   isJoining,
   isMicMuted,
+  joinDisabledReason,
   permissionState,
   roundId,
   selectedAudioLabel,
@@ -70,7 +74,7 @@ export function PreJoinReadyState({
   videoRef,
   videoTrack,
   onAudioDeviceChange,
-  onCameraMuteToggle,
+  onCameraMuteToggle: _onCameraMuteToggle,
   onJoin,
   onMicMuteToggle,
   onRequestPermission,
@@ -128,8 +132,9 @@ export function PreJoinReadyState({
                   </Button>*/}
                   <Button
                     type="button"
+                    disabled={audioDevices.length === 0}
                     onClick={onMicMuteToggle}
-                    className="flex-1 bg-transparent flex size-9 items-center justify-center text-white  transition hover:bg-transparent rounded-full"
+                    className="flex-1 bg-transparent flex size-9 items-center justify-center text-white transition hover:bg-transparent rounded-full disabled:opacity-50"
                   >
                     {isMicMuted ? (
                       <MicOff className="size-6" />
@@ -146,6 +151,7 @@ export function PreJoinReadyState({
               <div className="col-span-1">
                 <Select
                   value={activeVideoDeviceId || ""}
+                  disabled={videoDevices.length === 0}
                   onValueChange={onVideoDeviceChange}
                 >
                   <SelectTrigger className="w-full">
@@ -168,6 +174,7 @@ export function PreJoinReadyState({
               <div className="col-span-1">
                 <Select
                   value={activeAudioDeviceId || ""}
+                  disabled={audioDevices.length === 0}
                   onValueChange={onAudioDeviceChange}
                 >
                   <SelectTrigger className="w-full">
@@ -221,7 +228,7 @@ export function PreJoinReadyState({
           {permissionState === "granted" ? (
             <Button
               className="mx-auto h-auto w-full rounded-full bg-button py-3"
-              disabled={isJoining}
+              disabled={isJoining || !canJoin}
               onClick={onJoin}
             >
               {isJoining ? (
@@ -243,6 +250,12 @@ export function PreJoinReadyState({
             </Button>
           )}
         </div>
+
+        {permissionState === "granted" && joinDisabledReason ? (
+          <p className="text-center text-sm font-medium text-destructive">
+            {joinDisabledReason}
+          </p>
+        ) : null}
 
         <PreJoinChecklist />
       </section>

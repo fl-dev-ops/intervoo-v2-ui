@@ -76,6 +76,7 @@ export default async function DiagnosticsRoundsPage() {
       sessionId: round.sessionId,
       startedAt: round.session?.startedAt?.toISOString() ?? null,
       reportStatus: report?.status ?? null,
+      reportErrorMessage: report?.errorMessage ?? null,
       reportJson: hydratedReport
         ? {
             assessment_result: {

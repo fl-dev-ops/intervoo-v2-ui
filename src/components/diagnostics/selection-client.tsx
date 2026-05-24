@@ -180,7 +180,7 @@ export function DiagnosticsSelectionClient({
                 </>
               ) : (
                 <>
-                  Start Diagnostic interview
+                  Continue Diagnostic interview
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}

@@ -20,7 +20,6 @@ import {
   canStartDiagnosticRound,
   isDiagnosticReportReady,
   isDiagnosticRoundReadyForProgression,
-  isDiagnosticRoundReportProcessing,
   isDiagnosticRoundStuckOrFailed,
 } from "@/lib/diagnostics/rules";
 import { cn } from "@/lib/utils";
@@ -34,6 +33,7 @@ type RoundData = {
   sessionId: string;
   startedAt: string | null;
   reportStatus: string | null;
+  reportErrorMessage: string | null;
   reportJson: unknown;
   reportShareToken: string | null;
   reportScore: number | null;
@@ -46,6 +46,17 @@ function isRoundCompleted(round: RoundData | undefined): boolean {
 
 function isRoundFailed(round: RoundData | undefined): boolean {
   return isDiagnosticRoundStuckOrFailed(round);
+}
+
+function isRoundReportPending(round: RoundData | undefined): boolean {
+  if (!round || isDiagnosticRoundReadyForProgression(round)) return false;
+  if (round.status !== "COMPLETED") return false;
+
+  return (
+    round.reportStatus === "PENDING" ||
+    round.reportStatus === "PROCESSING" ||
+    !round.reportStatus
+  );
 }
 
 export function DiagnosticsRoundsClient({
@@ -67,7 +78,7 @@ export function DiagnosticsRoundsClient({
 
   useEffect(() => {
     const hasPendingReports = initialRounds.some((round) =>
-      isDiagnosticRoundReportProcessing(round),
+      isRoundReportPending(round),
     );
 
     if (!hasPendingReports) {
@@ -88,6 +99,7 @@ export function DiagnosticsRoundsClient({
       reportsReadyCount,
       rounds: initialRounds.map((round) => ({
         reportScore: round.reportScore,
+        reportErrorMessage: round.reportErrorMessage,
         reportStatus: round.reportStatus,
         roundNumber: round.roundNumber,
         roundType: round.roundType,
@@ -142,8 +154,7 @@ export function DiagnosticsRoundsClient({
                 );
                 const isDone = isRoundCompleted(roundData);
                 const isFailed = isRoundFailed(roundData);
-                const isProcessing =
-                  isDiagnosticRoundReportProcessing(roundData);
+                const isProcessing = isRoundReportPending(roundData);
                 const isStarted =
                   Boolean(roundData) &&
                   roundData?.status === "STARTED" &&
@@ -231,6 +242,14 @@ function RoundTimelineItem({
     !isStarted &&
     !isProcessing;
   const isCurrent = canStart || isProcessing;
+  const failureReason = getReportFailureReason(
+    roundData?.reportErrorMessage ?? null,
+  );
+  const failureMessage =
+    failureReason === "insufficient_speech"
+      ? "We need a bit more from you. Please retake this round and answer a few questions so we can evaluate you properly."
+      : "We couldn't prepare this report. Please retry this round.";
+  const showQuestions = (canStart || isProcessing) && !isDone;
 
   return (
     <article className="relative grid grid-cols-[3rem_1fr] gap-x-2 md:gap-x-4 gap-y-2 md:gap-y-0">
@@ -292,24 +311,30 @@ function RoundTimelineItem({
                 : "border-white/10 bg-white/10",
           )}
         >
-          <h2
-            className={cn(
-              "text-lg font-semibold tracking-tight",
-              isCurrent ? "text-foreground" : "text-white/80",
-            )}
-          >
-            {config.title}
-          </h2>
-          <p
-            className={cn(
-              "mt-2 max-w-3xl text-sm leading-6",
-              isCurrent ? "text-muted-foreground" : "text-white/50",
-            )}
-          >
-            {config.description}
-          </p>
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <h2
+                className={cn(
+                  "text-lg font-semibold tracking-tight",
+                  isCurrent ? "text-foreground" : "text-white/80",
+                )}
+              >
+                {config.title}
+              </h2>
+              <p
+                className={cn(
+                  "mt-2 max-w-3xl text-sm leading-6",
+                  isCurrent ? "text-muted-foreground" : "text-white/50",
+                )}
+              >
+                {config.description}
+              </p>
+            </div>
 
-          {(canStart || isProcessing) && (
+            {isDone && roundData ? <RoundAction roundData={roundData} /> : null}
+          </div>
+
+          {showQuestions && (
             <div className="grid items-end gap-4 md:grid-cols-3">
               <div className="md:col-span-2">
                 <p className="mt-4 text-sm font-medium text-[#6B6B7A]">
@@ -327,9 +352,15 @@ function RoundTimelineItem({
                 </div>
               </div>
 
+              {isFailed ? (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium leading-6 text-amber-900 md:order-3 md:col-span-3">
+                  {failureMessage}
+                </p>
+              ) : null}
+
               {isProcessing ? (
-                <span className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-10 py-6 md:col-span-1 md:ml-auto text-xs font-medium text-white/70">
-                  <span className="size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                <span className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-10 py-6 text-xs font-medium text-purple-700 md:col-span-1 md:ml-auto">
+                  <span className="size-3 animate-spin rounded-full border-2 border-purple-200 border-t-purple-700" />
                   Report processing
                 </span>
               ) : (
@@ -358,10 +389,6 @@ function RoundTimelineItem({
                 Session in progress
               </span>
             </div>
-          )}
-
-          {isDone && roundData && (
-            <RoundAction isDone={isDone} roundData={roundData} />
           )}
         </div>
       </div>
@@ -453,27 +480,17 @@ function getRoundResult(score: number | null): {
   return { label: "Poor", className: "bg-[#C7433F]" };
 }
 
-function RoundAction({
-  isDone,
-  roundData,
-}: {
-  isDone: boolean;
-  roundData: RoundData;
-}) {
-  if (!isDone || !roundData) {
-    return null;
-  }
-
+function RoundAction({ roundData }: { roundData: RoundData }) {
   if (
     isDiagnosticReportReady(roundData.reportStatus) &&
     roundData.reportShareToken
   ) {
     return (
-      <div className="mt-4 flex justify-end">
+      <div className="flex shrink-0 justify-end">
         <a
           className={cn(
-            buttonVariants({ variant: "link" }),
-            "h-auto px-0 py-0 text-[#9C83FF] hover:text-[#B6A5FF]",
+            buttonVariants({ variant: "outline" }),
+            "h-10 rounded-full border-[#9C83FF]/40 bg-transparent px-5 text-[#9C83FF] hover:bg-[#9C83FF]/10 hover:text-[#B6A5FF]",
           )}
           href={`/d/${roundData.reportShareToken}`}
           rel="noopener noreferrer"
@@ -486,4 +503,19 @@ function RoundAction({
   }
 
   return null;
+}
+
+const INSUFFICIENT_SPEECH_PATTERNS = [
+  "no relevant answers were provided",
+  "no transcript is available",
+  "no relevant answers",
+] as const;
+
+function getReportFailureReason(errorMessage: string | null) {
+  const normalized = errorMessage?.toLowerCase() ?? "";
+  return INSUFFICIENT_SPEECH_PATTERNS.some((pattern) =>
+    normalized.includes(pattern),
+  )
+    ? "insufficient_speech"
+    : "generation_failed";
 }
