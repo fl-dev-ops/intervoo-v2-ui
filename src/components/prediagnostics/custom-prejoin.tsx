@@ -47,8 +47,16 @@ export function CustomPreJoin({
     usePersistentUserChoices({
       defaults: { audioEnabled: true, videoEnabled: true },
     });
-  const isCameraMuted = !userChoices.videoEnabled;
+  const forceCameraOn = flow === "diagnostics";
+  const isCameraMuted = forceCameraOn ? false : !userChoices.videoEnabled;
   const isMicMuted = !userChoices.audioEnabled;
+
+  // Force camera on for diagnostics — overwrite persisted preference
+  useEffect(() => {
+    if (forceCameraOn && !userChoices.videoEnabled) {
+      saveVideoInputEnabled(true);
+    }
+  }, [forceCameraOn, userChoices.videoEnabled, saveVideoInputEnabled]);
 
   useEffect(() => {
     setSelectedCoach(coach ?? (hideCoachSelection ? undefined : "Sara"));
