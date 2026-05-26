@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { getUserStage } from "@/lib/progress";
 import {
   buildReportTranscriptPromptText,
@@ -98,6 +99,18 @@ export async function POST(request: NextRequest) {
         },
       });
     }
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: session.user.id,
+      event: "diagnostic_session_completed",
+      properties: {
+        session_id: interviewSession.id,
+        round_type: interviewSession.diagnosticRound?.roundType ?? null,
+        round_number: interviewSession.diagnosticRound?.roundNumber ?? null,
+        user_turn_count: body.userTurnCount ?? null,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

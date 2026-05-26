@@ -7,6 +7,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { useState } from "react";
 import { DiagnosticsPageHeader } from "@/components/diagnostics/diagnostics-page-header";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,11 @@ export function DiagnosticsSelectionClient({
         throw new Error(payload?.error ?? "Failed to start diagnostics.");
       }
 
+      posthog.capture("diagnostic_band_selected", {
+        band: selectedOption.id,
+        job_title: selectedOption.title,
+        salary_range: selectedOption.salary,
+      });
       router.push("/diagnostics/rounds");
     } catch (startError) {
       console.info("[diagnostics] selection start failed", {

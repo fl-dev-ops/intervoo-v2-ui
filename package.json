@@ -16,6 +16,7 @@
     "@livekit/components-react": "^2.0.0",
     "@livekit/components-styles": "^1.2.0",
     "@openrouter/ai-sdk-provider": "^2.9.0",
+    "@posthog/next": "^0.4.63",
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@streamdown/cjk": "^1.0.3",

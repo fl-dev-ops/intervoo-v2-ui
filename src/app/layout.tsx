@@ -6,6 +6,8 @@ import { ThemeProvider } from "next-themes";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { PostHogProvider, PostHogPageView } from "@posthog/next";
+import { PostHogIdentify } from "@/components/posthog-identify";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -64,15 +66,19 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex h-dvh max-h-full flex-col overflow-hidden bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-        >
-          <TooltipProvider>
-            <ScrollArea className="min-h-0 flex-1">{children}</ScrollArea>
-          </TooltipProvider>
-        </ThemeProvider>
+        <PostHogProvider clientOptions={{ api_host: "/ingest" }}>
+          <PostHogPageView />
+          <PostHogIdentify />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+          >
+            <TooltipProvider>
+              <ScrollArea className="min-h-0 flex-1">{children}</ScrollArea>
+            </TooltipProvider>
+          </ThemeProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

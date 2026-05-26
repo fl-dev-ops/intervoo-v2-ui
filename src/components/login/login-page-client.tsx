@@ -1,5 +1,6 @@
 "use client";
 
+import posthog from "posthog-js";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -81,6 +82,9 @@ export function LoginPageClient() {
     setOtp("");
     setStep("otp");
     startCooldown();
+    posthog.capture("login_otp_requested", {
+      phone_number: toE164PhoneNumber(phone),
+    });
     return true;
   }
 
@@ -114,6 +118,16 @@ export function LoginPageClient() {
         return;
       }
 
+      const e164Phone = toE164PhoneNumber(phone);
+      const { data: session } = await authClient.getSession();
+      if (session?.user) {
+        posthog.identify(session.user.id, {
+          name: session.user.name,
+          email: session.user.email,
+          phone_number: session.user.phoneNumber,
+        });
+      }
+      posthog.capture("login_completed", { phone_number: e164Phone });
       setStep("success");
     } catch {
       setError("Something went wrong while verifying the code.");

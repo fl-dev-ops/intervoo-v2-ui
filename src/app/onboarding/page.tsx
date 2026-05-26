@@ -2,6 +2,7 @@
 
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -635,6 +636,12 @@ function OnboardingSubmitButton(props: {
         throw new Error("Failed to complete onboarding");
       }
 
+      posthog.capture("onboarding_completed", {
+        native_language: props.form.nativeLanguage,
+        english_level: props.form.englishLevel,
+        placement_preparation: props.form.placementPreparation,
+        coach: props.form.coach,
+      });
       router.push("/diagnostics");
     } catch (submitError) {
       setError(

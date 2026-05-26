@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { getUserStage } from "@/lib/progress";
 
 const onboardingSchema = {
@@ -172,6 +173,32 @@ export async function POST(request: NextRequest) {
         },
       }),
     ]);
+
+    const posthog = getPostHogClient();
+    posthog.identify({
+      distinctId: session.user.id,
+      properties: {
+        name: `${firstName} ${lastName}`.trim(),
+        email,
+        phone_number: session.user.phoneNumber,
+        institution,
+        degree,
+        native_language: nativeLanguage,
+        english_level: englishLevel,
+        placement_preparation: placementPreparation,
+        coach: selectedCoach,
+      },
+    });
+    posthog.capture({
+      distinctId: session.user.id,
+      event: "onboarding_completed",
+      properties: {
+        native_language: nativeLanguage,
+        english_level: englishLevel,
+        placement_preparation: placementPreparation,
+        coach: selectedCoach,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
