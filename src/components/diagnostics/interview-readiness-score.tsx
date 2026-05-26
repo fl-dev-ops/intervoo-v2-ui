@@ -1,8 +1,7 @@
 "use client";
 
-import type { ComponentPropsWithoutRef } from "react";
 import dynamic from "next/dynamic";
-import { IconBrandWhatsapp } from "@tabler/icons-react";
+import type { ComponentPropsWithoutRef } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -19,7 +18,7 @@ type Segment = {
   key: "noHire" | "hold" | "hire" | "strongHire";
   label: string;
   range: string;
-  // Normalized gauge limits (each segment = 25 units) so all arcs are equal size
+  // Normalized gauge limits keep the four visual bands equal-sized.
   gaugeLimit: number;
   min: number;
   max: number;
@@ -28,8 +27,10 @@ type Segment = {
 };
 
 const EMPTY_COLOR = "#d1d5db";
-// Gauge operates on 0–100 with 4 equal segments of 25 each
+// Gauge operates on 0-100 with four equal visual segments of 25 each.
 const GAUGE_MAX = 100;
+const SEGMENT_SIZE = 25;
+const SEGMENT_INSET = 2;
 
 const SEGMENTS: Segment[] = [
   {
@@ -81,12 +82,21 @@ function getSegment(score: number): Segment {
   return SEGMENTS[SEGMENTS.length - 1];
 }
 
-// Map real score (0–100) → normalized gauge value (0–100 across 4 equal segments)
+// Map a ratio (0-1) within a visual segment, accounting for padding gaps.
+function mapWithinVisualSegment(ratio: number, segmentIndex: number): number {
+  const start = segmentIndex * SEGMENT_SIZE + SEGMENT_INSET;
+  const end = (segmentIndex + 1) * SEGMENT_SIZE - SEGMENT_INSET;
+  return start + ratio * (end - start);
+}
+
+// Map real score thresholds into equal visual gauge segments, adjusted for arc padding.
 function toGaugeValue(score: number): number {
-  if (score <= 50) return (score / 50) * 25;
-  if (score <= 70) return 25 + ((score - 50) / 20) * 25;
-  if (score <= 90) return 50 + ((score - 70) / 20) * 25;
-  return 75 + ((score - 90) / 10) * 25;
+  if (score <= 0) return 0;
+  if (score >= 100) return 100;
+  if (score <= 50) return mapWithinVisualSegment(score / 50, 0);
+  if (score <= 70) return mapWithinVisualSegment((score - 50) / 20, 1);
+  if (score <= 90) return mapWithinVisualSegment((score - 70) / 20, 2);
+  return mapWithinVisualSegment((score - 90) / 10, 3);
 }
 
 export function InterviewReadinessScore({
@@ -135,17 +145,26 @@ export function InterviewReadinessScore({
             subArcs,
           }}
           pointer={{
-            type: "arrow",
-            color: "#312e81",
-            length: 0.5,
-            width: 10,
-            baseColor: "#f5f3f7",
-            elastic: true,
-            animationDelay: 0,
+            type: "needle",
+            color: "#412790",
+            length: 0.7,
+            width: 8,
+            maxFps: 30,
+            elastic: false,
             hide: !hasScore,
+            baseColor: "#412790",
           }}
           labels={{
-            valueLabel: { hide: true },
+            valueLabel: {
+              formatTextValue: () =>
+                hasScore ? `${clampedScore}/${maxScore}` : `--/${maxScore}`,
+              style: {
+                fontSize: "40px",
+                fill: "#111",
+                fontWeight: "800",
+                textShadow: "none",
+              },
+            },
             tickLabels: {
               hideMinMax: true,
               defaultTickValueConfig: {
@@ -159,20 +178,6 @@ export function InterviewReadinessScore({
             },
           }}
         />
-
-        <div className="pointer-events-none absolute inset-x-0 -bottom-1 flex items-baseline justify-center">
-          <span
-            className={cn(
-              "text-lg font-extrabold text-foreground tabular-nums",
-              hasScore && "text-4xl",
-            )}
-          >
-            {hasScore ? clampedScore : "--"}
-          </span>
-          <span className="text-xl font-bold text-muted-foreground tabular-nums">
-            /{maxScore}
-          </span>
-        </div>
 
         {SEGMENTS.map((seg, i) => {
           const positions = [
