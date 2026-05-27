@@ -15,11 +15,11 @@ import {
   buildDiagnosticReportResult,
   prepareDiagnosticReportGeneration,
 } from "@/lib/report-generation/diagnostic";
+import { createUniquePublicReportToken } from "@/lib/report-share";
 import {
   buildDiagnosticSheetRows,
   postRowsToReportSheet,
 } from "@/lib/report-sheet-sync";
-import { createUniquePublicReportToken } from "@/lib/report-share";
 import { buildPublicReportUrl } from "@/lib/share-token";
 import { sendWhatsAppReportLink } from "@/lib/twilio";
 
@@ -54,7 +54,7 @@ export async function generateDiagnosticSessionReportWorkflow(
       uploadedFiles,
     );
     const persisted = await persistDiagnosticReportStep(sessionId, generated);
-    await syncDiagnosticReportToSheetStep(sessionId);
+    await syncDiagnosticReportToSheetStep(sessionId, baseUrl);
     await sendDiagnosticReportLinkStep(
       sessionId,
       baseUrl,
@@ -371,7 +371,10 @@ async function persistDiagnosticReportStep(
   return { sessionId, shareToken, status: "READY" };
 }
 
-async function syncDiagnosticReportToSheetStep(sessionId: string) {
+async function syncDiagnosticReportToSheetStep(
+  sessionId: string,
+  baseUrl: string,
+) {
   "use step";
 
   try {
@@ -400,8 +403,12 @@ async function syncDiagnosticReportToSheetStep(sessionId: string) {
 
     const session = report.session;
     const round = session.diagnosticRound;
-    const scoring = (report.metadata as { scoring?: { salary_band?: string } } | null)
-      ?.scoring;
+    const scoring = (
+      report.metadata as { scoring?: { salary_band?: string } } | null
+    )?.scoring;
+    const reportUrl = report.shareToken
+      ? buildPublicReportUrl(baseUrl, report.shareToken, "diag")
+      : null;
 
     const rows = buildDiagnosticSheetRows({
       studentName: session.user.name,
@@ -412,6 +419,7 @@ async function syncDiagnosticReportToSheetStep(sessionId: string) {
       audioUrl: session.audioUrl,
       videoUrl: session.videoUrl,
       round: round?.roundNumber ?? null,
+      reportUrl,
       reportJson: report.reportJson,
     });
 

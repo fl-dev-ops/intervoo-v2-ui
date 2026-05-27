@@ -1,7 +1,7 @@
 type SheetCell = string | number;
 type SheetRow = SheetCell[];
 
-export const REPORT_SHEET_COLUMN_COUNT = 36;
+export const REPORT_SHEET_COLUMN_COUNT = 37;
 
 function deriveTranscriptUrl(audioUrl: string | null): string {
   if (!audioUrl) return "";
@@ -17,6 +17,7 @@ interface DiagnosticSheetRowContext {
   audioUrl: string | null;
   videoUrl: string | null;
   round: number | null;
+  reportUrl: string | null;
   reportJson: unknown;
 }
 
@@ -38,22 +39,22 @@ interface QuestionResponseShape {
 /**
  * Flattens a diagnostic report's question_responses into sheet rows.
  *
- * Layout (36 cols, no gaps):
- *   A–I   session metadata — populated ONLY on the first question's row
- *   J     Question ID
- *   K–O   Language levels (Fluency, Grammar, Coherence, Interaction, Range)
- *   P–S   Thinking levels (Relevance, Specificity, Reasoning, Job competency)
- *   T–W   Confidence levels (Pace, Pause, Volume, Latency)
- *   X–AB  Language rationales (Fluency, Grammar, Coherence, Interaction, Range)
- *   AC–AF Thinking rationales (Relevance, Specificity, Reasoning, Job competency)
- *   AG–AJ Confidence rationales (Pace, Pause, Volume, Latency)
+ * Layout (37 cols, no gaps):
+ *   A–J   session metadata — populated ONLY on the first question's row
+ *   K     Question ID
+ *   L–P   Language levels (Fluency, Grammar, Coherence, Interaction, Range)
+ *   Q–T   Thinking levels (Relevance, Specificity, Reasoning, Job competency)
+ *   U–X   Confidence levels (Pace, Pause, Volume, Latency)
+ *   Y–AC  Language rationales (Fluency, Grammar, Coherence, Interaction, Range)
+ *   AD–AG Thinking rationales (Relevance, Specificity, Reasoning, Job competency)
+ *   AH–AK Confidence rationales (Pace, Pause, Volume, Latency)
  */
 export function buildDiagnosticSheetRows(
   ctx: DiagnosticSheetRowContext,
 ): SheetRow[] {
-  const report = ctx.reportJson as
-    | { assessment_result?: { question_responses?: QuestionResponseShape[] } }
-    | null;
+  const report = ctx.reportJson as {
+    assessment_result?: { question_responses?: QuestionResponseShape[] };
+  } | null;
 
   const responses = report?.assessment_result?.question_responses ?? [];
   if (!responses.length) return [];
@@ -68,42 +69,43 @@ export function buildDiagnosticSheetRows(
     const rConf = qr.reasoning?.confidence ?? {};
 
     return [
-      isFirst ? ctx.studentName : "",                 // A  Student name
-      isFirst ? ctx.sessionId : "",                   // B  Session ID
-      isFirst ? (ctx.band ?? "") : "",                // C  Band
-      isFirst ? ctx.addedAt : "",                     // D  Added At
-      isFirst ? (ctx.salaryRange ?? "") : "",         // E  Salary Range
-      isFirst ? (ctx.audioUrl ?? "") : "",            // F  Audio URL
+      isFirst ? ctx.studentName : "", // A  Student name
+      isFirst ? ctx.sessionId : "", // B  Session ID
+      isFirst ? (ctx.band ?? "") : "", // C  Band
+      isFirst ? ctx.addedAt : "", // D  Added At
+      isFirst ? (ctx.salaryRange ?? "") : "", // E  Salary Range
+      isFirst ? (ctx.audioUrl ?? "") : "", // F  Audio URL
       isFirst ? deriveTranscriptUrl(ctx.audioUrl) : "", // G  Transcript URL
-      isFirst ? (ctx.videoUrl ?? "") : "",            // H  Video URL
-      isFirst ? (ctx.round ?? "") : "",               // I  Round
-      qr.question_id ?? "",                           // J  Question ID
-      lang.Fluency ?? "",                             // K  Fluency
-      lang.Grammar ?? "",                             // L  Grammar
-      lang.Coherence ?? "",                           // M  Coherence
-      lang.Interaction ?? "",                         // N  Interaction
-      lang.Range ?? "",                               // O  Range
-      think.Relevance ?? "",                          // P  Relevance
-      think.Specificity ?? "",                        // Q  Specificity
-      think.Reasoning ?? "",                          // R  Reasoning
-      think.JobCompetency ?? "",                      // S  Job competency
-      conf.Pace ?? "",                                // T  Pace
-      conf.Pause ?? "",                               // U  Pause
-      conf.Volume ?? "",                              // V  Volume
-      conf.Latency ?? "",                             // W  Latency
-      rLang.Fluency ?? "",                            // X  Fluency Rationale
-      rLang.Grammar ?? "",                            // Y  Grammar Rationale
-      rLang.Coherence ?? "",                          // Z  Coherence Rationale
-      rLang.Interaction ?? "",                        // AA Interaction Rationale
-      rLang.Range ?? "",                              // AB Range Rationale
-      rThink.Relevance ?? "",                         // AC Relevance Rationale
-      rThink.Specificity ?? "",                       // AD Specificity Rationale
-      rThink.Reasoning ?? "",                         // AE Reasoning Rationale
-      rThink.JobCompetency ?? "",                     // AF Job competency Rationale
-      rConf.Pace ?? "",                               // AG Pace Rationale
-      rConf.Pause ?? "",                              // AH Pause Rationale
-      rConf.Volume ?? "",                             // AI Volume Rationale
-      rConf.Latency ?? "",                            // AJ Latency Rationale
+      isFirst ? (ctx.videoUrl ?? "") : "", // H  Video URL
+      isFirst ? (ctx.round ?? "") : "", // I  Round
+      isFirst ? (ctx.reportUrl ?? "") : "", // J  Report URL
+      qr.question_id ?? "", // K  Question ID
+      lang.Fluency ?? "", // L  Fluency
+      lang.Grammar ?? "", // M  Grammar
+      lang.Coherence ?? "", // N  Coherence
+      lang.Interaction ?? "", // O  Interaction
+      lang.Range ?? "", // P  Range
+      think.Relevance ?? "", // Q  Relevance
+      think.Specificity ?? "", // R  Specificity
+      think.Reasoning ?? "", // S  Reasoning
+      think.JobCompetency ?? "", // T  Job competency
+      conf.Pace ?? "", // U  Pace
+      conf.Pause ?? "", // V  Pause
+      conf.Volume ?? "", // W  Volume
+      conf.Latency ?? "", // X  Latency
+      rLang.Fluency ?? "", // Y  Fluency Rationale
+      rLang.Grammar ?? "", // Z  Grammar Rationale
+      rLang.Coherence ?? "", // AA Coherence Rationale
+      rLang.Interaction ?? "", // AB Interaction Rationale
+      rLang.Range ?? "", // AC Range Rationale
+      rThink.Relevance ?? "", // AD Relevance Rationale
+      rThink.Specificity ?? "", // AE Specificity Rationale
+      rThink.Reasoning ?? "", // AF Reasoning Rationale
+      rThink.JobCompetency ?? "", // AG Job competency Rationale
+      rConf.Pace ?? "", // AH Pace Rationale
+      rConf.Pause ?? "", // AI Pause Rationale
+      rConf.Volume ?? "", // AJ Volume Rationale
+      rConf.Latency ?? "", // AK Latency Rationale
     ];
   });
 }
