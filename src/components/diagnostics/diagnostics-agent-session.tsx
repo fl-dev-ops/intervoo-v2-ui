@@ -24,7 +24,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
-import { EndSessionDialog } from "@/components/diagnostics/end-session-dialog";
+import { EndSessionDialog, MIN_TURNS_FOR_REPORT } from "@/components/diagnostics/end-session-dialog";
 import { SessionExitGuard } from "@/components/session/session-exit-guard";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import { cn } from "@/lib/utils";
@@ -259,11 +259,11 @@ function SessionLayout({
   }, [agent.state]);
 
   const promptEndSession = () => {
-    setEndDialogMode(conversationMessageCount >= 8 ? "confirm" : "need-more");
+    setEndDialogMode(conversationMessageCount >= MIN_TURNS_FOR_REPORT ? "confirm" : "need-more");
     setEndDialogOpen(true);
     console.info("[diagnostics] end session prompted", {
       conversationMessageCount,
-      mode: conversationMessageCount >= 8 ? "confirm" : "need-more",
+      mode: conversationMessageCount >= MIN_TURNS_FOR_REPORT ? "confirm" : "need-more",
       sessionId,
     });
   };

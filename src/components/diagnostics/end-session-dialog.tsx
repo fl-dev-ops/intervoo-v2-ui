@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
+export const MIN_TURNS_FOR_REPORT = 6;
+
 export function useEndSessionDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"confirm" | "need-more">(
@@ -17,7 +19,7 @@ export function useEndSessionDialog() {
   };
 
   const promptEnd = (messageCount = exchangeCount) => {
-    if (messageCount >= 8) {
+    if (messageCount >= MIN_TURNS_FOR_REPORT) {
       setDialogMode("confirm");
     } else {
       setDialogMode("need-more");
