@@ -1,0 +1,121 @@
+import "server-only";
+
+const BASE_URL =
+  process.env.INTERVIEW_ROUNDS_API_URL ||
+  "https://interview-rounds-prototype.vercel.app";
+
+type Result<T> = { error: string; data: null } | { error: null; data: T };
+
+export type CompanyOption = { id: string; name: string };
+export type SkillOption = { name: string };
+export type Seniority = "entry" | "mid" | "senior";
+
+export type ParsedRound = {
+  position: number;
+  slug: string;
+  title: string;
+};
+
+export type Round = ParsedRound & { competencies: string[] };
+
+export type JobCard = {
+  jobId: string;
+  jobTitle: string;
+  companyName: string;
+  seniority: Seniority;
+  experienceMinYears: number | null;
+  experienceMaxYears: number | null;
+  roundCount: number;
+  rounds: ParsedRound[];
+  score: number | null;
+  skillsPct: number | null;
+  projectsPct: number | null;
+  roleOrCompanyMatched: boolean;
+  matchedSkills: number | null;
+  totalSkills: number;
+};
+
+export type JobDetail = {
+  jobId: string;
+  jobTitle: string;
+  companyName: string;
+  seniority: Seniority;
+  experienceMinYears: number | null;
+  experienceMaxYears: number | null;
+  location: string | null;
+  workMode: string | null;
+  educationRequirement: string | null;
+  requiredSkills: string | null;
+  roleSummary: string | null;
+  sourceUrl: string | null;
+  fullJobDescription: string | null;
+  rounds: Round[];
+};
+
+export type SearchInput = {
+  companyText: string;
+  roleText: string;
+  skillNames: string[];
+  experienceYears: number | null;
+  projectTexts?: string[];
+  sort?: "default" | "score";
+};
+
+export type SearchResponse = {
+  cards: JobCard[];
+};
+
+export async function getOptions(): Promise<
+  Result<{ companies: CompanyOption[]; skills: SkillOption[] }>
+> {
+  const response = await fetch(`${BASE_URL}/api/options`);
+  const json = await response.json();
+
+  if (!response.ok || json.error) {
+    return {
+      error: json.error || `Request failed with status ${response.status}`,
+      data: null,
+    };
+  }
+
+  return { error: null, data: json };
+}
+
+export async function searchJobs(
+  input: SearchInput,
+): Promise<Result<SearchResponse>> {
+  const response = await fetch(`${BASE_URL}/api/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const json = await response.json();
+
+  if (!response.ok || json.error) {
+    return {
+      error: json.error || `Request failed with status ${response.status}`,
+      data: null,
+    };
+  }
+
+  return { error: null, data: json };
+}
+
+export async function getJobDetail(
+  jobId: string,
+): Promise<Result<{ job: JobDetail }>> {
+  const response = await fetch(
+    `${BASE_URL}/api/jobs/${encodeURIComponent(jobId)}`,
+  );
+  const json = await response.json();
+
+  if (!response.ok || json.error) {
+    return {
+      error: json.error || `Request failed with status ${response.status}`,
+      data: null,
+    };
+  }
+
+  return { error: null, data: json };
+}
