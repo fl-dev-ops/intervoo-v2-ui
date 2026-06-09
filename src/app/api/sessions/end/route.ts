@@ -41,15 +41,6 @@ export async function POST(request: NextRequest) {
       userId: session.user.id,
     });
     if (
-      interviewSession.type === "PREDIAGNOSTIC" &&
-      stage !== "PREDIAGNOSTICS"
-    ) {
-      return NextResponse.json(
-        { error: "Pre-diagnostics are not available for this user stage" },
-        { status: 409 },
-      );
-    }
-    if (
       interviewSession.type === "DIAGNOSTIC_ROUND" &&
       stage !== "DIAGNOSTICS" &&
       stage !== "COMPLETED"

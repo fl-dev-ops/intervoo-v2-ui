@@ -28,10 +28,6 @@ export function createAgentDispatchClient() {
   return new AgentDispatchClient(liveKitUrl, apiKey, apiSecret);
 }
 
-export function buildPreDiagnosticRoomName() {
-  return `prediagnostic_${crypto.randomUUID()}`;
-}
-
 export function buildDiagnosticRoomName(seed: string) {
   return `diagnostic_${seed}_${Date.now()}`;
 }

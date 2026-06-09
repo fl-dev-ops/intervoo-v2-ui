@@ -24,7 +24,7 @@ export async function getUserStage(userId: string) {
 
 export async function updateUserStage(
   userId: string,
-  stage: "ONBOARDING" | "PREDIAGNOSTICS" | "DIAGNOSTICS" | "COMPLETED",
+  stage: "ONBOARDING" | "DIAGNOSTICS" | "COMPLETED",
 ) {
   return prisma.userProgress.upsert({
     where: { userId },

@@ -3,7 +3,6 @@ import { start } from "workflow/api";
 import { WorkflowRunFailedError } from "workflow/internal/errors";
 import { prisma } from "@/lib/db";
 import { generateDiagnosticSessionReportWorkflow } from "@/workflows/diagnostic-report";
-import { generatePrediagnosticSessionReportWorkflow } from "@/workflows/prediagnostic-report";
 
 const INSUFFICIENT_SPEECH_ERROR =
   "Diagnostic report is unavailable because no relevant answers were provided";
@@ -137,22 +136,6 @@ export async function POST(request: NextRequest) {
       }
 
       const run = await start(generateDiagnosticSessionReportWorkflow, [
-        session.id,
-        baseUrl,
-      ]);
-      const result = await getReportWorkflowResult(run.returnValue, session.id);
-
-      console.info("[diagnostics] report webhook completed workflow", {
-        result,
-        sessionId: session.id,
-        sessionType: session.type,
-      });
-
-      return NextResponse.json({ success: true, result });
-    }
-
-    if (session.type === "PREDIAGNOSTIC") {
-      const run = await start(generatePrediagnosticSessionReportWorkflow, [
         session.id,
         baseUrl,
       ]);

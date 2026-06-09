@@ -17,13 +17,11 @@ import { Spinner } from "../ui/spinner";
 import {
   Header,
   PermissionStatusCard,
-  PrediagnosticsInfoCard,
   PreJoinChecklist,
   RoundInfoCard,
 } from "./prejoin-components";
 
 type PermissionState = "checking" | "prompt" | "granted" | "denied";
-type FlowType = "prediagnostics" | "diagnostics";
 
 interface PreJoinReadyStateProps {
   activeAudioDeviceId: string | undefined;
@@ -31,7 +29,6 @@ interface PreJoinReadyStateProps {
   audioDevices: MediaDeviceInfo[];
   canJoin: boolean;
   deviceError: string | null;
-  flow?: FlowType;
   isCameraMuted: boolean;
   isJoining: boolean;
   isMicMuted: boolean;
@@ -59,7 +56,6 @@ export function PreJoinReadyState({
   audioDevices,
   canJoin,
   deviceError,
-  flow,
   isCameraMuted,
   isJoining,
   isMicMuted,
@@ -86,11 +82,7 @@ export function PreJoinReadyState({
     <main className="flex min-h-dvh flex-col bg-background p-6">
       <Header showBackButton={showBackButton} />
       <section className="mx-auto w-full max-w-2xl space-y-6">
-        {roundId ? (
-          <RoundInfoCard roundId={roundId} />
-        ) : flow === "prediagnostics" ? (
-          <PrediagnosticsInfoCard />
-        ) : null}
+        {roundId ? <RoundInfoCard roundId={roundId} /> : null}
 
         {permissionState !== "granted" ? (
           <PermissionStatusCard permissionState={permissionState} />

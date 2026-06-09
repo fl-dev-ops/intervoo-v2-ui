@@ -1,8 +1,5 @@
 const WHATSAPP_TEMPLATE_SID = "HX0783a0218918d1452853b2ef419fe87d";
 const OG_REPORT_WHATSAPP_TEMPLATE_SID = "HXf59ff837b03642498022a9fefe15e089";
-const PREDIAGNOSTIC_REPORT_WHATSAPP_TEMPLATE_SID =
-  process.env.PREDIAGNOSTIC_REPORT_WHATSAPP_TEMPLATE_SID ??
-  OG_REPORT_WHATSAPP_TEMPLATE_SID;
 const DIAGNOSTIC_REPORT_WHATSAPP_TEMPLATE_SID =
   process.env.DIAGNOSTIC_REPORT_WHATSAPP_TEMPLATE_SID ??
   OG_REPORT_WHATSAPP_TEMPLATE_SID;
@@ -56,13 +53,7 @@ export async function sendWhatsAppReportLink(
   phoneNumber: string,
   userName: string,
   reportUrl: string,
-  reportType: "prediagnostic" | "diagnostic" = "diagnostic",
 ): Promise<void> {
-  const templateSid =
-    reportType === "prediagnostic"
-      ? PREDIAGNOSTIC_REPORT_WHATSAPP_TEMPLATE_SID
-      : DIAGNOSTIC_REPORT_WHATSAPP_TEMPLATE_SID;
-
   const accountSid = requiredEnv("TWILIO_ACCOUNT_SID");
   const authToken = requiredEnv("TWILIO_AUTH_TOKEN");
   const from = requiredEnv("TWILIO_WHATSAPP_FROM");
@@ -75,7 +66,7 @@ export async function sendWhatsAppReportLink(
   const body = new URLSearchParams({
     From: from,
     To: `whatsapp:${phoneNumber}`,
-    ContentSid: templateSid,
+    ContentSid: DIAGNOSTIC_REPORT_WHATSAPP_TEMPLATE_SID,
     ContentVariables: JSON.stringify({ "1": userName, "2": reportUrl }),
   });
 

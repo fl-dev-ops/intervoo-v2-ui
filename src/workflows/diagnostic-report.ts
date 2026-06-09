@@ -470,7 +470,6 @@ async function sendDiagnosticReportLinkStep(
       user.phoneNumber,
       user.name || "Learner",
       buildPublicReportUrl(baseUrl, shareToken, "diag"),
-      "diagnostic",
     );
   } catch (error) {
     console.error("Failed to send WhatsApp diagnostic report link:", error);

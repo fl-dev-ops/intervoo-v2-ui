@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { CustomPreJoin } from "@/components/prediagnostics/custom-prejoin";
+import { CustomPreJoin } from "@/components/prejoin/custom-prejoin";
 import { prisma } from "@/lib/db";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import {
@@ -83,10 +83,8 @@ export default async function DiagnosticsPrejoinPage({
 
   return (
     <CustomPreJoin
-      flow="diagnostics"
       hideCoachSelection
       roundId={roundId}
-      type="video"
       userName={user.name ?? user.email ?? null}
     />
   );

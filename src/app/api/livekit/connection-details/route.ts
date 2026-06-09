@@ -14,17 +14,14 @@ import {
 import { getDiagnosticRoundRecoveryState } from "@/lib/diagnostics/rules";
 import {
   buildDiagnosticRoomName,
-  buildPreDiagnosticRoomName,
   createAgentDispatchClient,
   createParticipantToken,
   createRoomServiceClient,
   getLiveKitCredentials,
 } from "@/lib/livekit";
-import { isValidPrediagnosticRetryCode } from "@/lib/prediagnostics/retry-code";
 import { getUserStage } from "@/lib/progress";
 
 const LIVEKIT_AGENT_NAME = "intervoo-agent-hs";
-const PREDIAGNOSTIC_AGENT_ID = "pre_screen";
 const DIAGNOSTIC_AGENT_ID = "diagnostic";
 const DIAGNOSTIC_QUESTION_CATEGORY_BY_ROUND: Record<string, string> = {
   behavioural: "behavioral",
@@ -44,10 +41,6 @@ const COACH_AGENT_DETAILS = {
 
 type ConnectionDetailsBody = {
   type?: unknown;
-  device_id?: string;
-  video_device_id?: string;
-  interaction_mode?: "ptt" | "auto";
-  retry_code?: unknown;
   coach?: "Sara" | "arjun";
   round_id?: unknown;
 };
@@ -70,7 +63,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as ConnectionDetailsBody;
     const sessionType = body.type;
 
-    if (sessionType !== "PREDIAGNOSTIC" && sessionType !== "DIAGNOSTIC_ROUND") {
+    if (sessionType !== "DIAGNOSTIC_ROUND") {
       return NextResponse.json(
         { error: "Invalid session type" },
         { status: 400 },
@@ -92,42 +85,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (sessionType === "DIAGNOSTIC_ROUND") {
-      if (stage !== "DIAGNOSTICS") {
-        console.info("[diagnostics] diagnostic connection rejected", {
-          reason: "invalid_stage",
-          stage,
-          userId: session.user.id,
-        });
-        return NextResponse.json(
-          { error: "Diagnostics are not available for this user stage" },
-          { status: 409 },
-        );
-      }
-
-      return await createDiagnosticConnectionDetails({
-        body,
-        credentials,
-        request,
-        user,
+    if (stage !== "DIAGNOSTICS") {
+      console.info("[diagnostics] diagnostic connection rejected", {
+        reason: "invalid_stage",
+        stage,
+        userId: session.user.id,
       });
-    }
-
-    const hasValidPrediagnosticRetryCode = isValidPrediagnosticRetryCode(
-      body.retry_code,
-    );
-
-    if (
-      stage !== "PREDIAGNOSTICS" &&
-      !(stage === "DIAGNOSTICS" && hasValidPrediagnosticRetryCode)
-    ) {
       return NextResponse.json(
-        { error: "Pre-diagnostics are not available for this user stage" },
+        { error: "Diagnostics are not available for this user stage" },
         { status: 409 },
       );
     }
 
-    return await createPrediagnosticConnectionDetails({
+    return await createDiagnosticConnectionDetails({
       body,
       credentials,
       request,
@@ -152,120 +122,6 @@ async function getSessionCreationUser(userId: string) {
   return await prisma.user.findUnique({
     where: { id: userId },
     include: { profile: true },
-  });
-}
-
-async function createPrediagnosticConnectionDetails({
-  body,
-  credentials,
-  request,
-  user,
-}: {
-  body: ConnectionDetailsBody;
-  credentials: LiveKitCredentials;
-  request: NextRequest;
-  user: SessionCreationUser;
-}) {
-  const { liveKitUrl } = credentials;
-  const agentName = credentials.agentName || LIVEKIT_AGENT_NAME;
-
-  const interactionMode = body.interaction_mode || "ptt";
-  const coach =
-    body.coach === "arjun"
-      ? "arjun"
-      : user.profile?.coach === "arjun"
-        ? "arjun"
-        : "Sara";
-  const agentDetails = COACH_AGENT_DETAILS[coach];
-  const speakingSpeed = getSpeakingSpeed(user.profile?.speakingSpeed);
-
-  const roomName = buildPreDiagnosticRoomName();
-  const participantIdentity = `user_${user.id}`;
-  const participantName = user.profile?.preferredName || user.name || "Learner";
-
-  const dbSession = await prisma.interviewSession.create({
-    data: {
-      userId: user.id,
-      type: "PREDIAGNOSTIC",
-      roomName,
-      status: "STARTED",
-      startedAt: new Date(),
-      preDiagnostic: {
-        create: {},
-      },
-    },
-  });
-
-  const appUrl = process.env.WEBHOOK_BASE_URL || request.nextUrl.origin;
-  const webhookUrl = appUrl
-    ? `${appUrl.replace(/\/$/, "")}/api/reports/generate`
-    : "";
-
-  const roomMetadata = {
-    agent_id: PREDIAGNOSTIC_AGENT_ID,
-    user_id: user.id,
-    session_id: dbSession.id,
-    interaction_mode: interactionMode,
-    webhook_url: webhookUrl,
-    config: {
-      voice: agentDetails.voice,
-      speakingSpeed,
-    },
-    prompt_context: {
-      agent_name: agentDetails.name,
-      user_name: participantName,
-      additional_context: "",
-      coach,
-      device_id: body.device_id || null,
-      video_device_id: body.video_device_id || null,
-      english_level: user.profile?.englishLevel ?? "",
-      comfortable_language: user.profile?.nativeLanguage ?? "",
-      institution: user.profile?.institution ?? "",
-      degree: user.profile?.degree ?? "",
-      stream: user.profile?.stream ?? "",
-      placement_preparation: user.profile?.placementPreparation ?? "",
-      academy_selection: user.profile?.academySelection ?? "",
-      academy_name: user.profile?.academyName ?? "",
-      speaking_speed: speakingSpeed,
-    },
-  };
-
-  await prisma.interviewSession.update({
-    where: { id: dbSession.id },
-    data: { metadata: roomMetadata },
-  });
-
-  const roomClient = createRoomServiceClient();
-  await roomClient.createRoom({
-    name: roomName,
-    metadata: JSON.stringify(roomMetadata),
-    emptyTimeout: 60 * 10,
-    maxParticipants: 5,
-  });
-
-  await prisma.profile.update({
-    where: { userId: user.id },
-    data: { coach },
-  });
-
-  const agentDispatchClient = createAgentDispatchClient();
-  await agentDispatchClient.createDispatch(roomName, agentName, {
-    metadata: JSON.stringify(roomMetadata),
-  });
-
-  const participantToken = await createParticipantToken({
-    identity: participantIdentity,
-    name: participantName,
-    roomName,
-  });
-
-  return NextResponse.json({
-    server_url: liveKitUrl,
-    room_name: roomName,
-    participant_name: participantName,
-    participant_token: participantToken,
-    session_id: dbSession.id,
-    interaction_mode: interactionMode,
   });
 }
 

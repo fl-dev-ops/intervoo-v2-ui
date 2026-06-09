@@ -14,7 +14,11 @@ import { cn } from "@/lib/utils";
 
 type PermissionState = "checking" | "prompt" | "granted" | "denied";
 
-export function Header({ showBackButton = true }: { showBackButton?: boolean }) {
+export function Header({
+  showBackButton = true,
+}: {
+  showBackButton?: boolean;
+}) {
   const router = useRouter();
   return (
     <header className="w-full mx-auto mb-6">
@@ -61,43 +65,6 @@ export function RoundInfoCard({ roundId }: { roundId: string }) {
       {expanded && (
         <div className="px-4 pb-4">
           <p className="text-sm text-muted-foreground">{config.description}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function PrediagnosticsInfoCard() {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="rounded-xl border bg-white shadow-sm">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between p-4 text-left"
-      >
-        <span className="text-sm font-semibold">
-          Pre-diagnostic - Screening Interview
-        </span>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-            15 min
-          </span>
-          {expanded ? (
-            <ChevronUp className="size-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="size-4 text-muted-foreground" />
-          )}
-        </div>
-      </button>
-      {expanded && (
-        <div className="px-4 pb-4">
-          <p className="text-sm text-muted-foreground">
-            This session evaluates your background, communication clarity, and
-            career intent. You&apos;ll introduce yourself, talk about your
-            interests, and explain the roles you&apos;re aiming for.
-          </p>
         </div>
       )}
     </div>

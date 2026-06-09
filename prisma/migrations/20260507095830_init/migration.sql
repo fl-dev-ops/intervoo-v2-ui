@@ -1,8 +1,8 @@
 -- CreateEnum
-CREATE TYPE "UserStage" AS ENUM ('ONBOARDING', 'PREDIAGNOSTICS', 'DIAGNOSTICS', 'COMPLETED');
+CREATE TYPE "UserStage" AS ENUM ('ONBOARDING', 'DIAGNOSTICS', 'COMPLETED');
 
 -- CreateEnum
-CREATE TYPE "InterviewSessionType" AS ENUM ('PREDIAGNOSTIC', 'DIAGNOSTIC_ROUND');
+CREATE TYPE "InterviewSessionType" AS ENUM ('DIAGNOSTIC_ROUND');
 
 -- CreateEnum
 CREATE TYPE "InterviewSessionStatus" AS ENUM ('STARTED', 'COMPLETED', 'REPORT_READY');
@@ -34,7 +34,6 @@ CREATE TABLE "user_progress" (
     "userId" TEXT NOT NULL,
     "stage" "UserStage" NOT NULL DEFAULT 'ONBOARDING',
     "onboardingCompletedAt" TIMESTAMP(3),
-    "prediagnosticsCompletedAt" TIMESTAMP(3),
     "diagnosticsCompletedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -130,14 +129,6 @@ CREATE TABLE "interview_session" (
 );
 
 -- CreateTable
-CREATE TABLE "pre_diagnostic" (
-    "id" TEXT NOT NULL,
-    "sessionId" TEXT NOT NULL,
-
-    CONSTRAINT "pre_diagnostic_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "diagnostic" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -217,9 +208,6 @@ CREATE INDEX "interview_session_status_idx" ON "interview_session"("status");
 CREATE INDEX "interview_session_type_idx" ON "interview_session"("type");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "pre_diagnostic_sessionId_key" ON "pre_diagnostic"("sessionId");
-
--- CreateIndex
 CREATE INDEX "diagnostic_userId_idx" ON "diagnostic"("userId");
 
 -- CreateIndex
@@ -248,9 +236,6 @@ ALTER TABLE "account" ADD CONSTRAINT "account_userId_fkey" FOREIGN KEY ("userId"
 
 -- AddForeignKey
 ALTER TABLE "interview_session" ADD CONSTRAINT "interview_session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "pre_diagnostic" ADD CONSTRAINT "pre_diagnostic_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "interview_session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "diagnostic" ADD CONSTRAINT "diagnostic_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

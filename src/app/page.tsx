@@ -18,10 +18,6 @@ export default async function Home() {
     redirect("/onboarding");
   }
 
-  if (stage === "PREDIAGNOSTICS") {
-    redirect("/diagnostics");
-  }
-
   if (stage === "DIAGNOSTICS") {
     redirect("/diagnostics");
   }

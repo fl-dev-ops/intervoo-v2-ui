@@ -10,13 +10,11 @@ datasource db {
 // Enums
 enum UserStage {
   ONBOARDING
-  PREDIAGNOSTICS
   DIAGNOSTICS
   COMPLETED
 }
 
 enum InterviewSessionType {
-  PREDIAGNOSTIC
   DIAGNOSTIC_ROUND
 }
 
@@ -63,7 +61,6 @@ model UserProgress {
   userId                    String   @unique
   stage                     UserStage @default(ONBOARDING)
   onboardingCompletedAt     DateTime?
-  prediagnosticsCompletedAt DateTime?
   diagnosticsCompletedAt    DateTime?
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
@@ -163,7 +160,6 @@ model InterviewSession {
   updatedAt     DateTime              @updatedAt
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  preDiagnostic   PreDiagnostic?
   diagnosticRound DiagnosticRound?
   report          Report?
 
@@ -171,16 +167,6 @@ model InterviewSession {
   @@index([status])
   @@index([type])
   @@map("interview_session")
-}
-
-// Pre-diagnostics wrapper (1 session)
-model PreDiagnostic {
-  id        String @id @default(cuid())
-  sessionId String @unique
-
-  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@map("pre_diagnostic")
 }
 
 // Diagnostics wrapper (4 rounds)

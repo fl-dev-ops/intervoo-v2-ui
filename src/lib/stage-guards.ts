@@ -3,11 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getUserStage } from "@/lib/progress";
 
-export type AppStage =
-  | "ONBOARDING"
-  | "PREDIAGNOSTICS"
-  | "DIAGNOSTICS"
-  | "COMPLETED";
+export type AppStage = "ONBOARDING" | "DIAGNOSTICS" | "COMPLETED";
 
 export async function requireAuthUser() {
   const session = await auth.api.getSession({
@@ -35,10 +31,6 @@ export async function requirePageStage(allowedStages: AppStage[]) {
 export function getStagePath(stage: AppStage) {
   if (stage === "ONBOARDING") {
     return "/onboarding";
-  }
-
-  if (stage === "PREDIAGNOSTICS") {
-    return "/diagnostics";
   }
 
   if (stage === "DIAGNOSTICS" || stage === "COMPLETED") {

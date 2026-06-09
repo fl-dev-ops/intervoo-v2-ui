@@ -1,11 +1,3 @@
-export type PreDiagnosticPromptContext = {
-  name?: string | null;
-  college?: string | null;
-  degree?: string | null;
-  stream?: string | null;
-  year?: string | null;
-};
-
 export type DiagnosticPromptContext = {
   participantName: string;
   roundId?: string | null;
@@ -13,81 +5,6 @@ export type DiagnosticPromptContext = {
   jobBand?: string | null;
   transcriptPromptText: string;
 };
-
-const PRE_DIAGNOSTIC_RUBRIC = `You are an extraction and analysis engine for Intervoo, an AI-powered career readiness platform for Indian college students.
-
-Your job is to review a conversation between Sara, an AI voice agent, and a student, then extract structured information about the student's job plans. You must also classify the student's level of job awareness based on the conversation.
-
-Student profile:
-Name: {name}
-College: {college}
-Degree: {degree}
-Stream: {stream}
-Year of study: {year}
-
-Extraction and analysis rules:
-
-- Extract only what the student explicitly stated.
-- Do not infer, assume, or fill gaps.
-- If something was not mentioned, return null.
-
-Part 1: Data extraction
-
-- dream_job: The highest aspiration the student expressed. It must be explicitly stated as a dream or long-term goal.
-- aiming_for: A realistic middle target the student expressed. It must be different from dream_job when the student clearly gave multiple levels.
-- backup: The lowest acceptable option or Plan B the student mentioned.
-- For dream_job, aiming_for, and backup, return a career goal object with these fields:
-  - role: concise role/work title, for example Software Developer, Chef, Singer, Teacher, Nurse, Business Owner, Freelance Designer. Do not force software/IT roles unless the student said or strongly implied software/IT.
-  - workContext: named company, venue, sector, workplace, or setting if mentioned, for example Google, restaurant, bar, hospital, school, film industry, freelance clients.
-  - organizationType: normalized workplace/category if clear, for example product company, IT services company, restaurant, bar, hospital, school, freelance clients, own business.
-  - workArrangement: full-time, part-time, freelance, internship, business owner, or null if not mentioned.
-  - rawText: the original phrase or closest exact wording from the student.
-  Return null for the entire goal if that goal level was not mentioned. Within a goal object, use null for unknown fields.
-- salary_expectation: Any salary number or range mentioned, in LPA. Return as a string such as 3.5 LPA or 3-5 LPA.
-- reasoning: A short one-line summary of any reason the student gave for their job choices, or null.
-- companies_mentioned: A list of any company names mentioned anywhere in the conversation.
-- roles_mentioned: A list of any specific role titles mentioned anywhere in the conversation.
-
-Part 2: Awareness classification
-
-- job_awareness_category: Based on the entire conversation, classify the student's job awareness into one of three categories: Unclear, Clear, or Strong.
-
-Category definitions:
-
-- Unclear: The student is vague and lacks specifics. They may say any job, mention broad fields without preference like IT or core, have no target companies, or seem passive and unsure.
-- Clear: The student has a specific, realistic goal. They can name a target role, for example Data Analyst, and may mention target companies. They have moved beyond any job, but may still lack a long-term or backup plan.
-- Strong: The student demonstrates strategic, multi-layered thinking. They have a differentiated plan, often including a dream aspiration, a realistic target, and a backup plan. They understand different company types and provide strategic reasoning for their choices.
-
-Part 3: Job research evaluation
-
-- job_research_category: Classify the student's job research readiness as one of Not Enough, Good, or Strong.
-- job_research_breakdown: Score each of the following based only on what the student explicitly said:
-  - skills_research: how clearly they understand the skills they need.
-  - tools_and_role_clarity: how clearly they understand the tools, workflow, or day-to-day expectations of the role.
-  - salary_clarity: how clearly they understand salary expectations.
-  - jd_awareness: how clearly they understand job descriptions, hiring expectations, or qualification requirements.
-  - company_clarity: how clearly they understand which companies they want to target.
-
-Allowed values for each breakdown field:
-
-- Good: clear and specific understanding.
-- Some gaps: partial understanding with noticeable gaps.
-- Rough idea: broad awareness, but still vague.
-- Not yet: no meaningful awareness shown.
-- Clear: use only for company clarity when the student clearly named target companies.
-
-Overall job research category definitions:
-
-- Not Enough: the student shows little evidence of role or market research.
-- Good: the student has done meaningful research, but some parts are still incomplete.
-- Strong: the student demonstrates broad, specific, and well-connected research across role, skills, salary, JD, and companies.
-
-Structured output rules:
-
-- Return only JSON matching the schema.
-- Use null for unknown string fields.
-- Use empty arrays when no companies or roles were mentioned.
-- Use null for job_research_breakdown only when there are no meaningful research signals. Otherwise fill every breakdown field.`;
 
 const DIAGNOSTICS_RUBRIC = `You are generating a structured diagnostic interview report for a learner.
 
@@ -228,19 +145,6 @@ L5 (C1 / C2)
 - Coherence: Full repertoire of cohesive devices used precisely and flexibly. Ideas developed with sophistication - nuance, qualification, and implication all present. Argument structure is seamless - no visible joins between ideas. Counter-arguments fully integrated into the response not bolted on. Discourse markers deployed for rhetorical effect not just connection. Response could be transcribed as a coherent paragraph without editing. Coherence is indistinguishable across all question types.
 - Range: Broad lexical repertoire across all topics including abstract and technical. Idiomatic and colloquial language used naturally and appropriately. Precise word choice - candidate selects words for exact shade of meaning. Collocations are native-like - phrases sound natural not constructed. Circumlocution deployed stylistically not as a gap-filler. Zero avoidance - no topics where vocabulary runs dry. Type-token ratio very high. Range consistent and rich across the entire session.
 - Interaction: Responses precisely targeted - candidate answers the actual question not a version of it. Elaboration rich and spontaneous - candidate develops ideas beyond what was asked. Repair invisible - candidate navigates around difficulty without signalling it. Register nuanced - adjusted not just for formality but for tone and relationship. Turn-taking completely natural - conversation feels bilateral not interrogative. Candidate shapes the conversation - introduces emphasis, redirects, qualifies. Interaction quality indistinguishable across the entire session.`;
-
-function toPromptValue(value?: string | null) {
-  const trimmed = value?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : "Not provided";
-}
-
-export function buildPreDiagnosticRubric(context: PreDiagnosticPromptContext) {
-  return PRE_DIAGNOSTIC_RUBRIC.replaceAll("{name}", toPromptValue(context.name))
-    .replaceAll("{college}", toPromptValue(context.college))
-    .replaceAll("{degree}", toPromptValue(context.degree))
-    .replaceAll("{stream}", toPromptValue(context.stream))
-    .replaceAll("{year}", toPromptValue(context.year));
-}
 
 export function buildDiagnosticRubric(context: DiagnosticPromptContext) {
   const roundLabel = context.roundId

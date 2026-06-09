@@ -14,12 +14,7 @@ import type { CoachOption } from "@/lib/coaches";
 
 type PermissionState = "checking" | "prompt" | "granted" | "denied";
 
-type SessionType = "audio" | "video";
-type FlowType = "prediagnostics" | "diagnostics";
-
 interface CustomPreJoinProps {
-  type?: SessionType;
-  flow?: FlowType;
   roundId?: string;
   coach?: CoachOption;
   hideCoachSelection?: boolean;
@@ -28,7 +23,6 @@ interface CustomPreJoinProps {
 
 export function CustomPreJoin({
   coach,
-  flow = "prediagnostics",
   hideCoachSelection = false,
   roundId,
   userName,
@@ -47,16 +41,15 @@ export function CustomPreJoin({
     usePersistentUserChoices({
       defaults: { audioEnabled: true, videoEnabled: true },
     });
-  const forceCameraOn = flow === "diagnostics";
-  const isCameraMuted = forceCameraOn ? false : !userChoices.videoEnabled;
+  const isCameraMuted = false;
   const isMicMuted = !userChoices.audioEnabled;
 
   // Force camera on for diagnostics — overwrite persisted preference
   useEffect(() => {
-    if (forceCameraOn && !userChoices.videoEnabled) {
+    if (!userChoices.videoEnabled) {
       saveVideoInputEnabled(true);
     }
-  }, [forceCameraOn, userChoices.videoEnabled, saveVideoInputEnabled]);
+  }, [userChoices.videoEnabled, saveVideoInputEnabled]);
 
   useEffect(() => {
     setSelectedCoach(coach ?? (hideCoachSelection ? undefined : "Sara"));
@@ -99,7 +92,6 @@ export function CustomPreJoin({
   const canJoin = permissionState === "granted" && hasAudioDevice;
   const joinDisabledReason = getJoinDisabledReason({
     hasAudioDevice,
-    isMicMuted,
     permissionState,
   });
 
@@ -157,7 +149,7 @@ export function CustomPreJoin({
     } else {
       void videoTrack.unmute();
     }
-  }, [isCameraMuted, videoTrack]);
+  }, [videoTrack]);
 
   // Check browser permission state on mount
   useEffect(() => {
@@ -295,7 +287,6 @@ export function CustomPreJoin({
     console.info("[diagnostics] prejoin join clicked", {
       activeAudioDeviceId,
       activeVideoDeviceId,
-      flow,
       roundId: roundId ?? null,
       selectedCoach: selectedCoach ?? null,
     });
@@ -304,21 +295,11 @@ export function CustomPreJoin({
       const response = await fetch("/api/livekit/connection-details", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          flow === "diagnostics"
-            ? {
-                round_id: roundId,
-                type: "DIAGNOSTIC_ROUND",
-                ...(selectedCoach ? { coach: selectedCoach } : {}),
-              }
-            : {
-                type: "PREDIAGNOSTIC",
-                device_id: activeAudioDeviceId || "",
-                video_device_id: activeVideoDeviceId || "",
-                interaction_mode: "ptt",
-                ...(selectedCoach ? { coach: selectedCoach } : {}),
-              },
-        ),
+        body: JSON.stringify({
+          round_id: roundId,
+          type: "DIAGNOSTIC_ROUND",
+          ...(selectedCoach ? { coach: selectedCoach } : {}),
+        }),
       });
 
       if (!response.ok) {
@@ -342,48 +323,33 @@ export function CustomPreJoin({
         };
       };
 
-      if (flow === "diagnostics") {
-        console.info("[diagnostics] prejoin connection details received", {
-          roomName: data.room_name,
-          roundId: roundId ?? null,
-          selectedJob: data.selected_job?.title ?? null,
-          sessionId: data.session_id,
-        });
-        const params = new URLSearchParams({
-          token: data.participant_token,
-          server_url: data.server_url,
-          room_name: data.room_name,
-          session_id: data.session_id,
-          round_id: roundId || "",
-        });
-        if (data.selected_job) {
-          params.set("job_title", data.selected_job.title);
-          params.set("companies", data.selected_job.companies.join(","));
-          params.set("salary", data.selected_job.salary);
-        }
-        if (selectedCoach) {
-          params.set("coach", selectedCoach);
-        }
-        router.push(`/diagnostics/session?${params.toString()}`);
-      } else {
-        const params = new URLSearchParams({
-          token: data.participant_token,
-          url: data.server_url,
-          room: data.room_name,
-          session: data.session_id,
-        });
-        params.set("video", "true");
-        if (data.interaction_mode) {
-          params.set("mode", data.interaction_mode);
-        }
-        router.push(`/prediagnostics/session?${params.toString()}`);
+      console.info("[diagnostics] prejoin connection details received", {
+        roomName: data.room_name,
+        roundId: roundId ?? null,
+        selectedJob: data.selected_job?.title ?? null,
+        sessionId: data.session_id,
+      });
+      const params = new URLSearchParams({
+        token: data.participant_token,
+        server_url: data.server_url,
+        room_name: data.room_name,
+        session_id: data.session_id,
+        round_id: roundId || "",
+      });
+      if (data.selected_job) {
+        params.set("job_title", data.selected_job.title);
+        params.set("companies", data.selected_job.companies.join(","));
+        params.set("salary", data.selected_job.salary);
       }
+      if (selectedCoach) {
+        params.set("coach", selectedCoach);
+      }
+      router.push(`/diagnostics/session?${params.toString()}`);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to join session.";
       console.info("[diagnostics] prejoin join failed", {
         error: message,
-        flow,
         roundId: roundId ?? null,
       });
       setDeviceError(message);
@@ -393,7 +359,6 @@ export function CustomPreJoin({
     activeAudioDeviceId,
     activeVideoDeviceId,
     canJoin,
-    flow,
     joinDisabledReason,
     roundId,
     router,
@@ -429,7 +394,7 @@ export function CustomPreJoin({
     return (
       <PreJoinPermissionRequest
         onRequestPermission={requestPermission}
-        showBackButton={flow !== "prediagnostics"}
+        showBackButton
       />
     );
   }
@@ -441,7 +406,6 @@ export function CustomPreJoin({
       audioDevices={audioDevices}
       canJoin={canJoin}
       deviceError={deviceError}
-      flow={flow}
       isCameraMuted={isCameraMuted}
       isJoining={isJoining}
       isMicMuted={isMicMuted}
@@ -450,7 +414,7 @@ export function CustomPreJoin({
       selectedAudioLabel={selectedAudioLabel}
       selectedVideoLabel={selectedVideoLabel}
       joinDisabledReason={joinDisabledReason}
-      showBackButton={flow !== "prediagnostics"}
+      showBackButton
       userName={userName}
       videoDevices={videoDevices}
       videoRef={videoRef}
@@ -485,11 +449,9 @@ function getCombinedPermissionState(
 
 function getJoinDisabledReason({
   hasAudioDevice,
-  isMicMuted,
   permissionState,
 }: {
   hasAudioDevice: boolean;
-  isMicMuted: boolean;
   permissionState: PermissionState;
 }) {
   if (permissionState !== "granted") {

@@ -171,10 +171,6 @@ export default function OnboardingPage() {
         if (response.ok) {
           const data = (await response.json()) as { stage?: string };
 
-          if (data.stage === "PREDIAGNOSTICS") {
-            router.replace("/diagnostics");
-            return;
-          }
           if (data.stage === "DIAGNOSTICS") {
             router.replace("/diagnostics");
             return;

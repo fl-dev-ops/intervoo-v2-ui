@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  ArrowRight,
-  CheckIcon,
-  LoaderCircle,
-  TriangleAlert,
-} from "lucide-react";
+import { ArrowRight, LoaderCircle, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import { useState } from "react";
@@ -22,16 +17,12 @@ import { cn } from "@/lib/utils";
 type DiagnosticsSelectionClientProps = {
   initialBand?: string | null;
   options: DiagnosticJobOption[];
-  dreamRole?: string | null;
-  targetSalary?: string | null;
   user: { email: string | null; name: string | null };
 };
 
 export function DiagnosticsSelectionClient({
   initialBand,
   options,
-  dreamRole,
-  targetSalary,
   user,
 }: DiagnosticsSelectionClientProps) {
   const router = useRouter();
@@ -106,8 +97,6 @@ export function DiagnosticsSelectionClient({
     }
   }
 
-  const hasBadges = Boolean(dreamRole) || Boolean(targetSalary);
-
   return (
     <main className="min-h-dvh bg-lavender text-foreground">
       <DiagnosticsPageHeader title="Software Developer Interview" user={user} />
@@ -116,20 +105,6 @@ export function DiagnosticsSelectionClient({
           <h1 className="text-base font-semibold tracking-tight md:text-xl">
             Software Developer Interview Readiness Assessment
           </h1>
-
-          {hasBadges ? (
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              {dreamRole ? (
-                <SelectionBadge label="Target" value={dreamRole} />
-              ) : null}
-              {targetSalary ? (
-                <SelectionBadge
-                  label="Salary Expectation"
-                  value={targetSalary}
-                />
-              ) : null}
-            </div>
-          ) : null}
         </header>
 
         <div className="rounded-2xl bg-transparent p-3 md:bg-[linear-gradient(180deg,#F3F1FF_0%,#FFFFFF_100%)] md:p-6 md:shadow-[0_0_32px_rgba(35,24,68,0.12)]">
@@ -195,35 +170,6 @@ export function DiagnosticsSelectionClient({
         </div>
       </section>
     </main>
-  );
-}
-
-function SelectionBadge({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm">
-      <GreenCheckBadge className="size-5" iconClassName="size-3" />
-      <span className="text-muted-foreground">{label}:</span>
-      <span className="font-semibold text-foreground">{value}</span>
-    </div>
-  );
-}
-
-function GreenCheckBadge({
-  className,
-  iconClassName,
-}: {
-  className?: string;
-  iconClassName?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full bg-[#5DBE73] text-white",
-        className,
-      )}
-    >
-      <CheckIcon className={iconClassName} />
-    </span>
   );
 }
 
