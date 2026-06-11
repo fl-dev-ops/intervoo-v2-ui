@@ -24,6 +24,12 @@ export type OnboardingProfile = {
   skills: string[];
   projects: string[];
   projectKeywords: string[][];
+  work_experience: {
+    company: string;
+    role: string;
+    start_date: string;
+    end_date: string;
+  }[];
   experience: string[];
   scores: { cgpa: string; twelfth: string; tenth: string };
   roleHint: string;
@@ -62,6 +68,8 @@ const ResumeSchema = z.object({
       z.object({
         company: z.string().nullable().default(null),
         role: z.string().nullable().default(null),
+        start_date: z.string().nullable().default(null),
+        end_date: z.string().nullable().default(null),
       }),
     )
     .default([]),
@@ -83,7 +91,7 @@ Return ONLY a single JSON object, no prose, matching exactly this shape:
   ],
   "skills": string[],
   "projects": [ { "name": string, "description": string | null, "keywords": string[] } ],
-  "work_experience": [ { "company": string, "role": string } ],
+  "work_experience": [ { "company": string, "role": string, "start_date": string | null, "end_date": string | null } ],
   "experience_years": number,
   "strongest_domain": string | null
 }
@@ -95,6 +103,7 @@ Rules:
 - "experience_years" must be a number. Calculate from work_experience dates if available, otherwise estimate from education level and current year. Use 0 only if truly no experience can be determined.
 - "skills" must be a flat, de-duplicated list of concrete skill names.
 - "work_experience" is ONLY actual job-related work: paid employment (full-time, part-time, contract) or internships at a real company or organization. Each entry must be a role the candidate was employed for. Internships count here.
+- "start_date" and "end_date" for work_experience should be in "MMM YYYY" format (e.g. "Jan 2020", "Mar 2018"). Use "Present" for current role. Use null if not found.
 - "projects" is ONLY side-projects, personal projects, academic/course projects, hackathon work, and open-source contributions. These are NOT employment.
 - Never put a project in "work_experience" and never put a job in "projects". If something has no employing company (e.g. a personal app, a GitHub repo, a college project), it is a project, not work experience.
 - "project keywords" must be domain skills or tech concepts only (e.g. "real-time systems", "WebSocket", "distributed caching"). Exclude soft skills, team size, awards, and process words.
@@ -145,9 +154,15 @@ async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
     .map((p) =>
       p.description ? `${p.name} · ${p.description}` : (p.name as string),
     );
-  const work = parsed.work_experience
+  const workExperience = (parsed.work_experience || [])
     .filter((w) => w.role || w.company)
-    .map((w) => [w.role, w.company].filter(Boolean).join(" · "));
+    .map((w) => ({
+      company: w.company || "",
+      role: w.role || "",
+      start_date: w.start_date || "",
+      end_date: w.end_date || "",
+    }));
+  const work = workExperience.map((w) => [w.role, w.company].filter(Boolean).join(" · "));
 
   return {
     name: parsed.name ?? "",
@@ -163,6 +178,7 @@ async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
     skills: dedupe(parsed.skills.map((s) => s.trim()).filter(Boolean)),
     projects,
     projectKeywords: parsed.projects.map((p) => p.keywords ?? []),
+    work_experience: workExperience,
     experience: work,
     scores: {
       cgpa: edu?.cgpa != null ? String(edu.cgpa) : "",
@@ -244,7 +260,7 @@ export async function parseResume(file: File): Promise<OnboardingProfile> {
           role: "user",
           parts: [
             { fileData: { fileUri: uploaded.uri ?? "", mimeType } },
-            { text: "Extract ALL structured data from this resume. Return a complete JSON object with ALL fields: name, email, phone_number, education, skills, projects, work_experience, experience_years, and strongest_domain. Do not omit any field." },
+            { text: "Extract ALL structured data from this resume. Return a complete JSON object with ALL fields: name, email, phone_number, education, skills, projects, work_experience (with start_date and end_date), experience_years, and strongest_domain. Do not omit any field." },
           ],
         },
       ],

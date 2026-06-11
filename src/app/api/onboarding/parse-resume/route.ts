@@ -76,16 +76,13 @@ export async function POST(request: NextRequest) {
             },
           ],
       skills: profile.skills || [],
-      experience: (profile.experience || []).map((exp) => {
-        const [title, company] = splitResumePair(exp);
-        return {
-          title,
-          company,
-          startDate: "",
-          endDate: "",
-          description: title || company ? "" : exp,
-        };
-      }),
+      experience: (profile.work_experience || []).map((exp) => ({
+        title: exp.role || "",
+        company: exp.company || "",
+        startDate: exp.start_date || "",
+        endDate: exp.end_date || "",
+        description: "",
+      })),
       projects: (profile.projects || []).map((proj) => {
         const [title, description] = splitResumePair(proj);
         return { title, description };
