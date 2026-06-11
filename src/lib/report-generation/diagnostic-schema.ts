@@ -55,6 +55,9 @@ const languageReasoningSchema = z.object({
 function createDiagnosticQuestionResponseSchema() {
   return z.object({
     question_id: z.string().trim().min(1),
+    question_text: z.string().trim().min(1).optional(),
+    candidate_answer: z.string().trim().min(1).optional(),
+    reframed_answer: z.string().trim().min(1).optional(),
     thinking_levels: thinkingLevelsSchema,
     confidence_levels: confidenceLevelsSchema,
     language_levels: languageLevelsSchema,
@@ -85,6 +88,9 @@ function createDiagnosticStoredReportSchema() {
 function createQuestionResponseVariant(question: DiagnosticQuestion) {
   return z.object({
     question_id: z.literal(question.id),
+    question_text: z.string().trim().min(1).optional(),
+    candidate_answer: z.string().trim().min(1).optional(),
+    reframed_answer: z.string().trim().min(1).optional(),
     thinking_levels: thinkingLevelsSchema,
     confidence_levels: confidenceLevelsSchema,
     language_levels: languageLevelsSchema,

@@ -1,17 +1,10 @@
 "use client";
 
-import { IconBulb } from "@tabler/icons-react";
 import {
   ArrowLeft,
-  Brain,
   Check,
   Info,
-  Languages,
-  Lightbulb,
-  type LucideIcon,
   Play,
-  Smile,
-  Target,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,10 +27,9 @@ import { authClient } from "@/lib/auth-client";
 import type { DiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import type {
-  DiagnosticConfidenceDimension,
-  DiagnosticConfidenceLevel,
   DiagnosticLanguageDimension,
   DiagnosticLanguageLevel,
+  DiagnosticQuestionResponse,
   DiagnosticReportJson,
   DiagnosticThinkingDimension,
   DiagnosticThinkingLevel,
@@ -101,21 +93,18 @@ export function PublicDiagnosticReport({
       ) : null}
       <main className="min-h-dvh bg-lavender md:pb-10">
         <div className="mx-auto w-full max-w-4xl space-y-6 md:py-8">
-          {/* Job Header Card */}
           <DiagnosticsJobHeader
             bandConfig={bandConfig}
             overallScore={overallScore}
           />
 
           <section className="px-5 space-y-4 pb-8 md:px-0">
-            {/* Round Tabs */}
             <RoundTabs
               activeRoundNumber={activeRoundNumber}
               rounds={rounds}
               onSelect={setActiveRoundNumber}
             />
 
-            {/* Round Detail */}
             {activeRound?.hasReport ? (
               <RoundDetailView round={activeRound} />
             ) : activeRound ? (
@@ -284,7 +273,7 @@ function RoundDetailView({
         strengths={report.strengths}
       />
 
-      <SkillsReport assessment={assessment} />
+      <QuestionWiseAnalysis responses={assessment.question_responses} />
     </div>
   );
 }
@@ -365,141 +354,13 @@ function FeedbackCard({
   );
 }
 
-function SkillsReport({
-  assessment,
-}: {
-  assessment: DiagnosticReportJson["assessment_result"];
-}) {
-  const skills = buildSkillSummaries(assessment);
-
-  return (
-    <div className="space-y-4">
-      <h4 className="text-2xl font-bold tracking-tight text-foreground">
-        Skills Report
-      </h4>
-      <Accordion className="gap-4" defaultValue={[skills[0]?.id ?? "thinking"]}>
-        {skills.map((skill) => (
-          <SkillAccordionItem key={skill.id} skill={skill} />
-        ))}
-      </Accordion>
-    </div>
-  );
-}
-
-type SkillDimensionSummary = {
-  label: string;
-  levelLabel: string;
-  score: number;
-  reasoning: string;
-};
-
-type SkillSummary = {
-  id: string;
-  icon: LucideIcon;
-  label: string;
-  level: number;
-  strong: SkillDimensionSummary[];
-  improve: SkillDimensionSummary[];
-};
-
-function SkillAccordionItem({ skill }: { skill: SkillSummary }) {
-  const { label: levelLabel, tone } = getSkillLevel(skill.level);
-  const Icon = skill.icon;
-
-  const toneClasses: Record<string, string> = {
-    green: "bg-emerald-100 text-emerald-700",
-    amber: "bg-orange-100 text-orange-600",
-    red: "bg-red-100 text-red-600",
-  };
-
-  return (
-    <AccordionItem
-      className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm not-last:border-b-0"
-      value={skill.id}
-    >
-      <AccordionTrigger className="items-center p-4 text-left hover:no-underline">
-        <div className="w-full flex justify-between items-center mr-2">
-          <div className="flex items-center gap-4">
-            <div className="flex size-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-              <Icon className="size-4" />
-            </div>
-            <span className="text-lg font-bold text-foreground">
-              {skill.label}
-            </span>
-          </div>
-          <span
-            // className="rounded-full px-3 py-1 text-xs font-semibold text-white"
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-semibold text-white",
-              toneClasses[tone],
-            )}
-          >
-            {levelLabel}
-          </span>
-        </div>
-      </AccordionTrigger>
-      <AccordionContent className="space-y-4">
-        <DimensionSection items={[...skill.strong, ...skill.improve]} />
-      </AccordionContent>
-    </AccordionItem>
-  );
-}
-
-function DimensionSection({ items }: { items: SkillDimensionSummary[] }) {
-  return (
-    <section className={cn("rounded-2xl px-5")}>
-      {/*<h5 className="text-lg font-bold text-foreground">{title}</h5>*/}
-      {items.length ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          {items.map((item) => (
-            <DimensionCard item={item} key={item.label} />
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-muted-foreground">No dimensions yet.</p>
-      )}
-    </section>
-  );
-}
-
-function DimensionCard({ item }: { item: SkillDimensionSummary }) {
-  return (
-    <article className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap justify-start items-center gap-2">
-            <IconBulb className="size-6 shrink-0 text-muted-foreground" />
-            <h6 className="text-base font-bold text-foreground">
-              {item.label}
-            </h6>
-            {/*<span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-              {item.levelLabel}
-            </span>*/}
-          </div>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {item.reasoning}
-          </p>
-        </div>
-      </div>
-    </article>
-  );
-}
+// ─── Question-wise analysis ───────────────────────────────────────────────────
 
 const THINKING_DIMENSION_LABELS: Record<DiagnosticThinkingDimension, string> = {
   Relevance: "Relevance",
   Specificity: "Specificity",
   Reasoning: "Reasoning",
   JobCompetency: "Job competency",
-};
-
-const CONFIDENCE_DIMENSION_LABELS: Record<
-  DiagnosticConfidenceDimension,
-  string
-> = {
-  Volume: "Volume",
-  Pace: "Pace",
-  Pause: "Pause",
-  Latency: "Latency",
 };
 
 const LANGUAGE_DIMENSION_LABELS: Record<DiagnosticLanguageDimension, string> = {
@@ -510,19 +371,15 @@ const LANGUAGE_DIMENSION_LABELS: Record<DiagnosticLanguageDimension, string> = {
   Interaction: "Interaction",
 };
 
+// Confidence scoring stays in the backend (diagnostic-scoring.ts) and is
+// stored on the report. It is intentionally excluded from question selection
+// here because confidence feedback is delivered via video coaching, not text.
 const THINKING_SCORE_MAP: Record<DiagnosticThinkingLevel, number> = {
   TF1: 1,
   TF2: 1,
   TF3: 2,
   TF4: 3,
   TF5: 3,
-};
-
-const CONFIDENCE_SCORE_MAP: Record<DiagnosticConfidenceLevel, number> = {
-  VCP1: 1,
-  VCP2: 1,
-  VCP3: 2,
-  VCP4: 3,
 };
 
 const LANGUAGE_SCORE_MAP: Record<DiagnosticLanguageLevel, number> = {
@@ -535,145 +392,180 @@ const LANGUAGE_SCORE_MAP: Record<DiagnosticLanguageLevel, number> = {
   C2: 3,
 };
 
-function buildSkillSummaries(
-  assessment: DiagnosticReportJson["assessment_result"],
-): SkillSummary[] {
-  return [
-    {
-      id: "thinking",
-      icon: Brain,
-      label: "Thinking",
-      level: assessment.thinking_avg,
-      ...splitDimensions(
-        buildThinkingDimensions(assessment.question_responses),
-      ),
-    },
-    {
-      id: "language",
-      icon: Languages,
-      label: "Language",
-      level: assessment.language_avg,
-      ...splitDimensions(
-        buildLanguageDimensions(assessment.question_responses),
-      ),
-    },
-    {
-      id: "confidence",
-      icon: Smile,
-      label: "Confidence",
-      level: assessment.confidence_avg,
-      ...splitDimensions(
-        buildConfidenceDimensions(assessment.question_responses),
-      ),
-    },
-  ];
-}
+type WeakDimension = {
+  label: string;
+  feedback: string;
+};
 
-function splitDimensions(items: SkillDimensionSummary[]) {
-  return {
-    strong: items.filter((item) => item.score >= 3),
-    improve: items.filter((item) => item.score <= 2),
-  };
-}
+type SelectedQuestion = {
+  response: DiagnosticQuestionResponse;
+  weakDimensions: WeakDimension[];
+};
 
-function buildThinkingDimensions(
-  responses: DiagnosticReportJson["assessment_result"]["question_responses"],
-) {
-  return (
-    Object.keys(THINKING_DIMENSION_LABELS) as DiagnosticThinkingDimension[]
-  ).flatMap((dimension): SkillDimensionSummary[] => {
-    const levels = responses
-      .map((response) => response.thinking_levels?.[dimension])
-      .filter((level): level is DiagnosticThinkingLevel => Boolean(level));
-    const level = conservativeMode(levels, THINKING_SCORE_MAP);
-    if (!level) return [];
-    return [
-      {
-        label: THINKING_DIMENSION_LABELS[dimension],
-        levelLabel: level,
-        score: THINKING_SCORE_MAP[level],
-        reasoning: getFirstReasoning(
-          responses.map((response) => response.reasoning.thinking?.[dimension]),
-        ),
-      },
-    ];
-  });
-}
+function getQuestionAvgScore(response: DiagnosticQuestionResponse): number {
+  const scores: number[] = [];
 
-function buildConfidenceDimensions(
-  responses: DiagnosticReportJson["assessment_result"]["question_responses"],
-) {
-  return (
-    Object.keys(CONFIDENCE_DIMENSION_LABELS) as DiagnosticConfidenceDimension[]
-  ).flatMap((dimension): SkillDimensionSummary[] => {
-    const levels = responses
-      .map((response) => response.confidence_levels?.[dimension])
-      .filter((level): level is DiagnosticConfidenceLevel => Boolean(level));
-    const level = conservativeMode(levels, CONFIDENCE_SCORE_MAP);
-    if (!level) return [];
-    return [
-      {
-        label: CONFIDENCE_DIMENSION_LABELS[dimension],
-        levelLabel: level,
-        score: CONFIDENCE_SCORE_MAP[level],
-        reasoning: getFirstReasoning(
-          responses.map(
-            (response) => response.reasoning.confidence?.[dimension],
-          ),
-        ),
-      },
-    ];
-  });
-}
-
-function buildLanguageDimensions(
-  responses: DiagnosticReportJson["assessment_result"]["question_responses"],
-) {
-  return (
-    Object.keys(LANGUAGE_DIMENSION_LABELS) as DiagnosticLanguageDimension[]
-  ).flatMap((dimension): SkillDimensionSummary[] => {
-    const levels = responses
-      .map((response) => response.language_levels?.[dimension])
-      .filter((level): level is DiagnosticLanguageLevel => Boolean(level));
-    const level = conservativeMode(levels, LANGUAGE_SCORE_MAP);
-    if (!level) return [];
-    return [
-      {
-        label: LANGUAGE_DIMENSION_LABELS[dimension],
-        levelLabel: level,
-        score: LANGUAGE_SCORE_MAP[level],
-        reasoning: getFirstReasoning(
-          responses.map((response) => response.reasoning.language?.[dimension]),
-        ),
-      },
-    ];
-  });
-}
-
-function conservativeMode<Level extends string>(
-  levels: Level[],
-  scoreMap: Record<Level, number>,
-) {
-  if (!levels.length) return null;
-
-  const counts = new Map<Level, number>();
-  for (const level of levels) {
-    counts.set(level, (counts.get(level) ?? 0) + 1);
+  for (const [, level] of Object.entries(response.thinking_levels ?? {})) {
+    if (level) scores.push(THINKING_SCORE_MAP[level as DiagnosticThinkingLevel]);
+  }
+  for (const [, level] of Object.entries(response.language_levels ?? {})) {
+    if (level) scores.push(LANGUAGE_SCORE_MAP[level as DiagnosticLanguageLevel]);
   }
 
-  const maxCount = Math.max(...counts.values());
-  return Array.from(counts.entries())
-    .filter(([, count]) => count === maxCount)
-    .map(([level]) => level)
-    .sort((left, right) => scoreMap[left] - scoreMap[right])[0];
+  if (!scores.length) return 3;
+  return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
-function getFirstReasoning(values: Array<string | undefined>) {
+function getWeakDimensions(response: DiagnosticQuestionResponse): WeakDimension[] {
+  const weak: WeakDimension[] = [];
+
+  for (const [dim, level] of Object.entries(response.thinking_levels ?? {})) {
+    const score = level ? THINKING_SCORE_MAP[level as DiagnosticThinkingLevel] : null;
+    if (score !== null && score <= 2) {
+      const feedback = response.reasoning.thinking?.[dim as DiagnosticThinkingDimension];
+      if (feedback) {
+        weak.push({
+          label: THINKING_DIMENSION_LABELS[dim as DiagnosticThinkingDimension],
+          feedback,
+        });
+      }
+    }
+  }
+
+  for (const [dim, level] of Object.entries(response.language_levels ?? {})) {
+    const score = level ? LANGUAGE_SCORE_MAP[level as DiagnosticLanguageLevel] : null;
+    if (score !== null && score <= 2) {
+      const feedback = response.reasoning.language?.[dim as DiagnosticLanguageDimension];
+      if (feedback) {
+        weak.push({
+          label: LANGUAGE_DIMENSION_LABELS[dim as DiagnosticLanguageDimension],
+          feedback,
+        });
+      }
+    }
+  }
+
+  return weak;
+}
+
+function selectQuestionsForAnalysis(
+  responses: DiagnosticQuestionResponse[],
+  max = 4,
+): SelectedQuestion[] {
+  return responses
+    .map((response) => ({
+      response,
+      weakDimensions: getWeakDimensions(response),
+      avgScore: getQuestionAvgScore(response),
+    }))
+    .filter(({ weakDimensions }) => weakDimensions.length > 0)
+    .sort((a, b) => a.avgScore - b.avgScore)
+    .slice(0, max)
+    .map(({ response, weakDimensions }) => ({ response, weakDimensions }));
+}
+
+function QuestionWiseAnalysis({
+  responses,
+}: {
+  responses: DiagnosticQuestionResponse[];
+}) {
+  const selected = selectQuestionsForAnalysis(responses);
+
+  if (!selected.length) return null;
+
   return (
-    values.find((value) => value?.trim()) ??
-    "No written explanation was captured for this dimension."
+    <Accordion className="gap-4" defaultValue={["question-analysis"]}>
+      <AccordionItem
+        className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm"
+        value="question-analysis"
+      >
+        <AccordionTrigger className="p-4 text-left hover:no-underline">
+          <span className="text-base font-bold text-foreground">
+            Question wise analysis
+          </span>
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="divide-y divide-border px-4 pb-4">
+            {selected.map(({ response, weakDimensions }) => (
+              <QuestionFeedbackCard
+                key={response.question_id}
+                response={response}
+                weakDimensions={weakDimensions}
+              />
+            ))}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }
+
+function QuestionFeedbackCard({
+  response,
+  weakDimensions,
+}: {
+  response: DiagnosticQuestionResponse;
+  weakDimensions: WeakDimension[];
+}) {
+  if (!response.question_text) return null;
+
+  return (
+    <div className="space-y-3 py-4 first:pt-0">
+      {/* Sara + question */}
+      <div className="space-y-1">
+        <p className="text-xs font-medium text-muted-foreground">Sara</p>
+        <p className="text-sm font-semibold leading-6 text-foreground">
+          {response.question_text}
+        </p>
+      </div>
+
+      {/* Candidate answer — purple bubble, right-aligned */}
+      {response.candidate_answer && (
+        <div className="flex justify-end">
+          <div className="max-w-[85%] rounded-2xl bg-[#6C47FF] px-4 py-3">
+            <p className="text-sm leading-6 text-white">
+              {response.candidate_answer}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* FEEDBACK label (left) + Needs work badge (right) */}
+      <div className="flex items-center justify-between pt-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Feedback
+        </p>
+        <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+          Needs work
+        </span>
+      </div>
+
+      {/* Reframed answer */}
+      {response.reframed_answer ? (
+        <div className="rounded-xl bg-muted/50 p-4">
+          <div className="mb-2 flex items-center gap-1.5">
+            <span aria-hidden="true">✨</span>
+            <p className="text-xs font-semibold text-foreground">Reframed Answer</p>
+          </div>
+          <p className="text-sm leading-6 text-muted-foreground">
+            {response.reframed_answer}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {weakDimensions.map(({ label, feedback }) => (
+            <div key={label} className="rounded-xl bg-muted/50 p-3">
+              <p className="mb-1 text-xs font-semibold text-foreground">{label}</p>
+              <p className="text-xs leading-5 text-muted-foreground">{feedback}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function RoundStartCard({
   round,
@@ -751,13 +643,4 @@ function getPerformanceBadge(score: number): {
   if (score >= 70) return { label: "Good", color: "#F49B22" };
   if (score >= 50) return { label: "Average", color: "#DE7B48" };
   return { label: "Poor", color: "#C7433F" };
-}
-
-function getSkillLevel(value: number): {
-  label: string;
-  tone: "green" | "amber" | "red";
-} {
-  if (value >= 80) return { label: "HIGH", tone: "green" };
-  if (value >= 50) return { label: "MID", tone: "amber" };
-  return { label: "LOW", tone: "red" };
 }

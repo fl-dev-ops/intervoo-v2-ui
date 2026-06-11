@@ -159,6 +159,18 @@ Scoring framework:
 - Return labels/tags only; do not return numeric scores or salary fields.
 
 CRITICAL — Every question must include ALL of the following:
+- question_text: copy the exact question text from the confirmed asked questions list above for this question_id
+- candidate_answer: a faithful 1-3 sentence summary of what the candidate actually said in response to this question, drawn directly from the transcript; do not paraphrase or evaluate — just represent what was said
+- reframed_answer: identify the single weakest sub-dimension for this question — the one with the lowest score across all thinking and language dimensions (excluding confidence) — then rewrite the candidate's actual answer specifically targeting only that sub-dimension's weakness; keep it in first person, natural and conversational; do not add evaluative commentary, critique, or explanation — just the reframed answer itself; apply the reframing as follows based on which sub-dimension is weakest:
+  - Relevance (thinking): make the answer directly address the specific question asked; remove any off-topic content; open with something that locks onto the exact question
+  - Specificity (thinking): add concrete details — real names, numbers, timelines, tools, or situations; replace vague claims with verifiable particulars
+  - Reasoning (thinking): show the why and how behind the response; make the thought process and decision-making visible rather than just stating what happened
+  - JobCompetency (thinking): demonstrate the actual behaviour or skill in a real or credible scenario rather than just claiming it exists
+  - Coherence (language): restructure the answer so ideas flow logically with clear connectives; each sentence should build on the previous one with a visible thread from start to finish
+  - Range (language): replace repeated or basic words with more varied and topic-appropriate vocabulary; introduce phrasing that is natural but more precise
+  - Fluency (language): smooth out hesitations and fragmented sentences into well-paced, complete utterances; the reframed answer should read as if spoken confidently without restarts
+  - Grammar (language): correct sentence structure, tense consistency, and subject-verb agreement throughout; keep the candidate's original ideas intact
+  - Interaction (language): make the response feel naturally conversational and engaged with the question; the candidate should sound like they are responding to this specific question, not reciting a prepared answer
 - thinking_levels (object with keys: Relevance, Specificity, Reasoning, JobCompetency)
 - confidence_levels (object with keys: Volume, Pace, Pause, Latency)
 - language_levels (object with keys: Fluency, Grammar, Range, Coherence, Interaction)

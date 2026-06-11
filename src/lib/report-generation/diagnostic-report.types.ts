@@ -83,6 +83,9 @@ export interface DiagnosticQuestionReasoning {
 
 export interface DiagnosticQuestionResponse {
   question_id: string;
+  question_text?: string;
+  candidate_answer?: string;
+  reframed_answer?: string;
   thinking_levels?: Partial<
     Record<DiagnosticThinkingDimension, DiagnosticThinkingLevel>
   >;
