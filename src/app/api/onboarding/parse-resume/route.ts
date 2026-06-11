@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
     // Normalize the parser output into our resume format
     const resume = {
       name: profile.name || "",
+      email: profile.email || "",
+      phoneNumber: profile.phoneNumber || "",
       role: profile.roleHint || "",
       experienceYears: profile.experienceYears ?? null,
       education: Array.isArray(profile.education)

@@ -35,15 +35,27 @@ export function ResumeCard({
         <div className="flex items-center gap-2">
           {action}
         {onEdit && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onEdit}
-            className="size-7 rounded-full text-black hover:bg-[#F3F0FA]"
-            aria-label={editing ? "Done editing" : `Edit ${title}`}
-          >
-            <Pencil className="size-3.5" />
-          </Button>
+          editing ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onEdit}
+              className="h-7 rounded-full px-3 text-xs font-bold text-[#5C3BD8] hover:bg-[#F3F0FA]"
+              aria-label="Done editing"
+            >
+              Done
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onEdit}
+              className="size-7 rounded-full text-black hover:bg-[#F3F0FA]"
+              aria-label={`Edit ${title}`}
+            >
+              <Pencil className="size-3.5" />
+            </Button>
+          )
         )}
         </div>
       </div>

@@ -61,7 +61,10 @@ export function ProjectsCard({
               }
             >
               {editing && (
-                <div className="mb-2 flex justify-end">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-bold text-[#858585]">
+                    Project {index + 1}
+                  </p>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -74,11 +77,6 @@ export function ProjectsCard({
                 </div>
               )}
               <div className="space-y-3">
-                {editing && (
-                  <p className="text-sm font-bold text-[#858585]">
-                    Project {index + 1}
-                  </p>
-                )}
                 <div>
                   <label className="sr-only">
                     Project Title

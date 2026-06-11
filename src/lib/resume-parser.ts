@@ -12,6 +12,8 @@ const MODEL = "gemini-3.5-flash";
 
 export type OnboardingProfile = {
   name: string;
+  email: string;
+  phoneNumber: string;
   education: {
     degree: string;
     major: string;
@@ -30,16 +32,18 @@ export type OnboardingProfile = {
 };
 
 const ResumeSchema = z.object({
-  name: z.string().nullable(),
+  name: z.string().nullable().default(null),
+  email: z.string().nullable().default(null),
+  phone_number: z.string().nullable().default(null),
   education: z
     .array(
       z.object({
-        institution: z.string().nullable(),
-        degree: z.string().nullable(),
-        major: z.string().nullable(),
-        graduation_year: z.number().nullable(),
-        cgpa: z.union([z.string(), z.number()]).nullable(),
-        is_current: z.boolean().nullable(),
+        institution: z.string().nullable().default(null),
+        degree: z.string().nullable().default(null),
+        major: z.string().nullable().default(null),
+        graduation_year: z.number().nullable().default(null),
+        cgpa: z.union([z.string(), z.number()]).nullable().default(null),
+        is_current: z.boolean().nullable().default(null),
       }),
     )
     .default([]),
@@ -47,8 +51,8 @@ const ResumeSchema = z.object({
   projects: z
     .array(
       z.object({
-        name: z.string().nullable(),
-        description: z.string().nullable(),
+        name: z.string().nullable().default(null),
+        description: z.string().nullable().default(null),
         keywords: z.array(z.string()).default([]),
       }),
     )
@@ -56,13 +60,13 @@ const ResumeSchema = z.object({
   work_experience: z
     .array(
       z.object({
-        company: z.string().nullable(),
-        role: z.string().nullable(),
+        company: z.string().nullable().default(null),
+        role: z.string().nullable().default(null),
       }),
     )
     .default([]),
-  experience_years: z.number().nullable(),
-  strongest_domain: z.string().nullable(),
+  experience_years: z.number().nullable().default(null),
+  strongest_domain: z.string().nullable().default(null),
 });
 
 type ParsedResume = z.infer<typeof ResumeSchema>;
@@ -71,6 +75,8 @@ const SYSTEM_PROMPT = `You extract structured data from a candidate's resume for
 Return ONLY a single JSON object, no prose, matching exactly this shape:
 {
   "name": string | null,
+  "email": string | null,
+  "phone_number": string | null,
   "education": [
     { "institution": string, "degree": string, "major": string | null,
       "graduation_year": number | null, "cgpa": string | null, "is_current": boolean }
@@ -81,8 +87,12 @@ Return ONLY a single JSON object, no prose, matching exactly this shape:
   "experience_years": number,
   "strongest_domain": string | null
 }
+IMPORTANT: ALL fields must be present in the response. Never omit any field.
 Rules:
 - Use [] for missing lists and null for missing scalars; never invent data.
+- "email" must be the candidate's email address. Extract from resume header or contact info. Use null if not found.
+- "phone_number" must be the candidate's phone number with country code (e.g. "+919876543210"). Extract from resume header or contact info. Use null if not found.
+- "experience_years" must be a number. Calculate from work_experience dates if available, otherwise estimate from education level and current year. Use 0 only if truly no experience can be determined.
 - "skills" must be a flat, de-duplicated list of concrete skill names.
 - "work_experience" is ONLY actual job-related work: paid employment (full-time, part-time, contract) or internships at a real company or organization. Each entry must be a role the candidate was employed for. Internships count here.
 - "projects" is ONLY side-projects, personal projects, academic/course projects, hackathon work, and open-source contributions. These are NOT employment.
@@ -141,6 +151,8 @@ async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
 
   return {
     name: parsed.name ?? "",
+    email: parsed.email ?? "",
+    phoneNumber: parsed.phone_number ?? "",
     education: {
       degree: edu?.degree ?? "",
       major: edu?.major ?? "",
@@ -232,58 +244,13 @@ export async function parseResume(file: File): Promise<OnboardingProfile> {
           role: "user",
           parts: [
             { fileData: { fileUri: uploaded.uri ?? "", mimeType } },
-            { text: "Extract structured data from this resume." },
+            { text: "Extract ALL structured data from this resume. Return a complete JSON object with ALL fields: name, email, phone_number, education, skills, projects, work_experience, experience_years, and strongest_domain. Do not omit any field." },
           ],
         },
       ],
       config: {
         temperature: 0,
-        maxOutputTokens: 2048,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: "object",
-          properties: {
-            name: { type: "string", nullable: true },
-            education: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  institution: { type: "string", nullable: true },
-                  degree: { type: "string", nullable: true },
-                  major: { type: "string", nullable: true },
-                  graduation_year: { type: "number", nullable: true },
-                  cgpa: { type: "string", nullable: true },
-                  is_current: { type: "boolean", nullable: true },
-                },
-              },
-            },
-            skills: { type: "array", items: { type: "string" } },
-            projects: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  name: { type: "string", nullable: true },
-                  description: { type: "string", nullable: true },
-                  keywords: { type: "array", items: { type: "string" } },
-                },
-              },
-            },
-            work_experience: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  company: { type: "string", nullable: true },
-                  role: { type: "string", nullable: true },
-                },
-              },
-            },
-            experience_years: { type: "number", nullable: true },
-            strongest_domain: { type: "string", nullable: true },
-          },
-        },
+        maxOutputTokens: 8192,
         systemInstruction: SYSTEM_PROMPT,
       },
     });

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
@@ -8,8 +7,9 @@ import {
   ResumeUploadStep,
   ResumeReviewStep,
 } from "@/components/onboarding";
+import { AppHeader } from "@/components/app-header";
+import { JobPreferencesDialog, type JobProfileFilters } from "@/components/jobs/job-preferences-dialog";
 import { authClient } from "@/lib/auth-client";
-import { LogOut } from "lucide-react";
 
 type ResumeData = {
   name: string;
@@ -44,9 +44,13 @@ type UserDefaults = {
   phoneNumber: string;
 };
 
+type Option = { id?: string; name: string };
+
+const JOB_PROFILE_FILTERS_KEY = "intervoo:job-profile-filters";
+
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState<"upload" | "review">("upload");
+  const [step, setStep] = useState<"upload" | "review" | "preferences">("upload");
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -57,6 +61,15 @@ export default function OnboardingPage() {
     email: "",
     phoneNumber: "",
   });
+  const [options, setOptions] = useState<{ companies: Option[]; skills: Option[] }>({ companies: [], skills: [] });
+  const [filters, setFilters] = useState<JobProfileFilters>({
+    companies: [],
+    roles: [],
+    salary: "",
+    skills: [],
+  });
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const checkStage = async () => {
@@ -105,7 +118,14 @@ export default function OnboardingPage() {
       }
 
       const data = await response.json();
-      setResumeData(mergeWithUserDefaults(data.resume, userDefaults));
+      const merged = mergeWithUserDefaults(data.resume, userDefaults);
+      setResumeData(merged);
+      setFilters({
+        companies: [],
+        roles: merged.role ? [merged.role] : [],
+        salary: "",
+        skills: merged.skills,
+      });
       setStep("review");
     } catch (err) {
       setParseError(
@@ -131,6 +151,23 @@ export default function OnboardingPage() {
     setStep("review");
   }, [userDefaults]);
 
+  const loadOptions = useCallback(async () => {
+    setIsLoadingOptions(true);
+    try {
+      const response = await fetch("/api/jobs/options");
+      const payload = (await response.json()) as { companies?: Option[]; skills?: Option[]; error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Failed to load options");
+      setOptions({
+        companies: payload.companies ?? [],
+        skills: payload.skills ?? [],
+      });
+    } catch {
+      // silently fail
+    } finally {
+      setIsLoadingOptions(false);
+    }
+  }, []);
+
   const handleComplete = useCallback(
     async (data: ResumeData) => {
       setIsCompleting(true);
@@ -147,7 +184,8 @@ export default function OnboardingPage() {
           throw new Error(error.error || "Failed to complete onboarding");
         }
 
-        router.push("/jobs");
+        setStep("preferences");
+        void loadOptions();
       } catch (err) {
         setParseError(
           err instanceof Error ? err.message : "Failed to complete onboarding",
@@ -156,8 +194,22 @@ export default function OnboardingPage() {
         setIsCompleting(false);
       }
     },
-    [router],
+    [loadOptions],
   );
+
+  const handleApplyPreferences = useCallback(() => {
+    setIsSearching(true);
+    try {
+      localStorage.setItem(JOB_PROFILE_FILTERS_KEY, JSON.stringify(filters));
+    } catch {
+      // ignore
+    }
+    router.push("/jobs");
+  }, [filters, router]);
+
+  const handleSkipPreferences = useCallback(() => {
+    router.push("/jobs");
+  }, [router]);
 
   const handleLogout = useCallback(async () => {
     await authClient.signOut({
@@ -166,6 +218,13 @@ export default function OnboardingPage() {
       },
     });
   }, [router]);
+
+  const roleOptions = (() => {
+    const names = new Set<string>();
+    if (filters.roles) filters.roles.forEach((r) => names.add(r));
+    if (resumeData?.role) names.add(resumeData.role);
+    return [...names].sort();
+  })();
 
   if (isLoading) {
     return (
@@ -177,36 +236,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F1FF] font-sans">
-      <header className="border-b border-[#F1EEF6] bg-white">
-        <div className="mx-auto flex h-16 w-full max-w-[1080px] items-center justify-between px-6 md:h-[72px]">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/intervoo-logo-light.svg"
-              alt="Intervoo"
-              width={38}
-              height={22}
-              className="brightness-0"
-              priority
-            />
-            <div className="hidden leading-none sm:block">
-              <p className="text-lg font-extrabold tracking-tight text-black">
-                Intervoo.ai
-              </p>
-              <p className="mt-1 text-xs text-black/80">
-                by Foreverlearning.in
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex size-10 items-center justify-center rounded-full text-[#565656] transition hover:bg-[#F4F1FA] hover:text-black"
-            aria-label="Logout"
-          >
-            <LogOut className="size-5" />
-          </button>
-        </div>
-      </header>
+      <AppHeader onLogout={handleLogout} />
       {step === "upload" ? (
         <ResumeUploadStep
           onParse={handleParseResume}
@@ -214,7 +244,7 @@ export default function OnboardingPage() {
           isParsing={isParsing}
           error={parseError}
         />
-      ) : (
+      ) : step === "review" ? (
         resumeData && (
           <ResumeReviewStep
             initialData={resumeData}
@@ -223,6 +253,17 @@ export default function OnboardingPage() {
             isCompleting={isCompleting}
           />
         )
+      ) : (
+        <JobPreferencesDialog
+          companyOptions={options.companies.map((c) => c.name)}
+          filters={filters}
+          isLoading={isSearching || isLoadingOptions}
+          onApply={handleApplyPreferences}
+          onClose={handleSkipPreferences}
+          roleOptions={roleOptions}
+          setFilters={setFilters}
+          skillOptions={options.skills.map((s) => s.name)}
+        />
       )}
     </div>
   );
@@ -234,8 +275,8 @@ function mergeWithUserDefaults(
 ): ResumeData {
   return {
     ...resume,
-    name: "",
-    email: "",
+    name: resume.name || defaults.name || "",
+    email: resume.email || defaults.email || "",
     phoneNumber: resume.phoneNumber || defaults.phoneNumber,
   };
 }

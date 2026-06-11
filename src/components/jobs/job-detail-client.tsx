@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -10,6 +9,7 @@ import {
   Play,
 } from "lucide-react";
 import { IconUserCheck } from "@tabler/icons-react";
+import { AppHeader } from "@/components/app-header";
 import { InterviewReadinessScore } from "@/components/diagnostics/interview-readiness-score";
 import { Button } from "@/components/ui/button";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
@@ -52,7 +52,7 @@ export function JobDetailClient({ job, user }: JobDetailClientProps) {
 
   return (
     <main className="min-h-dvh bg-[#F6F3F8] font-sans text-black">
-      <JobDetailHeader user={user} />
+      <AppHeader user={user} />
       <section className="mx-auto w-full max-w-[900px] px-4 pb-14 pt-6">
         <button
           type="button"
@@ -202,38 +202,6 @@ export function JobDetailClient({ job, user }: JobDetailClientProps) {
   );
 }
 
-function JobDetailHeader({
-  user,
-}: {
-  user: { email: string | null; name: string | null };
-}) {
-  return (
-    <header className="border-b border-[#EDEAF0] bg-white">
-      <div className="mx-auto flex h-[72px] w-full max-w-[1080px] items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-          <Image
-            src="/intervoo-logo-light.svg"
-            alt="Intervoo"
-            width={38}
-            height={22}
-            className="brightness-0"
-            priority
-          />
-          <div className="hidden leading-none sm:block">
-            <p className="text-base font-extrabold tracking-tight text-black">
-              Intervoo.ai
-            </p>
-            <p className="mt-1 text-xs text-black/80">by Foreverlearning.in</p>
-          </div>
-        </div>
-        <div className="flex size-9 items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white">
-          {getInitial(user)}
-        </div>
-      </div>
-    </header>
-  );
-}
-
 function JobSummaryCard({ job, roundCount }: { job: JobDetail; roundCount: number }) {
   return (
     <div className="rounded-2xl bg-white px-5 py-5">
@@ -281,11 +249,6 @@ function formatExperienceLabel(min: number | null, max: number | null) {
   if (min != null && max != null) return `${min}-${max} years`;
   if (min != null) return `${min}+ years`;
   return `Up to ${max} years`;
-}
-
-function getInitial(user: { email: string | null; name: string | null }) {
-  const source = user.name?.trim() || user.email?.trim() || "U";
-  return source.charAt(0).toUpperCase();
 }
 
 function getLogoText(companyName: string) {

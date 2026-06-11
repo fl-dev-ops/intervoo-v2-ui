@@ -69,7 +69,10 @@ export function ExperienceCard({
               className={editing ? "relative rounded-xl border border-[#EEEAF4] p-3" : "relative"}
             >
               {editing && (
-                <div className="mb-2 flex justify-end">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-bold text-[#858585]">
+                    Experience {index + 1}
+                  </p>
                   <Button
                     variant="ghost"
                     size="icon"
