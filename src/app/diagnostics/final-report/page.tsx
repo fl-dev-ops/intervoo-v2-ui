@@ -26,7 +26,7 @@ export default async function DiagnosticsFinalReportPage() {
     where: { userId: user.id },
     include: {
       rounds: { include: { session: { include: { report: true } } } },
-      user: { include: { profile: true } },
+      user: { include: { resume: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -48,7 +48,7 @@ export default async function DiagnosticsFinalReportPage() {
   }
 
   const bandConfig = getDiagnosticBandConfig(diagnostic.selectedBand);
-  const preferredName = diagnostic.user.profile?.preferredName ?? null;
+  const preferredName = diagnostic.user.resume?.name ?? null;
   const rounds = DIAGNOSTIC_ROUNDS.map((config, index) => {
     const roundNumber = index + 1;
     const dbRound = diagnostic.rounds.find(

@@ -45,7 +45,7 @@ const SEGMENTS: Segment[] = [
   },
   {
     key: "hold",
-    label: "Hold",
+    label: "Waitlist",
     range: "51-70",
     gaugeLimit: 50,
     min: 51,

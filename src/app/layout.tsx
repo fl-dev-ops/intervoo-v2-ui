@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { PostHogProvider, PostHogPageView } from "@posthog/next";
 import { PostHogIdentify } from "@/components/posthog-identify";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

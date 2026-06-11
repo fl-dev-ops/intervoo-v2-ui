@@ -2,26 +2,26 @@ import { redirect } from "next/navigation";
 import { DiagnosticsAgentSession } from "@/components/diagnostics/diagnostics-agent-session";
 import { requirePageStage } from "@/lib/stage-guards";
 
-export default async function DiagnosticsSessionPage({
-  searchParams,
-}: {
+type Props = {
+  params: Promise<{ sessionId: string }>;
   searchParams: Promise<{
     token?: string;
     server_url?: string;
     room_name?: string;
-    session_id?: string;
     round_id?: string;
     job_title?: string;
     companies?: string;
     salary?: string;
     coach?: string;
   }>;
-}) {
+};
+
+export default async function SessionPage({ params, searchParams }: Props) {
+  const { sessionId } = await params;
   const {
     token,
     server_url: serverUrl,
     room_name: roomName,
-    session_id: sessionId,
     round_id: roundId,
     job_title: jobTitle,
     companies,
@@ -31,26 +31,8 @@ export default async function DiagnosticsSessionPage({
   await requirePageStage(["DIAGNOSTICS"]);
 
   if (!token || !serverUrl || !roomName || !sessionId) {
-    console.info("[diagnostics] redirect", {
-      from: "/diagnostics/session",
-      hasRoomName: Boolean(roomName),
-      hasServerUrl: Boolean(serverUrl),
-      hasSessionId: Boolean(sessionId),
-      hasToken: Boolean(token),
-      reason: "missing_connection_params",
-      to: "/diagnostics/rounds",
-    });
     redirect("/jobs");
   }
-
-  console.info("[diagnostics] render session", {
-    coach: coach ?? null,
-    companies: companies?.split(",") ?? [],
-    jobTitle: jobTitle ?? null,
-    roomName,
-    roundId: roundId ?? null,
-    sessionId,
-  });
 
   return (
     <DiagnosticsAgentSession

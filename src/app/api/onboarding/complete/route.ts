@@ -5,67 +5,65 @@ import { prisma } from "@/lib/db";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { getUserStage } from "@/lib/progress";
 
-const onboardingSchema = {
-  firstName: "string",
-  lastName: "string",
-  preferredName: "string",
-  email: "string",
-  institution: "string",
-  degree: "string",
-  stream: "string",
-  placementPreparation: "string",
-  academySelection: "string",
-  academyName: "string",
-  nativeLanguage: "string",
-  englishLevel: "string",
-  coach: "string",
-} as const;
+type EducationEntry = {
+  degree: string;
+  stream: string;
+  institution: string;
+  graduationYear: string;
+  score: string;
+};
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+type ExperienceEntry = {
+  title: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+};
 
-function validateBody(body: unknown): body is Record<string, string> {
+type ProjectEntry = {
+  title: string;
+  description: string;
+};
+
+type ResumePayload = {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  role: string;
+  experienceYears: number | null;
+  education: EducationEntry[];
+  skills: string[];
+  experience: ExperienceEntry[];
+  projects: ProjectEntry[];
+};
+
+function validateBody(body: unknown): body is ResumePayload {
   if (typeof body !== "object" || body === null) return false;
+  const b = body as Record<string, unknown>;
 
-  for (const key of Object.keys(onboardingSchema)) {
-    const value = (body as Record<string, unknown>)[key];
-    // Allow empty strings for optional fields
-    if (value !== undefined && typeof value !== "string") {
-      return false;
-    }
-  }
+  if (typeof b.name !== "string") return false;
+  if (typeof b.email !== "string") return false;
+  if (typeof b.phoneNumber !== "string") return false;
+  if (typeof b.role !== "string") return false;
+  if (b.experienceYears !== null && typeof b.experienceYears !== "number")
+    return false;
+  if (!Array.isArray(b.education)) return false;
+  if (!Array.isArray(b.skills)) return false;
+  if (!Array.isArray(b.experience)) return false;
+  if (!Array.isArray(b.projects)) return false;
 
   return true;
 }
 
-function getValidationError(body: Record<string, string>) {
-  if (!body.firstName?.trim()) return "First name is required";
-  if (!EMAIL_PATTERN.test(body.email?.trim() ?? "")) {
+function getValidationError(body: ResumePayload) {
+  if (!body.name.trim()) return "Name is required";
+  if (!body.email.trim()) return "Email is required";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()))
     return "A valid email address is required";
-  }
-  if (!body.degree?.trim()) return "Highest qualification is required";
-  if (!body.stream?.trim()) return "Stream or branch is required";
-  if (!body.institution?.trim()) return "College name is required";
-  if (!body.placementPreparation?.trim()) {
-    return "Placement preparation mode is required";
-  }
-  if (!body.nativeLanguage?.trim()) return "Comfort language is required";
-  if (!body.englishLevel?.trim()) return "English level is required";
-  if (body.coach && body.coach !== "Sara" && body.coach !== "arjun") {
-    return "Coach selection is invalid";
-  }
-  if (
-    body.placementPreparation === "training_academy" &&
-    !body.academySelection?.trim()
-  ) {
-    return "Academy selection is required";
-  }
-  if (
-    body.placementPreparation === "training_academy" &&
-    body.academySelection === "Others" &&
-    !body.academyName?.trim()
-  ) {
-    return "Academy name is required";
-  }
+  if (!body.phoneNumber.trim()) return "Phone number is required";
+  if (!/^[+\d][\d\s()-]{7,}$/.test(body.phoneNumber.trim()))
+    return "A valid phone number is required";
 
   return "";
 }
@@ -92,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     if (!validateBody(body)) {
       return NextResponse.json(
-        { error: "Invalid onboarding data" },
+        { error: "Invalid resume data" },
         { status: 400 },
       );
     }
@@ -102,62 +100,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const {
-      firstName,
-      lastName,
-      preferredName,
-      email,
-      institution,
-      degree,
-      stream,
-      placementPreparation,
-      academySelection,
-      academyName,
-      nativeLanguage,
-      englishLevel,
-      coach,
-    } = body;
-    const displayName = preferredName.trim() || firstName.trim();
-    const selectedCoach = coach === "arjun" ? "arjun" : "Sara";
+    const { name, email, phoneNumber, role, experienceYears, education, skills, experience, projects } = body;
 
     await prisma.$transaction([
       prisma.user.update({
         where: { id: session.user.id },
         data: {
-          name: `${firstName} ${lastName}`.trim(),
-          email,
+          name: name.trim(),
+          email: email.trim(),
+          phoneNumber: phoneNumber.trim() || null,
         },
       }),
-      prisma.profile.upsert({
+      prisma.resume.upsert({
         where: { userId: session.user.id },
         create: {
           userId: session.user.id,
-          preferredName: displayName,
-          institution,
-          degree,
-          stream,
-          placementPreparation,
-          academySelection,
-          academyName,
-          nativeLanguage: nativeLanguage || "",
-          englishLevel: englishLevel || "",
-          coach: selectedCoach,
-          speakingSpeed: "",
-          yearOfStudy: "",
+          name: name.trim(),
+          role: role.trim(),
+          experienceYears,
+          education,
+          skills,
+          experience,
+          projects,
         },
         update: {
-          preferredName: displayName,
-          institution,
-          degree,
-          stream,
-          placementPreparation,
-          academySelection,
-          academyName,
-          nativeLanguage: nativeLanguage || "",
-          englishLevel: englishLevel || "",
-          coach: selectedCoach,
-          speakingSpeed: "",
-          yearOfStudy: "",
+          name: name.trim(),
+          role: role.trim(),
+          experienceYears,
+          education,
+          skills,
+          experience,
+          projects,
         },
       }),
       prisma.userProgress.upsert({
@@ -178,25 +151,21 @@ export async function POST(request: NextRequest) {
     posthog.identify({
       distinctId: session.user.id,
       properties: {
-        name: `${firstName} ${lastName}`.trim(),
-        email,
-        phone_number: session.user.phoneNumber,
-        institution,
-        degree,
-        native_language: nativeLanguage,
-        english_level: englishLevel,
-        placement_preparation: placementPreparation,
-        coach: selectedCoach,
+        name: name.trim(),
+        email: email.trim(),
+        phone_number: phoneNumber.trim() || null,
+        role: role.trim(),
+        experience_years: experienceYears,
+        skills_count: skills.length,
       },
     });
     posthog.capture({
       distinctId: session.user.id,
       event: "onboarding_completed",
       properties: {
-        native_language: nativeLanguage,
-        english_level: englishLevel,
-        placement_preparation: placementPreparation,
-        coach: selectedCoach,
+        role: role.trim(),
+        experience_years: experienceYears,
+        skills_count: skills.length,
       },
     });
 

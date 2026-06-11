@@ -1,16 +1,12 @@
 import { redirect } from "next/navigation";
 import { DiagnosticsRoundsClient } from "@/components/diagnostics/rounds-client";
 import { prisma } from "@/lib/db";
-import {
-  buildDiagnosticJobOptions,
-  getDiagnosticJobOption,
-  parseDiagnosticBand,
-} from "@/lib/diagnostics/job-options";
+import type { JobDetail } from "@/lib/jd-client";
 import {
   areAllDiagnosticRoundsComplete,
   countProgressableDiagnosticRounds,
   isDiagnosticRoundReadyForProgression,
-  shouldShowDiagnosticBandSelection,
+  shouldShowJobSelection,
 } from "@/lib/diagnostics/rules";
 import {
   getHydratedReportFromMetadata,
@@ -35,30 +31,26 @@ export default async function DiagnosticsRoundsPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  if (!diagnostic || shouldShowDiagnosticBandSelection(diagnostic)) {
+  if (!diagnostic || shouldShowJobSelection(diagnostic)) {
     console.info("[diagnostics] redirect", {
       from: "/diagnostics/rounds",
-      reason: "missing_selected_band",
-      to: "/diagnostics/selection",
+      reason: "missing_selected_job",
+      to: "/jobs",
       userId: user.id,
     });
-    redirect("/diagnostics/selection");
+    redirect("/jobs");
   }
 
-  const jobOptions = buildDiagnosticJobOptions();
-  const selectedBand = parseDiagnosticBand(diagnostic.selectedBand);
-  const selectedJob = getDiagnosticJobOption(jobOptions, selectedBand);
-
-  if (!selectedJob) {
-    console.info("[diagnostics] redirect", {
-      from: "/diagnostics/rounds",
-      reason: "invalid_selected_job",
-      selectedBand: diagnostic.selectedBand,
-      to: "/diagnostics/selection",
-      userId: user.id,
-    });
-    redirect("/diagnostics/selection");
-  }
+  const apiJob = diagnostic.selectedJob as unknown as JobDetail;
+  const selectedJob = {
+    id: "api" as const,
+    label: apiJob.seniority,
+    title: apiJob.jobTitle,
+    salary: "",
+    description: apiJob.roleSummary ?? "",
+    companies: [apiJob.companyName],
+    accentClassName: "text-[#5E41CF]",
+  };
 
   const rounds = diagnostic.rounds.map((round) => {
     const report = round.session?.report ?? null;
@@ -123,6 +115,7 @@ export default async function DiagnosticsRoundsPage() {
     <DiagnosticsRoundsClient
       initialRounds={rounds}
       selectedJob={selectedJob}
+      apiJob={apiJob}
       allCompleted={allCompleted}
       hasCompletedRound={hasCompletedRound}
       reportsReadyCount={reportsReadyCount}

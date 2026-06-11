@@ -15,31 +15,28 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { profile: true, progress: true },
+      include: { resume: true, progress: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Split full name into first/last
-    const nameParts = user.name.trim().split(/\s+/);
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || "";
-
     return NextResponse.json({
-      firstName,
-      lastName,
-      preferredName: user.profile?.preferredName || "",
+      name: user.name,
       email: user.email,
-      institution: user.profile?.institution || "",
-      degree: user.profile?.degree || "",
-      stream: user.profile?.stream || "",
-      placementPreparation: user.profile?.placementPreparation || "",
-      academySelection: user.profile?.academySelection || "",
-      academyName: user.profile?.academyName || "",
-      nativeLanguage: user.profile?.nativeLanguage || "",
-      englishLevel: user.profile?.englishLevel || "",
+      phoneNumber: user.phoneNumber || "",
+      resume: user.resume
+        ? {
+            name: user.resume.name,
+            role: user.resume.role,
+            experienceYears: user.resume.experienceYears,
+            education: user.resume.education,
+            skills: user.resume.skills,
+            experience: user.resume.experience,
+            projects: user.resume.projects,
+          }
+        : null,
       stage: user.progress?.stage || "ONBOARDING",
     });
   } catch (error) {

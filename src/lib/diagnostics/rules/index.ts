@@ -38,6 +38,12 @@ export function shouldShowDiagnosticBandSelection(
   return !diagnostic?.selectedBand;
 }
 
+export function shouldShowJobSelection(
+  diagnostic: { selectedJob?: unknown } | null | undefined,
+) {
+  return !diagnostic?.selectedJob;
+}
+
 export function hasDiagnosticRoundReportRecord<
   Round extends DiagnosticRoundWithReportInput,
 >(rounds: Round[]) {

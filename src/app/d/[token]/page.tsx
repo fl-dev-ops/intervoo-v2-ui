@@ -31,7 +31,7 @@ export default async function PublicDiagnosticReportPage({
             include: {
               diagnostic: {
                 include: {
-                  user: { include: { profile: true } },
+                  user: { include: { resume: true } },
                   rounds: {
                     orderBy: { roundNumber: "asc" },
                     include: {
@@ -65,7 +65,7 @@ export default async function PublicDiagnosticReportPage({
   const isOwner = session?.user?.id === diagnostic.userId;
 
   const bandConfig = getDiagnosticBandConfig(diagnostic.selectedBand);
-  const preferredName = diagnostic.user.profile?.preferredName ?? null;
+  const preferredName = diagnostic.user.resume?.name ?? null;
 
   // Build round data for all 4 configured rounds
   const rounds = DIAGNOSTIC_ROUNDS.map((config, index) => {

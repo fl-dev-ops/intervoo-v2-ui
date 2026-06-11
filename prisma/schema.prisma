@@ -48,7 +48,7 @@ model User {
   updatedAt           DateTime  @updatedAt
   sessions            Session[]
   accounts            Account[]
-  profile             Profile?
+  resume              Resume?
   progress            UserProgress?
   interviewSessions   InterviewSession[]
   diagnostics         Diagnostic[]
@@ -70,27 +70,22 @@ model UserProgress {
   @@map("user_progress")
 }
 
-model Profile {
-  id                   String   @id @default(cuid())
-  userId               String   @unique
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  preferredName        String   @default("")
-  institution          String
-  degree               String
-  stream               String
-  yearOfStudy          String
-  placementPreparation String   @default("")
-  academySelection     String   @default("")
-  academyName          String   @default("")
-  nativeLanguage       String   @default("")
-  englishLevel         String   @default("")
-  speakingSpeed        String   @default("")
-  coach                String   @default("")
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+model Resume {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String   @default("")
+  role            String   @default("")
+  experienceYears Float?
+  education       Json     @default("[]")
+  skills          String[] @default([])
+  experience      Json     @default("[]")
+  projects        Json     @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([userId])
-  @@map("profile")
+  @@map("resume")
 }
 
 // BetterAuth session (keep existing)

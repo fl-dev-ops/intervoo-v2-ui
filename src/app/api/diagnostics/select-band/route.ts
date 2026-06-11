@@ -10,6 +10,28 @@ import {
 import { canChangeDiagnosticBand } from "@/lib/diagnostics/rules";
 import { getUserStage } from "@/lib/progress";
 
+type ApiJobDetail = {
+  jobId: string;
+  jobTitle: string;
+  companyName: string;
+  seniority: string;
+  experienceMinYears: number | null;
+  experienceMaxYears: number | null;
+  location: string | null;
+  workMode: string | null;
+  educationRequirement: string | null;
+  requiredSkills: string | null;
+  roleSummary: string | null;
+  sourceUrl: string | null;
+  fullJobDescription: string | null;
+  rounds: Array<{
+    position: number;
+    slug: string;
+    title: string;
+    competencies: string[];
+  }>;
+};
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
@@ -37,34 +59,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = (await request.json()) as { band?: unknown };
-    const band = parseDiagnosticBand(body.band);
+    const body = (await request.json()) as { band?: unknown; job?: unknown };
 
-    if (!band) {
-      console.info("[diagnostics] select-band rejected", {
-        rawBand: body.band,
-        reason: "invalid_band",
-        userId: session.user.id,
-      });
-      return NextResponse.json(
-        { error: "Invalid diagnostic band" },
-        { status: 400 },
-      );
-    }
+    let selectedJob: ApiJobDetail | { title: string; salary: string; description: string; companies: string[] };
+    let band: string;
 
-    const jobOptions = buildDiagnosticJobOptions();
-    const selectedJob = getDiagnosticJobOption(jobOptions, band);
+    if (body.job && typeof body.job === "object") {
+      const job = body.job as Record<string, unknown>;
+      if (!job.jobId || !job.jobTitle || !job.companyName) {
+        return NextResponse.json(
+          { error: "Invalid job data" },
+          { status: 400 },
+        );
+      }
+      selectedJob = body.job as ApiJobDetail;
+      band = `api:${job.jobId}`;
+    } else {
+      band = parseDiagnosticBand(body.band) ?? "band2";
 
-    if (!selectedJob) {
-      console.info("[diagnostics] select-band rejected", {
-        band,
-        reason: "missing_selected_job",
-        userId: session.user.id,
-      });
-      return NextResponse.json(
-        { error: "Selected diagnostic job was not found" },
-        { status: 400 },
-      );
+      const jobOptions = buildDiagnosticJobOptions();
+      const staticJob = getDiagnosticJobOption(jobOptions, band as "band1" | "band2" | "band3");
+
+      if (!staticJob) {
+        console.info("[diagnostics] select-band rejected", {
+          band,
+          reason: "missing_selected_job",
+          userId: session.user.id,
+        });
+        return NextResponse.json(
+          { error: "Selected diagnostic job was not found" },
+          { status: 400 },
+        );
+      }
+      selectedJob = staticJob;
     }
 
     const existingDiagnostic = await prisma.diagnostic.findFirst({
@@ -109,7 +136,7 @@ export async function POST(request: NextRequest) {
     console.info("[diagnostics] select-band saved", {
       band,
       diagnosticId: diagnostic.id,
-      selectedJob: selectedJob.title,
+      selectedJob: "jobTitle" in selectedJob ? selectedJob.jobTitle : selectedJob.title,
       userId: session.user.id,
     });
 

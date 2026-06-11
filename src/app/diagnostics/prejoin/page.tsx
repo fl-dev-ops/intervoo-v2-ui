@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import {
   canStartDiagnosticRound,
-  shouldShowDiagnosticBandSelection,
+  shouldShowJobSelection,
 } from "@/lib/diagnostics/rules";
 import { requirePageStage } from "@/lib/stage-guards";
 
@@ -37,15 +37,15 @@ export default async function DiagnosticsPrejoinPage({
     orderBy: { createdAt: "desc" },
   });
 
-  if (!diagnostic || shouldShowDiagnosticBandSelection(diagnostic)) {
+  if (!diagnostic || shouldShowJobSelection(diagnostic)) {
     console.info("[diagnostics] redirect", {
       from: "/diagnostics/prejoin",
-      reason: "missing_selected_band",
+      reason: "missing_selected_job",
       roundId,
-      to: "/diagnostics/selection",
+      to: "/jobs",
       userId: user.id,
     });
-    redirect("/diagnostics/selection");
+    redirect("/jobs");
   }
 
   const existingRound = diagnostic.rounds.find(

@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { DiagnosticsJobHeader } from "@/components/diagnostics/diagnostics-job-header";
 import { DiagnosticsPageHeader } from "@/components/diagnostics/diagnostics-page-header";
 import type { DiagnosticJobOption } from "@/lib/diagnostics/job-options";
+import type { JobDetail } from "@/lib/jd-client";
 import {
   DIAGNOSTIC_ROUNDS,
   type DiagnosticRoundConfig,
@@ -62,6 +63,7 @@ function isRoundReportPending(round: RoundData | undefined): boolean {
 export function DiagnosticsRoundsClient({
   initialRounds,
   selectedJob,
+  apiJob,
   allCompleted,
   hasCompletedRound,
   reportsReadyCount,
@@ -69,6 +71,7 @@ export function DiagnosticsRoundsClient({
 }: {
   initialRounds: RoundData[];
   selectedJob: DiagnosticJobOption;
+  apiJob?: JobDetail | null;
   allCompleted: boolean;
   hasCompletedRound: boolean;
   reportsReadyCount: number;
@@ -141,7 +144,7 @@ export function DiagnosticsRoundsClient({
 
       <section className={cn("mx-auto w-full max-w-4xl space-y-6 md:py-8")}>
         {/* Header Card */}
-        <DiagnosticsJobHeader bandConfig={selectedJob} />
+        <DiagnosticsJobHeader bandConfig={selectedJob} apiJob={apiJob} />
 
         {/* Rounds Timeline - Dark Purple Container */}
         <div className="mt-3 rounded-3xl bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] p-6 md:p-8 rounded-b-none md:rounded-b-3xl">
@@ -169,7 +172,13 @@ export function DiagnosticsRoundsClient({
                     isLast={index === DIAGNOSTIC_ROUNDS.length - 1}
                     isProcessing={isProcessing}
                     isStarted={isStarted}
-                    questions={roundConfig.questionsByBand[selectedJob.id]}
+                    questions={
+                      apiJob?.rounds?.[index]?.competencies ??
+                      (selectedJob.id !== "api"
+                        ? roundConfig.questionsByBand[selectedJob.id as "band1" | "band2" | "band3"]
+                        : null) ??
+                      roundConfig.questions
+                    }
                     roundData={roundData}
                     roundNumber={roundNumber}
                     onStart={() => {

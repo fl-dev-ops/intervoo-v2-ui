@@ -344,7 +344,7 @@ export function CustomPreJoin({
       if (selectedCoach) {
         params.set("coach", selectedCoach);
       }
-      router.push(`/diagnostics/session?${params.toString()}`);
+      router.push(`/sessions/${data.session_id}?${params.toString()}`);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to join session.";

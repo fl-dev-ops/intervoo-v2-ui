@@ -20,6 +20,7 @@ type RoundCompleteClientProps = {
   completedRoundNumber: number;
   completedRoundTitle: string;
   failureReason: "insufficient_speech" | "generation_failed" | null;
+  jobId?: string;
   nextRound: NextRound | null;
   reportErrorMessage: string | null;
   reportStatus: string | null;
@@ -31,6 +32,7 @@ export function RoundCompleteClient({
   completedRoundNumber,
   completedRoundTitle,
   failureReason,
+  jobId,
   nextRound,
   reportErrorMessage,
   reportStatus,
@@ -42,14 +44,17 @@ export function RoundCompleteClient({
     ? `Retake Round ${completedRoundNumber}`
     : nextRound
       ? canStartNext
-        ? `Start next Round ${nextRound.roundNumber}`
+        ? "Go to job rounds"
         : "Generating report..."
       : "Go to interview rounds";
+  const jobHref = jobId ? `/jobs/${jobId}` : "/diagnostics/rounds";
   const primaryHref = hasFailedReport
-    ? `/diagnostics/prejoin?round=${completedRoundId}`
+    ? jobId
+      ? `/jobs/${jobId}/prejoin?round=${completedRoundId}`
+      : `/diagnostics/prejoin?round=${completedRoundId}`
     : nextRound
-      ? `/diagnostics/prejoin?round=${nextRound.id}`
-      : "/diagnostics/rounds";
+      ? jobHref
+      : jobHref;
   const heading = hasFailedReport
     ? failureReason === "insufficient_speech"
       ? "We need a bit more from you"
@@ -74,6 +79,7 @@ export function RoundCompleteClient({
       failureReason,
       hasFailedReport,
       isFinalRound,
+      jobId: jobId ?? null,
       nextRound,
       primaryHref,
       primaryLabel,
@@ -88,6 +94,7 @@ export function RoundCompleteClient({
     failureReason,
     hasFailedReport,
     isFinalRound,
+    jobId,
     nextRound,
     primaryHref,
     primaryLabel,
@@ -209,7 +216,7 @@ export function RoundCompleteClient({
                     buttonVariants({ size: "lg", variant: "outline" }),
                     "h-12 w-full rounded-full border-[#6a4df5] bg-white text-[#5e41cf] hover:bg-[#f6f3ff] hover:text-[#5e41cf]",
                   )}
-                  href="/diagnostics/rounds"
+                  href={jobHref}
                 >
                   Go to interview rounds
                 </Link>

@@ -5,7 +5,7 @@ CREATE TYPE "UserStage" AS ENUM ('ONBOARDING', 'DIAGNOSTICS', 'COMPLETED');
 CREATE TYPE "InterviewSessionType" AS ENUM ('DIAGNOSTIC_ROUND');
 
 -- CreateEnum
-CREATE TYPE "InterviewSessionStatus" AS ENUM ('STARTED', 'COMPLETED', 'REPORT_READY');
+CREATE TYPE "InterviewSessionStatus" AS ENUM ('STARTED', 'COMPLETED');
 
 -- CreateEnum
 CREATE TYPE "DiagnosticStatus" AS ENUM ('IN_PROGRESS', 'COMPLETED');
@@ -42,25 +42,20 @@ CREATE TABLE "user_progress" (
 );
 
 -- CreateTable
-CREATE TABLE "profile" (
+CREATE TABLE "resume" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "preferredName" TEXT NOT NULL DEFAULT '',
-    "institution" TEXT NOT NULL,
-    "degree" TEXT NOT NULL,
-    "stream" TEXT NOT NULL,
-    "yearOfStudy" TEXT NOT NULL,
-    "placementPreparation" TEXT NOT NULL DEFAULT '',
-    "academySelection" TEXT NOT NULL DEFAULT '',
-    "academyName" TEXT NOT NULL DEFAULT '',
-    "nativeLanguage" TEXT NOT NULL DEFAULT '',
-    "englishLevel" TEXT NOT NULL DEFAULT '',
-    "speakingSpeed" TEXT NOT NULL DEFAULT '',
-    "coach" TEXT NOT NULL DEFAULT '',
+    "name" TEXT NOT NULL DEFAULT '',
+    "role" TEXT NOT NULL DEFAULT '',
+    "experienceYears" DOUBLE PRECISION,
+    "education" JSONB NOT NULL DEFAULT '[]',
+    "skills" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "experience" JSONB NOT NULL DEFAULT '[]',
+    "projects" JSONB NOT NULL DEFAULT '[]',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "profile_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "resume_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -178,10 +173,10 @@ CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 CREATE UNIQUE INDEX "user_progress_userId_key" ON "user_progress"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "profile_userId_key" ON "profile"("userId");
+CREATE UNIQUE INDEX "resume_userId_key" ON "resume"("userId");
 
 -- CreateIndex
-CREATE INDEX "profile_userId_idx" ON "profile"("userId");
+CREATE INDEX "resume_userId_idx" ON "resume"("userId");
 
 -- CreateIndex
 CREATE INDEX "session_userId_idx" ON "session"("userId");
@@ -226,7 +221,7 @@ CREATE INDEX "report_status_idx" ON "report"("status");
 ALTER TABLE "user_progress" ADD CONSTRAINT "user_progress_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "profile" ADD CONSTRAINT "profile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "resume" ADD CONSTRAINT "resume_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -193,7 +193,7 @@ function SessionLayout({
           sessionId,
         },
       );
-      router.push(`/diagnostics/round-complete?session_id=${sessionId}`);
+      router.push(`/sessions/completed?session_id=${sessionId}`);
     };
 
     session.room.on(RoomEvent.ParticipantDisconnected, handleAgentDisconnected);
@@ -287,7 +287,7 @@ function SessionLayout({
       body: JSON.stringify({ sessionId, userTurnCount }),
     }).catch(() => {});
 
-    router.push(`/diagnostics/round-complete?session_id=${sessionId}`);
+    router.push(`/sessions/completed?session_id=${sessionId}`);
   };
 
   const roundConfig = roundId ? getRoundConfig(roundId) : undefined;

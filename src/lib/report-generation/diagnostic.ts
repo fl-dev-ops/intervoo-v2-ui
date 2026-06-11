@@ -23,7 +23,7 @@ export async function prepareDiagnosticReportGeneration(sessionId: string) {
   const session = await prisma.interviewSession.findUnique({
     where: { id: sessionId },
     include: {
-      user: { include: { profile: true } },
+      user: { include: { resume: true } },
       diagnosticRound: { include: { diagnostic: true } },
     },
   });
@@ -36,7 +36,7 @@ export async function prepareDiagnosticReportGeneration(sessionId: string) {
     throw new Error(`Session type is not DIAGNOSTIC_ROUND: ${session.type}`);
   }
 
-  const profile = session.user.profile;
+  const resume = session.user.resume;
   const transcriptUrl = session.transcriptUrl;
   const audioUrl = session.audioUrl;
 
@@ -88,7 +88,7 @@ export async function prepareDiagnosticReportGeneration(sessionId: string) {
 
   // 3. Build prompt
   const participantName =
-    profile?.preferredName || session.user.name || "Learner";
+    resume?.name || session.user.name || "Learner";
   const prompt = buildDiagnosticReportPrompt({
     participantName,
     transcriptPromptText,

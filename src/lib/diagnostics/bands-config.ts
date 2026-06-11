@@ -1,4 +1,4 @@
-export type DiagnosticBand = "band1" | "band2" | "band3";
+export type DiagnosticBand = "band1" | "band2" | "band3" | "api";
 
 export type DiagnosticBandConfig = {
   id: DiagnosticBand;

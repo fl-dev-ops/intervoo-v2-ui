@@ -1,829 +1,241 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import posthog from "posthog-js";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useCallback, useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
+import {
+  ResumeUploadStep,
+  ResumeReviewStep,
+} from "@/components/onboarding";
+import { authClient } from "@/lib/auth-client";
+import { LogOut } from "lucide-react";
 
-const steps = [
-  { id: "profile", label: "Profile" },
-  { id: "education", label: "Education" },
-  { id: "language", label: "Language" },
-  { id: "english", label: "English" },
-] as const;
-
-type StepId = (typeof steps)[number]["id"];
-type NativeLanguage =
-  | "tamil"
-  | "hindi"
-  | "telugu"
-  | "kannada"
-  | "malayalam"
-  | "bengali";
-type EnglishLevel = "beginner" | "intermediate" | "advanced" | "native";
-
-const stepDetails = {
-  education: {
-    description:
-      "This helps us personalize interview prompts around your placement context.",
-    title: "Education Background",
-  },
-  english: {
-    description:
-      "We’ll assess your level more accurately in a short interview.",
-    title: "Your current English level?",
-  },
-  language: {
-    description: "We’ll use this to personalize your experience.",
-    title: "Your native language?",
-  },
-  profile: {
-    description: "Tell us what to call you before your diagnostic starts.",
-    title: "Build your profile",
-  },
-} as const satisfies Record<StepId, { description: string; title: string }>;
-
-type OnboardingForm = {
-  firstName: string;
-  lastName: string;
-  preferredName: string;
+type ResumeData = {
+  name: string;
   email: string;
-  institution: string;
-  degree: string;
-  stream: string;
-  placementPreparation: string;
-  academySelection: string;
-  academyName: string;
-  nativeLanguage?: NativeLanguage;
-  englishLevel?: EnglishLevel;
-  coach: "Sara" | "arjun";
+  phoneNumber: string;
+  role: string;
+  experienceYears: number | null;
+  education: {
+    degree: string;
+    stream: string;
+    institution: string;
+    graduationYear: string;
+    score: string;
+  }[];
+  skills: string[];
+  experience: {
+    title: string;
+    company: string;
+    startDate: string;
+    endDate: string;
+    description: string;
+  }[];
+  projects: {
+    title: string;
+    description: string;
+  }[];
 };
 
-type FieldErrors = Partial<Record<keyof OnboardingForm, string>>;
-
-const placementOptions = [
-  { value: "through_college", label: "Through my college" },
-  { value: "training_academy", label: "Through a training academy" },
-  { value: "self_preparing", label: "Preparing on my own" },
-  { value: "not_preparing", label: "I'm not preparing currently" },
-] as const;
-
-const academyOptions = [
-  { value: "DET", label: "Deshpande Educational Trust" },
-  { value: "FSSA", label: "FSSA" },
-  { value: "Others", label: "Others" },
-] as const;
-
-const languageOptions = [
-  { value: "tamil", label: "Tamil", nativeLabel: "தமிழ்" },
-  { value: "hindi", label: "Hindi", nativeLabel: "हिन्दी" },
-  { value: "telugu", label: "Telugu", nativeLabel: "తెలుగు" },
-  { value: "kannada", label: "Kannada", nativeLabel: "ಕನ್ನಡ" },
-  { value: "malayalam", label: "Malayalam", nativeLabel: "മലയാളം" },
-  { value: "bengali", label: "Bengali", nativeLabel: "বাংলা" },
-] as const satisfies Array<{
-  value: NativeLanguage;
-  label: string;
-  nativeLabel: string;
-}>;
-
-const englishOptions = [
-  {
-    value: "native",
-    label: "Native / Near-native",
-    description: "Fully comfortable speaking English.",
-  },
-  {
-    value: "advanced",
-    label: "Advanced",
-    description: "Fluent in most situations with minor gaps.",
-  },
-  {
-    value: "intermediate",
-    label: "Intermediate",
-    description: "I can hold a basic conversation but make mistakes.",
-  },
-  {
-    value: "beginner",
-    label: "Beginner",
-    description: "I struggle to speak in English. Basic words only.",
-  },
-] as const satisfies Array<{
-  value: EnglishLevel;
-  label: string;
-  description: string;
-}>;
-
-const initialForm: OnboardingForm = {
-  firstName: "",
-  lastName: "",
-  preferredName: "",
-  email: "",
-  institution: "",
-  degree: "",
-  stream: "",
-  placementPreparation: "",
-  academySelection: "",
-  academyName: "",
-  nativeLanguage: undefined,
-  englishLevel: undefined,
-  coach: "Sara",
+type UserDefaults = {
+  name: string;
+  email: string;
+  phoneNumber: string;
 };
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState<StepId>("profile");
-  const [form, setForm] = useState<OnboardingForm>(initialForm);
+  const [step, setStep] = useState<"upload" | "review">("upload");
+  const [resumeData, setResumeData] = useState<ResumeData | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [validationErrors, setValidationErrors] = useState<FieldErrors>({});
-  const currentStepIndex = steps.findIndex((item) => item.id === step);
-  const currentStepDetails = stepDetails[step];
-  const isFinalStep = currentStepIndex === steps.length - 1;
+  const [userDefaults, setUserDefaults] = useState<UserDefaults>({
+    name: "",
+    email: "",
+    phoneNumber: "",
+  });
 
   useEffect(() => {
-    async function loadProfile() {
+    const checkStage = async () => {
       try {
         const response = await fetch("/api/onboarding/me");
-        if (response.status === 401) {
-          router.replace("/login");
+        if (!response.ok) {
+          router.push("/login");
           return;
         }
-
-        if (response.ok) {
-          const data = (await response.json()) as { stage?: string };
-
-          if (data.stage === "DIAGNOSTICS") {
-            router.replace("/diagnostics");
-            return;
-          }
-          if (data.stage === "COMPLETED") {
-            router.replace("/diagnostics/final-report");
-            return;
-          }
+        const data = await response.json();
+        if (data.stage !== "ONBOARDING") {
+          router.push("/jobs");
+          return;
         }
+        setUserDefaults({
+          name: data.name || "",
+          email: data.email || "",
+          phoneNumber: data.phoneNumber || "",
+        });
       } catch {
-        // Ignore fetch errors, user starts with empty form
+        router.push("/login");
       } finally {
         setIsLoading(false);
       }
-    }
+    };
 
-    void loadProfile();
+    checkStage();
   }, [router]);
 
-  function updateForm(patch: Partial<OnboardingForm>) {
-    setValidationErrors((current) => {
-      const next = { ...current };
-      for (const key of Object.keys(patch) as Array<keyof OnboardingForm>) {
-        delete next[key];
+  const handleParseResume = useCallback(async (file: File) => {
+    setIsParsing(true);
+    setParseError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/onboarding/parse-resume", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to parse resume");
       }
-      return next;
+
+      const data = await response.json();
+      setResumeData(mergeWithUserDefaults(data.resume, userDefaults));
+      setStep("review");
+    } catch (err) {
+      setParseError(
+        err instanceof Error ? err.message : "Failed to parse resume",
+      );
+    } finally {
+      setIsParsing(false);
+    }
+  }, [userDefaults]);
+
+  const handleSkip = useCallback(() => {
+    setResumeData({
+      name: "",
+      email: "",
+      phoneNumber: userDefaults.phoneNumber,
+      role: "",
+      experienceYears: null,
+      education: [],
+      skills: [],
+      experience: [],
+      projects: [],
     });
-    setForm((current) => ({ ...current, ...patch }));
-  }
+    setStep("review");
+  }, [userDefaults]);
 
-  function goNext() {
-    const errors = validateStep(step, form);
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      return;
-    }
+  const handleComplete = useCallback(
+    async (data: ResumeData) => {
+      setIsCompleting(true);
 
-    const nextStep = steps[currentStepIndex + 1];
+      try {
+        const response = await fetch("/api/onboarding/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
 
-    if (nextStep) {
-      setStep(nextStep.id);
-    }
-  }
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to complete onboarding");
+        }
 
-  function goBack() {
-    const previousStep = steps[currentStepIndex - 1];
+        router.push("/jobs");
+      } catch (err) {
+        setParseError(
+          err instanceof Error ? err.message : "Failed to complete onboarding",
+        );
+      } finally {
+        setIsCompleting(false);
+      }
+    },
+    [router],
+  );
 
-    if (previousStep) {
-      setStep(previousStep.id);
-    }
-  }
+  const handleLogout = useCallback(async () => {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => router.push("/login"),
+      },
+    });
+  }, [router]);
 
   if (isLoading) {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-white p-3 md:p-10">
-        <div className="flex flex-col items-center gap-3">
-          <Spinner className="size-8 text-[#6548E4]" />
-          <p className="text-sm text-slate-600">Loading your profile...</p>
-        </div>
-      </main>
+      <div className="flex items-center justify-center min-h-screen">
+        <Spinner className="size-8" />
+      </div>
     );
   }
 
   return (
-    <main className="flex min-h-dvh flex-col md:p-10">
-      <section className="relative mx-auto flex w-full max-w-md flex-1 flex-col pt-6 ">
-        <OnboardingHeader
-          currentStep={currentStepIndex + 1}
-          title={currentStepDetails.title}
-          totalSteps={steps.length}
-        />
-
-        <div className="mt-4 flex h-full flex-1 flex-col rounded-t-2xl md:rounded-2xl bg-white pt-3 p-6 md:pt-6">
-          <div
-            key={step}
-            className="pt-2 px-1 pb-2 md:p-0 flex-1 animate-fade-in"
-          >
-            {step === "profile" ? (
-              <ProfileStep
-                errors={validationErrors}
-                form={form}
-                onChange={updateForm}
-              />
-            ) : step === "education" ? (
-              <EducationStep
-                errors={validationErrors}
-                form={form}
-                onChange={updateForm}
-              />
-            ) : step === "language" ? (
-              <LanguageStep
-                errors={validationErrors}
-                form={form}
-                onChange={updateForm}
-              />
-            ) : step === "english" ? (
-              <EnglishStep
-                errors={validationErrors}
-                form={form}
-                onChange={updateForm}
-              />
-            ) : null}
+    <div className="min-h-screen bg-[#F7F1FF] font-sans">
+      <header className="border-b border-[#F1EEF6] bg-white">
+        <div className="mx-auto flex h-16 w-full max-w-[1080px] items-center justify-between px-6 md:h-[72px]">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/intervoo-logo-light.svg"
+              alt="Intervoo"
+              width={38}
+              height={22}
+              className="brightness-0"
+              priority
+            />
+            <div className="hidden leading-none sm:block">
+              <p className="text-lg font-extrabold tracking-tight text-black">
+                Intervoo.ai
+              </p>
+              <p className="mt-1 text-xs text-black/80">
+                by Foreverlearning.in
+              </p>
+            </div>
           </div>
-
-          {isFinalStep ? (
-            <OnboardingSubmitButton
-              form={form}
-              onBack={goBack}
-              showBack={currentStepIndex > 0}
-            />
-          ) : (
-            <OnboardingFooter
-              nextLabel="Next"
-              onBack={goBack}
-              onNext={goNext}
-              showBack={currentStepIndex > 0}
-            />
-          )}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function OnboardingHeader(props: {
-  currentStep: number;
-  title: string;
-  totalSteps: number;
-}) {
-  return (
-    <header className="px-2 mt-2">
-      <div
-        className="mx-auto grid w-30 gap-2"
-        style={{
-          gridTemplateColumns: `repeat(${props.totalSteps}, minmax(0, 1fr))`,
-        }}
-      >
-        {Array.from({ length: props.totalSteps }, (_, index) => ({
-          id: `onboarding-step-${index + 1}`,
-          isComplete: index < props.currentStep,
-        })).map((segment) => (
-          <span
-            key={segment.id}
-            className={cn(
-              "h-1.25 rounded-full transition-colors duration-500 ease-out",
-              segment.isComplete ? "bg-[#6548E4]" : "bg-slate-200",
-            )}
-          />
-        ))}
-      </div>
-      <div className="mt-4 text-center">
-        <h2 className="text-xl font-semibold tracking-tight text-white">
-          {props.title}
-        </h2>
-      </div>
-    </header>
-  );
-}
-
-function OnboardingFooter(props: {
-  nextLabel: string;
-  showBack: boolean;
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <footer className="mt-auto flex items-center justify-between gap-3 pt-8">
-      {props.showBack ? (
-        <Button
-          className="px-2 text-slate-500 hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-[#6548E4]/20"
-          type="button"
-          variant="ghost"
-          onClick={props.onBack}
-        >
-          <ArrowLeft className="size-4" />
-          Back
-        </Button>
-      ) : (
-        <span aria-hidden="true" />
-      )}
-      <Button
-        className="rounded-full min-w-32 bg-button text-white shadow-lg shadow-[#6548E4]/20 focus-visible:ring-[#6548E4]/20"
-        size="lg"
-        type="button"
-        onClick={props.onNext}
-      >
-        {props.nextLabel}
-        <ArrowRight className="size-4" />
-      </Button>
-    </footer>
-  );
-}
-
-function ProfileStep(props: {
-  errors: FieldErrors;
-  form: OnboardingForm;
-  onChange: (patch: Partial<OnboardingForm>) => void;
-}) {
-  return (
-    <StepContent description={stepDetails.profile.description}>
-      <FieldGroup className="gap-6">
-        <div className="grid grid-cols-2 gap-3">
-          <TextField
-            autoComplete="given-name"
-            error={props.errors.firstName}
-            label="First name"
-            required={true}
-            value={props.form.firstName}
-            onChange={(value) => props.onChange({ firstName: value })}
-          />
-          <TextField
-            autoComplete="family-name"
-            error={props.errors.lastName}
-            label="Last name"
-            required={true}
-            value={props.form.lastName}
-            onChange={(value) => props.onChange({ lastName: value })}
-          />
-        </div>
-        <TextField
-          error={props.errors.preferredName}
-          label="How should we call you?"
-          value={props.form.preferredName}
-          onChange={(value) => props.onChange({ preferredName: value })}
-        />
-        <TextField
-          autoComplete="email"
-          error={props.errors.email}
-          label="Email address"
-          required={true}
-          type="email"
-          value={props.form.email}
-          onChange={(value) => props.onChange({ email: value })}
-        />
-      </FieldGroup>
-    </StepContent>
-  );
-}
-
-function EducationStep(props: {
-  errors: FieldErrors;
-  form: OnboardingForm;
-  onChange: (patch: Partial<OnboardingForm>) => void;
-}) {
-  const isTrainingAcademy =
-    props.form.placementPreparation === "training_academy";
-  const isOtherAcademy = props.form.academySelection === "Others";
-
-  return (
-    <StepContent description={stepDetails.education.description}>
-      <FieldGroup className="gap-6">
-        <TextField
-          error={props.errors.degree}
-          label="Highest qualification"
-          required={true}
-          value={props.form.degree}
-          onChange={(value) => props.onChange({ degree: value })}
-        />
-        <TextField
-          error={props.errors.stream}
-          label="Stream / Branch"
-          required={true}
-          value={props.form.stream}
-          onChange={(value) => props.onChange({ stream: value })}
-        />
-        <TextField
-          error={props.errors.institution}
-          label="College name"
-          required={true}
-          value={props.form.institution}
-          onChange={(value) => props.onChange({ institution: value })}
-        />
-        <Field>
-          <FieldLabel className="font-normal leading-none text-[#6B6B6B]">
-            How are you preparing for placements?
-          </FieldLabel>
-          <Select
-            value={props.form.placementPreparation}
-            onValueChange={(value) =>
-              props.onChange({
-                placementPreparation: value ?? "",
-                academySelection:
-                  value === "training_academy"
-                    ? props.form.academySelection
-                    : "",
-                academyName:
-                  value === "training_academy" ? props.form.academyName : "",
-              })
-            }
-          >
-            <SelectTrigger
-              aria-invalid={Boolean(props.errors.placementPreparation)}
-              aria-required="true"
-              className="h-auto w-full rounded-lg border-0 bg-[#F0EDF6] px-3 py-2 font-normal text-[#24232A] shadow-none focus-visible:border-0 focus-visible:ring-3 focus-visible:ring-[#6548E4]/20 data-placeholder:text-slate-400"
-            >
-              <SelectValue>
-                {
-                  placementOptions.find(
-                    (o) => o.value === props.form.placementPreparation,
-                  )?.label
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {placementOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {props.errors.placementPreparation ? (
-            <FieldDescription className="text-destructive">
-              {props.errors.placementPreparation}
-            </FieldDescription>
-          ) : (
-            <FieldDescription>
-              Required for better interview personalization.
-            </FieldDescription>
-          )}
-        </Field>
-        {isTrainingAcademy ? (
-          <Field>
-            <FieldLabel className="font-normal leading-none text-[#6B6B6B]">
-              Select your academy
-            </FieldLabel>
-            <Select
-              value={props.form.academySelection}
-              onValueChange={(value) =>
-                props.onChange({
-                  academySelection: value ?? "",
-                  academyName: value === "Others" ? props.form.academyName : "",
-                })
-              }
-            >
-              <SelectTrigger
-                aria-invalid={Boolean(props.errors.academySelection)}
-                aria-required="true"
-                className="h-auto w-full rounded-lg border-0 bg-[#F0EDF6] px-3 py-2 font-medium text-[#24232A] shadow-none focus-visible:border-0 focus-visible:ring-3 focus-visible:ring-[#6548E4]/20 data-placeholder:text-slate-400"
-              >
-                <SelectValue>
-                  {
-                    academyOptions.find(
-                      (o) => o.value === props.form.academySelection,
-                    )?.label
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {academyOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {props.errors.academySelection ? (
-              <FieldDescription className="text-destructive">
-                {props.errors.academySelection}
-              </FieldDescription>
-            ) : null}
-          </Field>
-        ) : null}
-        {isTrainingAcademy && isOtherAcademy ? (
-          <TextField
-            error={props.errors.academyName}
-            label="Academy name"
-            required={true}
-            value={props.form.academyName}
-            onChange={(value) => props.onChange({ academyName: value })}
-          />
-        ) : null}
-      </FieldGroup>
-    </StepContent>
-  );
-}
-
-function LanguageStep(props: {
-  errors: FieldErrors;
-  form: OnboardingForm;
-  onChange: (patch: Partial<OnboardingForm>) => void;
-}) {
-  return (
-    <StepContent description={stepDetails.language.description}>
-      <div className="grid gap-3">
-        {languageOptions.map((option) => (
-          <OptionButton
-            key={option.value}
-            active={props.form.nativeLanguage === option.value}
-            label={option.label}
-            meta={option.nativeLabel}
-            onClick={() => props.onChange({ nativeLanguage: option.value })}
-          />
-        ))}
-        {props.errors.nativeLanguage ? (
-          <p className="text-sm text-destructive">
-            {props.errors.nativeLanguage}
-          </p>
-        ) : null}
-      </div>
-    </StepContent>
-  );
-}
-
-function EnglishStep(props: {
-  errors: FieldErrors;
-  form: OnboardingForm;
-  onChange: (patch: Partial<OnboardingForm>) => void;
-}) {
-  return (
-    <StepContent description={stepDetails.english.description}>
-      <div className="grid gap-3">
-        {englishOptions.map((option) => (
-          <OptionButton
-            key={option.value}
-            active={props.form.englishLevel === option.value}
-            label={option.description}
-            meta={option.label}
-            onClick={() => props.onChange({ englishLevel: option.value })}
-          />
-        ))}
-        {props.errors.englishLevel ? (
-          <p className="text-sm text-destructive">
-            {props.errors.englishLevel}
-          </p>
-        ) : null}
-      </div>
-    </StepContent>
-  );
-}
-
-function OnboardingSubmitButton(props: {
-  form: OnboardingForm;
-  showBack: boolean;
-  onBack: () => void;
-}) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleStart() {
-    const validationError = validateOnboardingForm(props.form);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/onboarding/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(props.form),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to complete onboarding");
-      }
-
-      posthog.capture("onboarding_completed", {
-        native_language: props.form.nativeLanguage,
-        english_level: props.form.englishLevel,
-        placement_preparation: props.form.placementPreparation,
-        coach: props.form.coach,
-      });
-      router.push("/diagnostics");
-    } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Failed to complete onboarding.",
-      );
-      setIsSubmitting(false);
-    }
-  }
-
-  return (
-    <div className="mt-auto pt-8">
-      {error ? (
-        <p className="mb-4 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-      <footer className="flex items-center justify-between gap-3">
-        {props.showBack ? (
-          <Button
-            className="text-slate-500 hover:bg-slate-100 hover:text-slate-950"
-            disabled={isSubmitting}
+          <button
             type="button"
-            variant="ghost"
-            onClick={props.onBack}
+            onClick={handleLogout}
+            className="flex size-10 items-center justify-center rounded-full text-[#565656] transition hover:bg-[#F4F1FA] hover:text-black"
+            aria-label="Logout"
           >
-            <ArrowLeft className="size-4" />
-            Back
-          </Button>
-        ) : (
-          <span aria-hidden="true" />
-        )}
-        <Button
-          className="rounded-full min-w-32 bg-button text-white shadow-lg shadow-[#6548E4]/20"
-          size="lg"
-          disabled={isSubmitting}
-          type="button"
-          onClick={handleStart}
-        >
-          {isSubmitting ? <Spinner className="size-4" /> : "Done"}
-        </Button>
-      </footer>
-    </div>
-  );
-}
-
-function validateStep(step: StepId, form: OnboardingForm) {
-  const errors: FieldErrors = {};
-
-  if (step === "profile") {
-    if (!form.firstName.trim()) errors.firstName = "Enter your first name.";
-    if (!form.lastName.trim()) errors.lastName = "Enter your last name.";
-    if (!EMAIL_PATTERN.test(form.email.trim())) {
-      errors.email = form.email.trim()
-        ? "Enter a valid email address."
-        : "Enter your email address.";
-    }
-  }
-
-  if (step === "education") {
-    if (!form.degree.trim()) {
-      errors.degree = "Enter your highest qualification.";
-    }
-    if (!form.stream.trim()) errors.stream = "Enter your stream or branch.";
-    if (!form.institution.trim())
-      errors.institution = "Enter your college name.";
-    if (!form.placementPreparation) {
-      errors.placementPreparation =
-        "Select how you are preparing for placements.";
-    }
-    if (
-      form.placementPreparation === "training_academy" &&
-      !form.academySelection
-    ) {
-      errors.academySelection = "Select your academy.";
-    }
-    if (
-      form.placementPreparation === "training_academy" &&
-      form.academySelection === "Others" &&
-      !form.academyName.trim()
-    ) {
-      errors.academyName = "Enter your academy name.";
-    }
-  }
-
-  if (step === "language" && !form.nativeLanguage) {
-    errors.nativeLanguage = "Select your comfort language.";
-  }
-
-  if (step === "english" && !form.englishLevel) {
-    errors.englishLevel = "Select your English fluency level.";
-  }
-
-  return errors;
-}
-
-function validateOnboardingForm(form: OnboardingForm) {
-  for (const item of steps) {
-    const errors = validateStep(item.id, form);
-    const firstError = Object.values(errors)[0];
-    if (firstError) return firstError;
-  }
-
-  return "";
-}
-
-function StepContent(props: {
-  children: React.ReactNode;
-  description: string;
-}) {
-  return (
-    <div>
-      <p className="text-sm mb-8 md:text-[17px] md:font-semibold leading-6">
-        {props.description}
-      </p>
-      {props.children}
-    </div>
-  );
-}
-
-function TextField(props: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  autoComplete?: string;
-  error?: string;
-  required?: boolean;
-  type?: string;
-}) {
-  return (
-    <Field>
-      <FieldLabel className="font-normal leading-none">
-        {props.label}
-      </FieldLabel>
-      <Input
-        aria-invalid={Boolean(props.error)}
-        autoComplete={props.autoComplete}
-        className="h-auto rounded-lg text-sm border-0 bg-[#F0EDF6] px-3 py-2 font-medium text-[#24232A] shadow-none placeholder:text-slate-400 focus-visible:border-0 focus-visible:ring-3 focus-visible:ring-[#6548E4]/20"
-        required={props.required}
-        type={props.type ?? "text"}
-        value={props.value}
-        onChange={(event) => props.onChange(event.target.value)}
-      />
-      {props.error ? (
-        <FieldDescription className="text-destructive">
-          {props.error}
-        </FieldDescription>
-      ) : null}
-    </Field>
-  );
-}
-
-function OptionButton(props: {
-  active: boolean;
-  label: string;
-  meta: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className={cn(
-        "flex w-full items-center justify-between gap-4 rounded-lg border bg-white p-4 text-left text-slate-950 shadow-sm transition",
-        props.active
-          ? "border-[#6548E4] ring-2 ring-[#6548E4]/10"
-          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50",
+            <LogOut className="size-5" />
+          </button>
+        </div>
+      </header>
+      {step === "upload" ? (
+        <ResumeUploadStep
+          onParse={handleParseResume}
+          onSkip={handleSkip}
+          isParsing={isParsing}
+          error={parseError}
+        />
+      ) : (
+        resumeData && (
+          <ResumeReviewStep
+            initialData={resumeData}
+            onComplete={handleComplete}
+            onBack={() => setStep("upload")}
+            isCompleting={isCompleting}
+          />
+        )
       )}
-      type="button"
-      onClick={props.onClick}
-    >
-      <span>
-        <span className="block text-sm font-medium leading-5">
-          {props.label}
-        </span>
-        <span className="mt-1 block text-sm font-semibold text-slate-500">
-          {props.meta}
-        </span>
-      </span>
-      <span
-        className={cn(
-          "flex size-5 shrink-0 items-center justify-center rounded-full border transition",
-          props.active ? "border-[#5E41CF] bg-[#5E41CF]" : "border-slate-300",
-        )}
-      >
-        {props.active ? <Check className="size-3 text-white" /> : null}
-      </span>
-    </button>
+    </div>
   );
+}
+
+function mergeWithUserDefaults(
+  resume: ResumeData,
+  defaults: UserDefaults,
+): ResumeData {
+  return {
+    ...resume,
+    name: "",
+    email: "",
+    phoneNumber: resume.phoneNumber || defaults.phoneNumber,
+  };
 }

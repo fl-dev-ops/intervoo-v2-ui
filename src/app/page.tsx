@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { getUserStage } from "@/lib/progress";
 
 export default async function Home() {
@@ -19,7 +21,14 @@ export default async function Home() {
   }
 
   if (stage === "DIAGNOSTICS") {
-    redirect("/diagnostics");
+    const diagnostic = await prisma.diagnostic.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      select: { selectedJob: true },
+    });
+    const jobId = getSelectedJobId(diagnostic?.selectedJob);
+
+    redirect(jobId ? `/jobs/${jobId}` : "/jobs");
   }
 
   if (stage === "COMPLETED") {

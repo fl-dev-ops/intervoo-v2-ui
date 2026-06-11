@@ -11,6 +11,7 @@
     "format": "biome format --write"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.80",
     "@base-ui/react": "^1.4.1",
     "@google/genai": "^2.4.0",
     "@livekit/components-react": "^2.0.0",

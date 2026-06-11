@@ -3,14 +3,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
-  buildDiagnosticJobOptions,
-  getDiagnosticJobOption,
-  parseDiagnosticBand,
-} from "@/lib/diagnostics/job-options";
-import {
   getRoundConfig,
   getRoundNumber,
 } from "@/lib/diagnostics/rounds-config";
+import type { JobDetail } from "@/lib/jd-client";
 import { getDiagnosticRoundRecoveryState } from "@/lib/diagnostics/rules";
 import {
   buildDiagnosticRoomName,
@@ -30,9 +26,9 @@ const DIAGNOSTIC_QUESTION_CATEGORY_BY_ROUND: Record<string, string> = {
   "technical-thinking": "domain",
 };
 const DIAGNOSTIC_QUESTION_BAND_BY_SELECTED_BAND = {
-  band1: 1,
-  band2: 2,
-  band3: 3,
+  entry: 1,
+  mid: 2,
+  senior: 3,
 } as const;
 const COACH_AGENT_DETAILS = {
   arjun: { name: "Arjun", voice: "rahul" },
@@ -49,6 +45,15 @@ type LiveKitCredentials = ReturnType<typeof getLiveKitCredentials>;
 type SessionCreationUser = NonNullable<
   Awaited<ReturnType<typeof getSessionCreationUser>>
 >;
+
+type SelectedDiagnosticJob = {
+  title: string;
+  description: string;
+  salary: string;
+  companies: string[];
+  seniority: keyof typeof DIAGNOSTIC_QUESTION_BAND_BY_SELECTED_BAND;
+  raw: JobDetail;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -121,7 +126,7 @@ export async function POST(request: NextRequest) {
 async function getSessionCreationUser(userId: string) {
   return await prisma.user.findUnique({
     where: { id: userId },
-    include: { profile: true },
+    include: { resume: true },
   });
 }
 
@@ -157,35 +162,18 @@ async function createDiagnosticConnectionDetails({
     orderBy: { createdAt: "desc" },
   });
 
-  const band = parseDiagnosticBand(diagnostic?.selectedBand);
+  const selectedJob = getSelectedDiagnosticJob(diagnostic?.selectedJob);
 
-  if (!diagnostic || !band) {
+  if (!diagnostic || !selectedJob) {
     console.info("[diagnostics] diagnostic connection rejected", {
       diagnosticId: diagnostic?.id ?? null,
-      reason: "missing_diagnostic_or_band",
+      reason: "missing_diagnostic_or_job",
       roundId,
       selectedBand: diagnostic?.selectedBand ?? null,
       userId: user.id,
     });
     return NextResponse.json(
-      { error: "Select a diagnostic band before starting a round" },
-      { status: 409 },
-    );
-  }
-
-  const jobOptions = buildDiagnosticJobOptions();
-  const selectedJob = getDiagnosticJobOption(jobOptions, band);
-
-  if (!selectedJob) {
-    console.info("[diagnostics] diagnostic connection rejected", {
-      band,
-      diagnosticId: diagnostic.id,
-      reason: "missing_selected_job",
-      roundId,
-      userId: user.id,
-    });
-    return NextResponse.json(
-      { error: "Selected diagnostic job was not found" },
+      { error: "Select a job before starting a round" },
       { status: 409 },
     );
   }
@@ -244,7 +232,7 @@ async function createDiagnosticConnectionDetails({
   const agentName = credentials.agentName || LIVEKIT_AGENT_NAME;
   const roomName = buildDiagnosticRoomName(user.id);
   const participantIdentity = `diag_${user.id}`;
-  const participantName = user.profile?.preferredName || user.name || "Learner";
+  const participantName = user.resume?.name || user.name || "Learner";
 
   const dbSession = await prisma.interviewSession.create({
     data: {
@@ -274,7 +262,6 @@ async function createDiagnosticConnectionDetails({
     roomName,
     roundId,
     roundNumber: requestedRoundNumber,
-    selectedBand: band,
     selectedJob: selectedJob.title,
     sessionId: dbSession.id,
     userId: user.id,
@@ -288,19 +275,19 @@ async function createDiagnosticConnectionDetails({
   const coach =
     body.coach === "arjun"
       ? "arjun"
-      : user.profile?.coach === "arjun"
-        ? "arjun"
-        : "Sara";
+      : "Sara";
   const agentDetails = COACH_AGENT_DETAILS[coach];
-  const speakingSpeed = getSpeakingSpeed(user.profile?.speakingSpeed);
+  const speakingSpeed = getSpeakingSpeed("");
   const voice = agentDetails.voice;
   const questionCategory = DIAGNOSTIC_QUESTION_CATEGORY_BY_ROUND[roundId];
-  const questionBand = DIAGNOSTIC_QUESTION_BAND_BY_SELECTED_BAND[band];
+  const questionBand = DIAGNOSTIC_QUESTION_BAND_BY_SELECTED_BAND[selectedJob.seniority];
   const additionalContext = JSON.stringify({
     selected_job_title: selectedJob.title,
     selected_job_description: selectedJob.description,
     selected_job_salary: selectedJob.salary,
     selected_job_companies: selectedJob.companies,
+    selected_job_required_skills: selectedJob.raw.requiredSkills,
+    selected_job_rounds: selectedJob.raw.rounds,
   });
 
   const roomMetadata = {
@@ -326,21 +313,18 @@ async function createDiagnosticConnectionDetails({
       current_round: roundId,
       diagnostic_id: diagnostic.id,
       coach,
-      comfortable_language: user.profile?.nativeLanguage ?? "",
-      english_level: user.profile?.englishLevel ?? "",
-      institution: user.profile?.institution ?? "",
-      degree: user.profile?.degree ?? "",
-      stream: user.profile?.stream ?? "",
-      year_of_study: user.profile?.yearOfStudy ?? "",
-      placement_preparation: user.profile?.placementPreparation ?? "",
-      academy_selection: user.profile?.academySelection ?? "",
-      academy_name: user.profile?.academyName ?? "",
+      role: user.resume?.role ?? "",
+      skills: user.resume?.skills?.join(", ") ?? "",
+      experience_years: user.resume?.experienceYears ?? null,
+      education: JSON.stringify(user.resume?.education ?? []),
       speaking_speed: speakingSpeed,
       target_duration_minutes: 15,
       selected_job_title: selectedJob.title,
       selected_job_description: selectedJob.description,
       selected_job_salary: selectedJob.salary,
       selected_job_companies: selectedJob.companies.join(", "),
+      selected_job_required_skills: selectedJob.raw.requiredSkills ?? "",
+      selected_job_rounds: JSON.stringify(selectedJob.raw.rounds ?? []),
     },
   };
 
@@ -382,9 +366,45 @@ async function createDiagnosticConnectionDetails({
     participant_name: participantName,
     participant_token: participantToken,
     session_id: dbSession.id,
-    selected_job: selectedJob,
+    selected_job: {
+      title: selectedJob.title,
+      description: selectedJob.description,
+      salary: selectedJob.salary,
+      companies: selectedJob.companies,
+    },
     round_id: roundId,
   });
+}
+
+function getSelectedDiagnosticJob(value: unknown): SelectedDiagnosticJob | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const job = value as Partial<JobDetail>;
+  if (!job.jobId || !job.jobTitle || !job.companyName) return null;
+
+  const seniority =
+    job.seniority === "entry" || job.seniority === "senior"
+      ? job.seniority
+      : "mid";
+
+  return {
+    title: job.jobTitle,
+    description: job.roleSummary ?? job.fullJobDescription ?? "",
+    salary: formatExperienceLabel(
+      job.experienceMinYears ?? null,
+      job.experienceMaxYears ?? null,
+    ),
+    companies: [job.companyName],
+    seniority,
+    raw: job as JobDetail,
+  };
+}
+
+function formatExperienceLabel(min: number | null, max: number | null) {
+  if (min == null && max == null) return "";
+  if (min != null && max != null) return `${min}-${max} years`;
+  if (min != null) return `${min}+ years`;
+  return `Up to ${max} years`;
 }
 
 function getSpeakingSpeed(rawSpeakingSpeed?: string | null) {

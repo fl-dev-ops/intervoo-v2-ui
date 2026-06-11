@@ -1,12 +1,11 @@
 import { redirect } from "next/navigation";
-import { DiagnosticsIntro } from "@/components/diagnostics/diagnostics-intro";
-import type { CoachOption } from "@/lib/coaches";
 import { prisma } from "@/lib/db";
 import {
   countProgressableDiagnosticRounds,
   isFinalDiagnosticReportReady,
-  shouldShowDiagnosticBandSelection,
+  shouldShowJobSelection,
 } from "@/lib/diagnostics/rules";
+import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsPage() {
@@ -32,36 +31,24 @@ export default async function DiagnosticsPage() {
   console.info("[diagnostics] route state", {
     userId: user.id,
     diagnosticId: diagnostic?.id ?? null,
-    selectedBand: diagnostic?.selectedBand ?? null,
+    hasSelectedJob: Boolean(diagnostic?.selectedJob),
     roundSummary: roundSummary ?? [],
   });
 
-  const profile = await prisma.profile.findUnique({
-    where: { userId: user.id },
-  });
-
-  const coach =
-    profile?.coach === "arjun" || profile?.coach === "Sara"
-      ? (profile.coach as CoachOption)
-      : null;
-
-  function renderIntro() {
-    return (
-      <DiagnosticsIntro
-        coach={coach}
-        name={profile?.preferredName || user.name || null}
-      />
-    );
-  }
-
-  if (!diagnostic || shouldShowDiagnosticBandSelection(diagnostic)) {
+  if (!diagnostic || shouldShowJobSelection(diagnostic)) {
     console.info("[diagnostics] render intro", {
       diagnosticId: diagnostic?.id ?? null,
       from: "/diagnostics",
-      reason: "missing_selected_band",
+      reason: "missing_selected_job",
       userId: user.id,
     });
-    return renderIntro();
+    redirect("/jobs");
+  }
+
+  const selectedJobId = getSelectedJobId(diagnostic.selectedJob);
+
+  if (!selectedJobId) {
+    redirect("/jobs");
   }
 
   const progressableRounds = countProgressableDiagnosticRounds(
@@ -84,20 +71,20 @@ export default async function DiagnosticsPage() {
   if (diagnostic.rounds.length === 0) {
     console.info("[diagnostics] render intro", {
       diagnosticId: diagnostic.id,
-      selectedBand: diagnostic.selectedBand,
+      hasSelectedJob: Boolean(diagnostic.selectedJob),
       userId: user.id,
     });
 
-    return renderIntro();
+    redirect(`/jobs/${selectedJobId}`);
   }
 
   console.info("[diagnostics] redirect", {
     finalReportReady,
     from: "/diagnostics",
     progressableRounds,
-    reason: "selected_band_with_existing_rounds",
-    to: "/diagnostics/rounds",
+    reason: "selected_job_with_existing_rounds",
+    to: `/jobs/${selectedJobId}`,
     userId: user.id,
   });
-  redirect("/diagnostics/rounds");
+  redirect(`/jobs/${selectedJobId}`);
 }
