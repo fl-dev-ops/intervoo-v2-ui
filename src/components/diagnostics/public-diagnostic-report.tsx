@@ -478,7 +478,7 @@ function QuestionWiseAnalysis({
   return (
     <Accordion className="gap-4" defaultValue={["question-analysis"]}>
       <AccordionItem
-        className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm"
+        className="overflow-hidden rounded-2xl border border-border shadow-sm"
         value="question-analysis"
       >
         <AccordionTrigger className="p-4 text-left hover:no-underline">
@@ -487,7 +487,7 @@ function QuestionWiseAnalysis({
           </span>
         </AccordionTrigger>
         <AccordionContent>
-          <div className="divide-y divide-border px-4 pb-4">
+          <div className="space-y-4 bg-[#F0EFF2] px-4 pb-4">
             {selected.map(({ response, weakDimensions }) => (
               <QuestionFeedbackCard
                 key={response.question_id}
@@ -512,55 +512,65 @@ function QuestionFeedbackCard({
   if (!response.question_text) return null;
 
   return (
-    <div className="space-y-3 py-4 first:pt-0">
-      {/* Sara + question */}
-      <div className="space-y-1">
-        <p className="text-xs font-medium text-muted-foreground">Sara</p>
-        <p className="text-sm font-semibold leading-6 text-foreground">
-          {response.question_text}
-        </p>
+    <div className="space-y-3 pt-4 first:pt-0">
+      {/* Agent message — white bubble, left-aligned */}
+      <div className="flex justify-start">
+        <div className="max-w-[85%] rounded-2xl bg-white px-4 py-3">
+          <p className="text-xs font-medium text-muted-foreground">Sara</p>
+          <p className="mt-1 text-sm font-semibold leading-6 text-foreground">
+            {response.question_text}
+          </p>
+        </div>
       </div>
 
-      {/* Candidate answer — purple bubble, right-aligned */}
+      {/* User message — right-aligned, two parts */}
       {response.candidate_answer && (
-        <div className="flex justify-end">
+        <div className="flex flex-col items-end gap-2">
+          {/* Actual answer */}
           <div className="max-w-[85%] rounded-2xl bg-[#6C47FF] px-4 py-3">
             <p className="text-sm leading-6 text-white">
               {response.candidate_answer}
             </p>
           </div>
-        </div>
-      )}
 
-      {/* FEEDBACK label (left) + Needs work badge (right) */}
-      <div className="flex items-center justify-between pt-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Feedback
-        </p>
-        <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-          Needs work
-        </span>
-      </div>
-
-      {/* Reframed answer */}
-      {response.reframed_answer ? (
-        <div className="rounded-xl bg-muted/50 p-4">
-          <div className="mb-2 flex items-center gap-1.5">
-            <span aria-hidden="true">✨</span>
-            <p className="text-xs font-semibold text-foreground">Reframed Answer</p>
-          </div>
-          <p className="text-sm leading-6 text-muted-foreground">
-            {response.reframed_answer}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {weakDimensions.map(({ label, feedback }) => (
-            <div key={label} className="rounded-xl bg-muted/50 p-3">
-              <p className="mb-1 text-xs font-semibold text-foreground">{label}</p>
-              <p className="text-xs leading-5 text-muted-foreground">{feedback}</p>
+          {/* Feedback + reframed answer */}
+          <div className="max-w-[85%] space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Feedback
+              </p>
+              <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                Needs work
+              </span>
             </div>
-          ))}
+
+            {response.reframed_answer ? (
+              <div className="rounded-xl bg-[#FEF9E7] px-4 py-3">
+                <div className="mb-1.5 flex items-center gap-1.5">
+                  <span aria-hidden="true">✨</span>
+                  <p className="text-xs font-semibold text-foreground">
+                    Reframed Answer
+                  </p>
+                </div>
+                <p className="text-sm leading-6 text-[#6B6B72]">
+                  {response.reframed_answer}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {weakDimensions.map(({ label, feedback }) => (
+                  <div key={label} className="rounded-xl bg-white px-4 py-3">
+                    <p className="mb-1 text-xs font-semibold text-foreground">
+                      {label}
+                    </p>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      {feedback}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
