@@ -5,7 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { IconEdit } from "@tabler/icons-react";
 import { LoaderCircle, Search } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
-import { JobPreferencesDialog, type JobProfileFilters } from "@/components/jobs/job-preferences-dialog";
+import {
+  JobPreferencesDialog,
+  type JobProfileFilters,
+} from "@/components/jobs/job-preferences-dialog";
 import type { JobCard, SearchInput } from "@/lib/jd-client";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +36,10 @@ export function JobsClient({
 }: JobsClientProps) {
   const [cards, setCards] = useState(initialCards);
   const [searchInput, setSearchInput] = useState<SearchInput>(initialSearch);
-  const [options, setOptions] = useState<JobOptions>({ companies: [], skills: [] });
+  const [options, setOptions] = useState<JobOptions>({
+    companies: [],
+    skills: [],
+  });
   const [filters, setFilters] = useState<JobProfileFilters>(() => ({
     companies: [],
     roles: initialSearch.roleText ? [initialSearch.roleText] : [],
@@ -74,9 +80,12 @@ export function JobsClient({
     setIsLoadingOptions(true);
     try {
       const response = await fetch("/api/jobs/options");
-      const payload = (await response.json()) as JobOptions & { error?: string };
+      const payload = (await response.json()) as JobOptions & {
+        error?: string;
+      };
 
-      if (!response.ok) throw new Error(payload.error ?? "Failed to load options");
+      if (!response.ok)
+        throw new Error(payload.error ?? "Failed to load options");
       setOptions({
         companies: payload.companies ?? [],
         skills: payload.skills ?? [],
@@ -113,15 +122,21 @@ export function JobsClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(nextSearch),
       });
-      const payload = (await response.json()) as { cards?: JobCard[]; error?: string };
+      const payload = (await response.json()) as {
+        cards?: JobCard[];
+        error?: string;
+      };
 
-      if (!response.ok) throw new Error(payload.error ?? "Failed to search jobs");
+      if (!response.ok)
+        throw new Error(payload.error ?? "Failed to search jobs");
       setCards(payload.cards ?? []);
       setSearchInput(nextSearch);
       if (closeDialog) setIsDialogOpen(false);
     } catch (searchError) {
       setError(
-        searchError instanceof Error ? searchError.message : "Failed to search jobs",
+        searchError instanceof Error
+          ? searchError.message
+          : "Failed to search jobs",
       );
     } finally {
       setIsSearching(false);
@@ -162,9 +177,7 @@ export function JobsClient({
               <p className="mt-3 text-base font-bold">Loading job matches</p>
             </div>
           ) : cards.length ? (
-            cards.map((card) => (
-              <JobListCard key={card.jobId} card={card} />
-            ))
+            cards.map((card) => <JobListCard key={card.jobId} card={card} />)
           ) : (
             <div className="rounded-2xl border border-[#E4E0E7] bg-white px-5 py-10 text-center shadow-sm">
               <Search className="mx-auto size-8 text-[#6D6873]" />
@@ -203,7 +216,7 @@ function JobListCard({ card }: { card: JobCard }) {
       type="button"
       onClick={() => router.push(`/jobs/${card.jobId}`)}
       className={cn(
-        "grid w-full grid-cols-[72px_1fr_54px] items-center gap-4 rounded-xl border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+        "grid w-full grid-cols-[72px_1fr_60px] items-center gap-4 rounded-xl border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
         strongMatch
           ? "border-[#CBEDE0] bg-[#EFFFF8]"
           : "border-[#E9E2D9] bg-[#FFF9EF]",
@@ -219,9 +232,7 @@ function JobListCard({ card }: { card: JobCard }) {
         <h2 className="mt-1 truncate text-base font-extrabold tracking-tight text-black">
           {card.jobTitle}
         </h2>
-        <p className="mt-1 text-sm text-[#6D6873]">
-          {formatJobMeta(card)}
-        </p>
+        <p className="mt-1 text-sm text-[#6D6873]">{formatJobMeta(card)}</p>
       </div>
       <ScoreRing score={score} />
     </button>
@@ -235,7 +246,9 @@ function ProfileDialog(props: {
   onApply: () => void;
   onClose: () => void;
   roleOptions: string[];
-  setFilters: (value: JobProfileFilters | ((prev: JobProfileFilters) => JobProfileFilters)) => void;
+  setFilters: (
+    value: JobProfileFilters | ((prev: JobProfileFilters) => JobProfileFilters),
+  ) => void;
   skillOptions: string[];
 }) {
   return <JobPreferencesDialog {...props} />;
@@ -244,12 +257,12 @@ function ProfileDialog(props: {
 function ScoreRing({ score }: { score: number }) {
   return (
     <div
-      className="grid size-12 place-items-center rounded-full text-sm font-extrabold text-black"
+      className="grid size-12 place-items-center rounded-full text-xs font-extrabold text-black"
       style={{
         background: `conic-gradient(#3FB982 ${score * 3.6}deg, transparent 0deg)`,
       }}
     >
-      <div className="grid size-10 place-items-center rounded-full bg-white">
+      <div className="grid size-11 place-items-center rounded-full bg-white">
         {score}%
       </div>
     </div>
@@ -280,9 +293,8 @@ function formatExperience(min: number | null, max: number | null) {
 
 function getLogoText(companyName: string) {
   const words = companyName.split(/\s+/).filter(Boolean);
-  if (!words.length) return "JOB";
-  if (words.length === 1) return words[0].slice(0, 6);
-  return words.slice(0, 2).map((word) => word[0]).join("");
+  if (!words.length) return "J";
+  return words[0][0].toUpperCase();
 }
 
 function readStoredFilters(): JobProfileFilters | null {

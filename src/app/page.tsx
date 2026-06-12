@@ -32,7 +32,7 @@ export default async function Home() {
   }
 
   if (stage === "COMPLETED") {
-    redirect("/diagnostics/final-report");
+    redirect("/report");
   }
 
   return (

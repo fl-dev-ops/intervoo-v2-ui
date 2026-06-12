@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getDiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import {
   isDiagnosticReportReady,
   isDiagnosticRoundStuckOrFailed,
@@ -65,6 +66,7 @@ export default async function PublicDiagnosticReportPage({
   const isOwner = session?.user?.id === diagnostic.userId;
 
   const bandConfig = getDiagnosticBandConfig(diagnostic.selectedBand);
+  const jobId = getSelectedJobId(diagnostic.selectedJob);
   const preferredName = diagnostic.user.resume?.name ?? null;
 
   // Build round data for all 4 configured rounds
@@ -144,8 +146,11 @@ export default async function PublicDiagnosticReportPage({
   return (
     <PublicDiagnosticReport
       bandConfig={bandConfig}
+      backHref={jobId ? `/jobs/${jobId}` : "/jobs"}
+      backLabel="Back to rounds"
       focusedRoundNumber={focusedRoundNumber}
       isOwner={isOwner}
+      jobId={jobId}
       overallScore={overallScore}
       preferredName={preferredName}
       rounds={rounds}

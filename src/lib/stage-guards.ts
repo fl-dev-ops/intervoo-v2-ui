@@ -38,7 +38,7 @@ export function getStagePath(stage: AppStage) {
   }
 
   if (stage === "COMPLETED") {
-    return "/diagnostics/final-report";
+    return "/report";
   }
 
   return "/";

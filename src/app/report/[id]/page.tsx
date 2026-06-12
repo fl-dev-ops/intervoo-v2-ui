@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { PublicDiagnosticReport } from "@/components/diagnostics/public-diagnostic-report";
 import { DiagnosticReportPreviewPage } from "@/components/diagnostics/report-preview-page";
 import { prisma } from "@/lib/db";
@@ -20,32 +21,24 @@ import {
 import type { DiagnosticReportJson } from "@/lib/report-generation/diagnostic-report.types";
 import { requirePageStage } from "@/lib/stage-guards";
 
-export default async function DiagnosticsFinalReportPage() {
+export default async function ReportPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const { stage, user } = await requirePageStage(["DIAGNOSTICS", "COMPLETED"]);
 
   const diagnostic = await prisma.diagnostic.findFirst({
-    where: { userId: user.id },
+    where: { id, userId: user.id },
     include: {
       rounds: { include: { session: { include: { report: true } } } },
       user: { include: { resume: true } },
     },
-    orderBy: { createdAt: "desc" },
   });
 
   if (!diagnostic) {
-    console.info("[diagnostics] final report unavailable", {
-      reason: "missing_diagnostic",
-      userId: user.id,
-    });
-    return (
-      <DiagnosticReportPreviewPage
-        showActions={false}
-        state={{
-          errorMessage: "No completed diagnostic was found for this account.",
-          status: "unavailable",
-        }}
-      />
-    );
+    notFound();
   }
 
   const bandConfig = getDiagnosticBandConfig(diagnostic.selectedBand);
@@ -112,17 +105,11 @@ export default async function DiagnosticsFinalReportPage() {
     ? deriveFinalDiagnosticReport(diagnostic.rounds)
     : null;
 
-  console.info("[diagnostics] final report state", {
+  console.info("[report] owner report state", {
     allReady,
     diagnosticId: diagnostic.id,
     readyRoundCount: readyRounds.length,
     reportReady: Boolean(report),
-    rounds: diagnostic.rounds.map((round) => ({
-      reportStatus: round.session?.report?.status ?? null,
-      roundNumber: round.roundNumber,
-      roundType: round.roundType,
-      status: round.status,
-    })),
     stage,
     userId: user.id,
   });
@@ -130,6 +117,7 @@ export default async function DiagnosticsFinalReportPage() {
   if (!readyRounds.length) {
     return (
       <DiagnosticReportPreviewPage
+        jobId={jobId}
         showActions={false}
         state={{
           errorMessage:
