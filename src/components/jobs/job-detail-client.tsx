@@ -7,6 +7,7 @@ import {
   FileText,
   LoaderCircle,
   Play,
+  Eye,
 } from "lucide-react";
 import { IconUserCheck } from "@tabler/icons-react";
 import { AppHeader } from "@/components/app-header";
@@ -18,10 +19,11 @@ import type { JobDetail } from "@/lib/jd-client";
 type JobDetailClientProps = {
   job: JobDetail;
   readyRoundIds?: string[];
+  diagnosticId?: string | null;
   user: { email: string | null; name: string | null };
 };
 
-export function JobDetailClient({ job, readyRoundIds = [], user }: JobDetailClientProps) {
+export function JobDetailClient({ job, readyRoundIds = [], diagnosticId, user }: JobDetailClientProps) {
   const router = useRouter();
   const [startingRoundId, setStartingRoundId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -174,28 +176,43 @@ export function JobDetailClient({ job, readyRoundIds = [], user }: JobDetailClie
                       ) : (
                         <div />
                       )}
-                      <Button
-                        className={
-                          isActive
-                            ? "h-11 rounded-full bg-button px-8 text-base font-bold text-white"
-                            : "h-10 rounded-full bg-white/15 px-6 text-sm font-bold text-white hover:bg-white/20"
-                        }
-                        disabled={Boolean(startingRoundId)}
-                        onClick={() => handleStart(round.id)}
-                        type="button"
-                      >
-                        {startingRoundId === round.id ? (
-                          <>
-                            <LoaderCircle className="mr-2 size-4 animate-spin" />
-                            Starting...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="mr-2 size-4 fill-current" />
-                            Start Round {index + 1}
-                          </>
-                        )}
-                      </Button>
+                      {round.isReportReady && diagnosticId ? (
+                        <Button
+                          className={
+                            isActive
+                              ? "h-11 rounded-full bg-button px-8 text-base font-bold text-white"
+                              : "h-10 rounded-full bg-white/15 px-6 text-sm font-bold text-white hover:bg-white/20"
+                          }
+                          onClick={() => router.push(`/report/${diagnosticId}`)}
+                          type="button"
+                        >
+                          <Eye className="mr-2 size-4" />
+                          View Report
+                        </Button>
+                      ) : (
+                        <Button
+                          className={
+                            isActive
+                              ? "h-11 rounded-full bg-button px-8 text-base font-bold text-white"
+                              : "h-10 rounded-full bg-white/15 px-6 text-sm font-bold text-white hover:bg-white/20"
+                          }
+                          disabled={Boolean(startingRoundId)}
+                          onClick={() => handleStart(round.id)}
+                          type="button"
+                        >
+                          {startingRoundId === round.id ? (
+                            <>
+                              <LoaderCircle className="mr-2 size-4 animate-spin" />
+                              Starting...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="mr-2 size-4 fill-current" />
+                              Start Round {index + 1}
+                            </>
+                          )}
+                        </Button>
+                      )}
                       </div>
                   </div>
                 </article>

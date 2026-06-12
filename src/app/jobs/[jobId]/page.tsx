@@ -52,6 +52,7 @@ export default async function JobDetailPage({ params }: Props) {
     <JobDetailClient
       job={result.data.job}
       readyRoundIds={readyRoundIds}
+      diagnosticId={diagnostic?.id ?? null}
       user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );
