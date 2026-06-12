@@ -1,21 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IconX } from "@tabler/icons-react";
 import { CheckIcon, LoaderCircle, SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxValue,
-} from "@/components/ui/combobox";
 import { cn } from "@/lib/utils";
 
 export type JobProfileFilters = {
@@ -75,14 +63,14 @@ export function JobPreferencesDialog({
             Job Preference
           </p>
           <div className="mt-6 space-y-4">
-            <MultiSelectCombobox
+            <MultiSelectField
               label="Role"
               onChange={(roles) => setFilters((prev) => ({ ...prev, roles }))}
               options={roleOptions}
               placeholder="Select roles"
               selected={filters.roles}
             />
-            <MultiSelectCombobox
+            <MultiSelectField
               label="Company"
               onChange={(companies) =>
                 setFilters((prev) => ({ ...prev, companies }))
@@ -97,7 +85,7 @@ export function JobPreferencesDialog({
                 setFilters((prev) => ({ ...prev, salary }))
               }
             />
-            <MultiSelectCombobox
+            <MultiSelectField
               label="Skills"
               onChange={(skills) => setFilters((prev) => ({ ...prev, skills }))}
               options={skillOptions}
@@ -137,7 +125,7 @@ export function JobPreferencesDialog({
   );
 }
 
-export function MultiSelectCombobox({
+function MultiSelectField({
   label,
   onChange,
   options,
@@ -150,56 +138,105 @@ export function MultiSelectCombobox({
   placeholder: string;
   selected: string[];
 }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const visibleOptions = Array.from(
     new Set([...selected, ...options].filter(Boolean)),
   );
-  const chipsRef = useRef<HTMLDivElement>(null);
+  const filtered = visibleOptions.filter((o) =>
+    o.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [open]);
+
+  function toggle(option: string) {
+    onChange(
+      selected.includes(option)
+        ? selected.filter((v) => v !== option)
+        : [...selected, option],
+    );
+  }
+
+  function remove(option: string) {
+    onChange(selected.filter((v) => v !== option));
+  }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div ref={containerRef} className="relative flex flex-col gap-1.5">
       <label className="text-sm text-[#6D6873]">{label}</label>
-      <Combobox
-        items={visibleOptions}
-        multiple
-        onValueChange={(value) => onChange(value as string[])}
-        value={selected}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((prev) => !prev);
+          setSearch("");
+        }}
+        className={cn(
+          "flex min-h-12 w-full flex-wrap items-center gap-1.5 rounded-lg border bg-white px-2.5 py-1.5 text-left text-base shadow-xs transition-colors",
+          open
+            ? "border-[#6846E8] ring-2 ring-[#6846E8]/15"
+            : "border-[#D8D5DD]",
+        )}
       >
-        <ComboboxChips ref={chipsRef} className="flex min-h-12 w-full flex-wrap items-center gap-1.5 rounded-lg border border-[#D8D5DD] bg-white px-2.5 py-1.5 text-base shadow-xs transition-colors focus-within:border-[#6846E8] focus-within:ring-2 focus-within:ring-[#6846E8]/15">
-          <ComboboxValue>
-            {selected.map((value) => (
-              <ComboboxChip key={value}>{value}</ComboboxChip>
-            ))}
-          </ComboboxValue>
-          <ComboboxChipsInput
-            aria-label={label}
-            className="min-w-24 flex-1"
-            placeholder={selected.length === 0 ? placeholder : ""}
-          />
-        </ComboboxChips>
-        <ComboboxContent
-          anchor={chipsRef}
-          align="start"
-          className="overflow-hidden rounded-xl border border-[#E3DDF0] p-0 shadow-xl"
-          sideOffset={4}
-        >
+        {selected.length === 0 ? (
+          <span className="text-[#8A8590]">{placeholder}</span>
+        ) : (
+          selected.map((value) => (
+            <span
+              key={value}
+              className="flex h-7 items-center gap-1 rounded-sm bg-[#F7F1FF] px-2 text-xs font-medium text-[#3A256D]"
+            >
+              <span className="max-w-[160px] truncate">{value}</span>
+              <span
+                role="button"
+                tabIndex={-1}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  remove(value);
+                }}
+                className="flex size-3.5 shrink-0 cursor-pointer items-center justify-center rounded-sm text-[#8A8590] hover:bg-[#E8E0F5] hover:text-[#5C3BD8]"
+              >
+                <IconX className="size-3" />
+              </span>
+            </span>
+          ))
+        )}
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-[#E3DDF0] bg-white shadow-xl">
           <div className="flex items-center gap-2 border-b border-[#F1ECF7] px-3 py-2.5">
             <SearchIcon className="size-4 shrink-0 text-[#8A8590]" />
-            <ComboboxInput
-              className="h-8 flex-1 border-none bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 flex-1 border-none bg-transparent p-0 text-sm text-black outline-none placeholder:text-[#8A8590]"
               placeholder={`Search ${label.toLowerCase()}...`}
+              autoFocus
             />
           </div>
-          <ComboboxList className="max-h-56 p-1">
-            {visibleOptions.length === 0 ? (
-              <ComboboxEmpty className="py-3 text-sm text-[#6D6873]">
+          <div className="max-h-56 overflow-y-auto p-1">
+            {filtered.length === 0 ? (
+              <p className="py-3 text-center text-sm text-[#6D6873]">
                 No options available yet.
-              </ComboboxEmpty>
+              </p>
             ) : (
-              visibleOptions.map((option) => (
-                <ComboboxItem
-                  className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-black data-highlighted:bg-[#F7F1FF] data-highlighted:text-black"
+              filtered.map((option) => (
+                <button
+                  type="button"
                   key={option}
-                  value={option}
+                  onClick={() => toggle(option)}
+                  className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-black hover:bg-[#F7F1FF]"
                 >
                   <span
                     className={cn(
@@ -214,12 +251,12 @@ export function MultiSelectCombobox({
                     ) : null}
                   </span>
                   <span className="min-w-0 truncate">{option}</span>
-                </ComboboxItem>
+                </button>
               ))
             )}
-          </ComboboxList>
-        </ComboboxContent>
-      </Combobox>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -231,7 +268,13 @@ function SalarySection({
   salary: string;
   setSalary: (value: string) => void;
 }) {
-  const salaryOptions = ["", "₹6-10 LPA", "₹8-15 LPA", "₹15-25 LPA", "₹25 LPA+"];
+  const salaryOptions = [
+    "",
+    "₹6-10 LPA",
+    "₹8-15 LPA",
+    "₹15-25 LPA",
+    "₹25 LPA+",
+  ];
 
   return (
     <section>
