@@ -189,6 +189,7 @@ model Diagnostic {
   userId             String
   status             DiagnosticStatus @default(IN_PROGRESS)
   currentRound       Int              @default(1)
+  attemptNumber      Int              @default(1)
   selectedBand       String?
   selectedJob        Json?
   finalReport        Json?

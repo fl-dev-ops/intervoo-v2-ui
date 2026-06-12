@@ -5,11 +5,13 @@ import {
   ArrowLeft,
   Brain,
   Check,
+  History,
   Info,
   Languages,
   Lightbulb,
   type LucideIcon,
   Play,
+  RotateCcw,
   Smile,
   Target,
 } from "lucide-react";
@@ -63,14 +65,24 @@ export type PublicRoundData =
       isFailed: boolean;
     };
 
+export type PreviousAttempt = {
+  attemptNumber: number;
+  overallScore: number;
+  viewToken: string;
+  completedAt: string;
+};
+
 export type PublicDiagnosticReportProps = {
+  attemptNumber?: number;
   backHref?: string;
   backLabel?: string;
   bandConfig: DiagnosticBandConfig | undefined;
+  canRetake?: boolean;
   focusedRoundNumber: number;
   isOwner: boolean;
   overallScore: number | null;
   preferredName: string | null;
+  previousAttempts?: PreviousAttempt[];
   rounds: PublicRoundData[];
   user?: {
     email: string | null;
@@ -79,13 +91,16 @@ export type PublicDiagnosticReportProps = {
 };
 
 export function PublicDiagnosticReport({
+  attemptNumber,
   backHref,
   backLabel,
   bandConfig,
+  canRetake = false,
   focusedRoundNumber,
   isOwner,
   overallScore,
   preferredName: _preferredName,
+  previousAttempts = [],
   rounds,
   user,
 }: PublicDiagnosticReportProps) {
@@ -97,7 +112,14 @@ export function PublicDiagnosticReport({
   return (
     <>
       {user ? (
-        <ReportHeader backHref={backHref} backLabel={backLabel} user={user} />
+        <ReportHeader
+          attemptNumber={attemptNumber}
+          backHref={backHref}
+          backLabel={backLabel}
+          canRetake={isOwner && canRetake}
+          previousAttempts={previousAttempts}
+          user={user}
+        />
       ) : null}
       <main className="min-h-dvh bg-lavender md:pb-10">
         <div className="mx-auto w-full max-w-4xl space-y-6 md:py-8">
@@ -134,15 +156,23 @@ function getUserInitial(user: { email: string | null; name: string | null }) {
 }
 
 function ReportHeader({
+  attemptNumber,
   backHref,
   backLabel,
+  canRetake = false,
+  previousAttempts = [],
   user,
 }: {
+  attemptNumber?: number;
   backHref?: string;
   backLabel?: string;
+  canRetake?: boolean;
+  previousAttempts?: PreviousAttempt[];
   user: { email: string | null; name: string | null };
 }) {
   const router = useRouter();
+  const [isRetaking, setIsRetaking] = useState(false);
+  const [retakeError, setRetakeError] = useState<string | null>(null);
 
   async function handleLogout() {
     await authClient.signOut({
@@ -150,6 +180,32 @@ function ReportHeader({
         onSuccess: () => router.push("/login"),
       },
     });
+  }
+
+  async function handleRetake() {
+    if (isRetaking) return;
+    setIsRetaking(true);
+    setRetakeError(null);
+
+    try {
+      const response = await fetch("/api/diagnostics/retake", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(data?.error ?? "Failed to start a retake");
+      }
+
+      router.push("/diagnostics/rounds");
+    } catch (error) {
+      setRetakeError(
+        error instanceof Error ? error.message : "Failed to start a retake",
+      );
+      setIsRetaking(false);
+    }
   }
 
   return (
@@ -167,25 +223,85 @@ function ReportHeader({
           ) : null}
           <h1 className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground">
             Diagnostic Report
+            {attemptNumber && attemptNumber > 1 ? (
+              <span className="ml-2 text-xs font-medium text-muted-foreground">
+                Take {attemptNumber}
+              </span>
+            ) : null}
           </h1>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-[#4D7ED8] bg-[#4D7ED8] text-lg font-semibold text-white shadow-[inset_0_0_0_3px_white] transition hover:bg-[#416FC1] md:size-12"
-            type="button"
-          >
-            {getUserInitial(user)}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem
-              className="cursor-pointer text-destructive focus:text-destructive"
-              onClick={handleLogout}
+        <div className="flex items-center gap-2">
+          {previousAttempts.length > 0 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-white px-3 text-sm font-medium text-foreground transition hover:bg-muted">
+                <History className="size-4" />
+                <span className="hidden sm:inline">Previous attempts</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {previousAttempts.map((attempt) => (
+                  <DropdownMenuItem
+                    key={attempt.attemptNumber}
+                    className="flex cursor-pointer items-center justify-between gap-3"
+                    onClick={() =>
+                      window.open(`/d/${attempt.viewToken}`, "_blank")
+                    }
+                  >
+                    <span className="flex flex-col">
+                      <span className="font-medium">
+                        Take {attempt.attemptNumber}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(attempt.completedAt).toLocaleDateString()}
+                      </span>
+                    </span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {attempt.overallScore}%
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+
+          {canRetake ? (
+            <button
+              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-button px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              disabled={isRetaking}
+              onClick={handleRetake}
+              type="button"
             >
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              {isRetaking ? (
+                <Spinner className="size-4" />
+              ) : (
+                <RotateCcw className="size-4" />
+              )}
+              {isRetaking ? "Starting..." : "Retake"}
+            </button>
+          ) : null}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-[#4D7ED8] bg-[#4D7ED8] text-lg font-semibold text-white shadow-[inset_0_0_0_3px_white] transition hover:bg-[#416FC1] md:size-12"
+              type="button"
+            >
+              {getUserInitial(user)}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuItem
+                className="cursor-pointer text-destructive focus:text-destructive"
+                onClick={handleLogout}
+              >
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+      {retakeError ? (
+        <p className="px-4 pb-2 text-xs font-medium text-destructive">
+          {retakeError}
+        </p>
+      ) : null}
     </header>
   );
 }

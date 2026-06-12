@@ -147,15 +147,68 @@ export default async function DiagnosticsFinalReportPage() {
     });
   }
 
+  // Earlier attempts (takes) for this user, newest first. Each links to its own
+  // public report via any of its ready rounds' share tokens (/d/{token}), which
+  // renders that whole attempt scoped to its diagnostic.
+  const allAttempts = await prisma.diagnostic.findMany({
+    where: { userId: user.id },
+    include: {
+      rounds: { include: { session: { include: { report: true } } } },
+    },
+    orderBy: { attemptNumber: "desc" },
+  });
+
+  const previousAttempts = allAttempts
+    .filter((attempt) => attempt.id !== diagnostic.id)
+    .map((attempt) => {
+      const readyRounds = attempt.rounds
+        .map((round) => {
+          const roundReport = round.session?.report ?? null;
+          if (!isDiagnosticReportReady(roundReport?.status)) return null;
+          const hydrated =
+            getHydratedReportFromMetadata(roundReport.metadata) ??
+            (roundReport.reportJson
+              ? toHydratedDiagnosticReport(roundReport.reportJson)
+              : null);
+          return hydrated && roundReport.shareToken
+            ? {
+                score: hydrated.assessment_result.total_score,
+                shareToken: roundReport.shareToken,
+              }
+            : null;
+        })
+        .filter((entry): entry is { score: number; shareToken: string } =>
+          Boolean(entry),
+        );
+
+      if (readyRounds.length === 0) return null;
+
+      return {
+        attemptNumber: attempt.attemptNumber,
+        overallScore: Math.round(
+          readyRounds.reduce((sum, entry) => sum + entry.score, 0) /
+            readyRounds.length,
+        ),
+        viewToken: readyRounds[0].shareToken,
+        completedAt: (attempt.updatedAt ?? attempt.createdAt).toISOString(),
+      };
+    })
+    .filter((attempt): attempt is NonNullable<typeof attempt> =>
+      Boolean(attempt),
+    );
+
   return (
     <PublicDiagnosticReport
+      attemptNumber={diagnostic.attemptNumber}
       backHref="/diagnostics/rounds"
       backLabel="Back to rounds"
       bandConfig={bandConfig}
+      canRetake={allReady}
       focusedRoundNumber={readyRounds[0]?.roundNumber ?? 1}
       isOwner={true}
       overallScore={overallScore}
       preferredName={preferredName}
+      previousAttempts={previousAttempts}
       rounds={rounds}
       user={{ email: user.email ?? null, name: user.name ?? null }}
     />
