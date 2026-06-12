@@ -535,7 +535,7 @@ function QuestionFeedbackCard({
             </div>
 
             {/* Feedback + reframed answer — joined below */}
-            <div className="space-y-2 bg-white px-4 py-3">
+            <div className="bg-white px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Feedback
@@ -546,7 +546,7 @@ function QuestionFeedbackCard({
               </div>
 
               {response.reframed_answer ? (
-                <div className="rounded-xl bg-[#FEF9E7] px-4 py-3">
+                <div className="mt-2 rounded-xl bg-[#FEF9E7] px-4 py-3">
                   <div className="mb-1.5 flex items-center gap-1.5">
                     <span aria-hidden="true">✨</span>
                     <p className="text-xs font-semibold text-foreground">
@@ -558,7 +558,7 @@ function QuestionFeedbackCard({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="mt-2 space-y-2">
                   {weakDimensions.map(({ label, feedback }) => (
                     <div key={label} className="rounded-xl bg-[#F0EFF2] px-4 py-3">
                       <p className="mb-1 text-xs font-semibold text-foreground">
