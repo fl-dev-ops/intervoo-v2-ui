@@ -512,12 +512,12 @@ function QuestionFeedbackCard({
   if (!response.question_text) return null;
 
   return (
-    <div className="space-y-3 pt-4 first:pt-0">
+    <div className="space-y-5 pt-4 first:pt-0">
       {/* Agent message — white bubble, left-aligned */}
       <div className="flex justify-start">
         <div className="max-w-[85%] rounded-2xl bg-white px-4 py-3">
-          <p className="text-xs font-medium text-muted-foreground">Sara</p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-foreground">
+          <p className="text-sm font-medium text-muted-foreground">Sara</p>
+          <p className="mt-0.5 text-sm font-normal leading-6 text-foreground">
             {response.question_text}
           </p>
         </div>
@@ -553,7 +553,7 @@ function QuestionFeedbackCard({
                       Reframed Answer
                     </p>
                   </div>
-                  <p className="text-sm leading-6 text-[#6B6B72]">
+                  <p className="text-sm italic leading-6 text-[#6B6B72]">
                     {response.reframed_answer}
                   </p>
                 </div>
