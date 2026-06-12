@@ -78,6 +78,8 @@ type PreparedDiagnosticSession = {
       name: string;
       role: string;
       skills: string[];
+      experience: string[];
+      projects: string[];
     } | null;
   };
   voice: string;
@@ -237,6 +239,8 @@ async function prepareDiagnosticSessionStep(
             name: user.resume.name,
             role: user.resume.role,
             skills: user.resume.skills,
+            experience: formatResumeExperience(user.resume.experience),
+            projects: formatResumeProjects(user.resume.projects),
           }
         : null,
     },
@@ -261,6 +265,8 @@ async function generateDiagnosticQuestionsStep(
       skills: prepared.user.resume?.skills ?? [],
       experienceYears: prepared.user.resume?.experienceYears ?? null,
       education: prepared.user.resume?.education ?? [],
+      experience: prepared.user.resume?.experience ?? [],
+      projects: prepared.user.resume?.projects ?? [],
     },
     roundId: prepared.roundId,
   });
@@ -460,6 +466,36 @@ function getSelectedDiagnosticJob(
     seniority,
     raw: job as JobDetail,
   };
+}
+
+function formatResumeExperience(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return "";
+      const e = entry as Record<string, unknown>;
+      const title = typeof e.title === "string" ? e.title : "";
+      const company = typeof e.company === "string" ? e.company : "";
+      const description =
+        typeof e.description === "string" ? e.description : "";
+      const header = [title, company].filter(Boolean).join(" · ");
+      return [header, description].filter(Boolean).join(": ");
+    })
+    .filter(Boolean);
+}
+
+function formatResumeProjects(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return "";
+      const p = entry as Record<string, unknown>;
+      const title = typeof p.title === "string" ? p.title : "";
+      const description =
+        typeof p.description === "string" ? p.description : "";
+      return [title, description].filter(Boolean).join(" · ");
+    })
+    .filter(Boolean);
 }
 
 function getRoundCompetencies(job: JobDetail, roundId: string) {

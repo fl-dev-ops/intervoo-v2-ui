@@ -1,10 +1,9 @@
 import "server-only";
 
-import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
-import { getGeminiApiKey } from "@/lib/gemini-client";
 import type { JobDetail } from "@/lib/jd-client";
 import type { DiagnosticQuestionType } from "@/lib/report-generation/diagnostic-activity";
+import { generateReport } from "@/lib/report-generation/generate-report";
 
 export type GeneratedDiagnosticQuestion = {
   id: string;
@@ -35,6 +34,8 @@ export type DiagnosticQuestionGenerationInput = {
     skills: string[];
     experienceYears: number | null;
     education: unknown;
+    experience: string[];
+    projects: string[];
   };
   roundId: string;
 };
@@ -44,31 +45,31 @@ export type DiagnosticQuestionGenerationResult = {
   metadata: {
     generated_at: string;
     model: string;
-    provider: "gemini";
+    provider: "openrouter";
     question_count: number;
     source: "llm";
   };
 };
 
-const MODEL = process.env.DIAGNOSTIC_QUESTION_MODEL_ID ?? "gemini-2.5-flash";
-const QUESTION_COUNT = 6;
+const MODEL = process.env.DIAGNOSTIC_QUESTION_MODEL_ID ?? "openai/gpt-4o-mini";
+const QUESTION_COUNT = 10;
 
+// NOTE: no min/max/length constraints — OpenAI strict structured-output mode
+// (used by the OpenRouter provider) rejects minItems/maxItems/minLength etc.
+// Count and non-empty dimensions are enforced by the prompt + post-processing.
 const GeneratedQuestionSchema = z.object({
-  text: z.string().trim().min(12),
-  question_type: z
-    .array(z.enum(["Language", "Thinking", "Confidence"]))
-    .min(1)
-    .max(3),
-  difficulty_level: z.string().trim().min(1).default("medium"),
-  competency: z.string().trim().optional(),
+  text: z.string(),
+  question_type: z.array(z.enum(["Language", "Thinking", "Confidence"])),
+  difficulty_level: z.string(),
+  competency: z.string(),
 });
 
 const GeneratedQuestionResponseSchema = z.object({
-  questions: z.array(GeneratedQuestionSchema).min(QUESTION_COUNT).max(8),
+  questions: z.array(GeneratedQuestionSchema),
 });
 
-const SYSTEM_PROMPT = `You generate concise, spoken interview questions for a live voice diagnostic interview.
-Return ONLY valid JSON matching this shape:
+const SYSTEM_PROMPT = `You generate tailored interview questions for a specific round of a job interview.
+Return ONLY a single JSON object matching exactly this shape:
 {
   "questions": [
     {
@@ -79,62 +80,49 @@ Return ONLY valid JSON matching this shape:
     }
   ]
 }
-
 Rules:
-- Generate exactly 6 questions.
-- Questions must be directly askable by a voice agent.
-- Use the target job, round, competencies, and candidate profile.
-- Each question should be one sentence, under 32 words.
-- Avoid yes/no questions.
-- Avoid multi-part questions unless the parts are naturally connected.
-- Do not include answers, rubrics, notes, markdown, or prose outside JSON.
-- question_type must include the dimensions the answer should evaluate: Language, Thinking, Confidence.`;
+- Generate exactly 10 questions that collectively cover all the round's competencies and job context.
+- If candidate background is provided, personalise questions to their skills, projects, and experience level.
+- Questions should sound like real interviewer questions (not generic advice).
+- Return only the JSON object, no prose.`;
 
 export async function generateDiagnosticQuestions(
   input: DiagnosticQuestionGenerationInput,
 ): Promise<DiagnosticQuestionGenerationResult> {
-  const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
-  const response = await ai.models.generateContent({
-    model: MODEL,
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: buildPrompt(input) }],
-      },
-    ],
-    config: {
-      temperature: 0.4,
-      maxOutputTokens: 4096,
-      responseMimeType: "application/json",
-      systemInstruction: SYSTEM_PROMPT,
-    },
-  });
+  const parsed = (await generateReport({
+    schema: GeneratedQuestionResponseSchema,
+    system: SYSTEM_PROMPT,
+    prompt: buildPrompt(input),
+    modelId: MODEL,
+  })) as z.infer<typeof GeneratedQuestionResponseSchema> | undefined;
 
-  if (!response.text) {
-    throw new Error("Gemini returned empty diagnostic questions");
+  if (!parsed) {
+    throw new Error("OpenRouter returned empty diagnostic questions");
   }
 
-  const parsed = GeneratedQuestionResponseSchema.parse(
-    JSON.parse(stripCodeFence(response.text)),
-  );
   const questions = parsed.questions
+    .filter((q) => q.text.trim() && q.question_type.length)
     .slice(0, QUESTION_COUNT)
     .map((question, i) => ({
       id: `${input.roundId}_q${i + 1}`,
-      text: question.text,
+      text: question.text.trim(),
       question_type: question.question_type,
       category: input.category,
-      difficulty_level: question.difficulty_level,
+      difficulty_level: question.difficulty_level || "medium",
       band: input.band,
       competency: question.competency,
     }));
+
+  if (!questions.length) {
+    throw new Error("OpenRouter returned no usable diagnostic questions");
+  }
 
   return {
     questions,
     metadata: {
       generated_at: new Date().toISOString(),
       model: MODEL,
-      provider: "gemini",
+      provider: "openrouter",
       question_count: questions.length,
       source: "llm",
     },
@@ -165,11 +153,4 @@ function buildPrompt(input: DiagnosticQuestionGenerationInput) {
       json_only: true,
     },
   });
-}
-
-function stripCodeFence(text: string) {
-  return text
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
 }
