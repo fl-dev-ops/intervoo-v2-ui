@@ -183,10 +183,8 @@ function MultiSelectField({
           setSearch("");
         }}
         className={cn(
-          "flex min-h-12 w-full flex-wrap items-center gap-1.5 rounded-lg border bg-white px-2.5 py-1.5 text-left text-base shadow-xs transition-colors",
-          open
-            ? "border-[#6846E8] ring-2 ring-[#6846E8]/15"
-            : "border-[#D8D5DD]",
+          "flex min-h-12 w-full flex-wrap items-center gap-1.5 rounded-lg border bg-white px-2.5 py-1.5 text-left text-base transition-colors",
+          open ? "border-[#6846E8]" : "border-[#D8D5DD]",
         )}
       >
         {selected.length === 0 ? (
@@ -214,7 +212,7 @@ function MultiSelectField({
         )}
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-[#E3DDF0] bg-white shadow-xl">
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-[#E3DDF0] bg-white">
           <div className="flex items-center gap-2 border-b border-[#F1ECF7] px-3 py-2.5">
             <SearchIcon className="size-4 shrink-0 text-[#8A8590]" />
             <input
