@@ -96,6 +96,76 @@ export function extractTranscriptMessages(
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
+function normalizeQuestionText(value: unknown): string {
+  return typeof value === "string"
+    ? value.trim().toLowerCase().replace(/\s+/g, " ")
+    : "";
+}
+
+function toDiagnosticQuestion(value: unknown): DiagnosticQuestion | null {
+  if (!value || typeof value !== "object") return null;
+  const q = value as Record<string, unknown>;
+
+  const id = typeof q.id === "string" ? q.id : "";
+  const text = typeof q.text === "string" ? q.text : "";
+  const question_type = normalizeQuestionTypes(q.question_type);
+  if (!id || !text || !question_type.length) return null;
+
+  return {
+    id,
+    text,
+    question_type,
+    category: typeof q.category === "string" ? q.category : undefined,
+    difficulty_level:
+      typeof q.difficulty_level === "string" ? q.difficulty_level : undefined,
+    band: typeof q.band === "number" ? q.band : undefined,
+  };
+}
+
+/**
+ * Build the asked-questions list from client-captured `diagnostic_question_started`
+ * events stored on `session.metadata.asked_questions`. Each captured question is
+ * reconciled against the generated set (`session.metadata.questions`) — matched by
+ * id, then by normalized text — to recover `id` + `question_type` even when the
+ * event payload only carried `text`. Returns [] when nothing usable is present.
+ */
+export function extractAskedQuestionsFromMetadata(
+  askedQuestions: unknown,
+  generatedQuestions: unknown,
+): DiagnosticQuestion[] {
+  if (!Array.isArray(askedQuestions) || !askedQuestions.length) return [];
+
+  const generated = Array.isArray(generatedQuestions)
+    ? (generatedQuestions
+        .map(toDiagnosticQuestion)
+        .filter((q): q is DiagnosticQuestion => q !== null))
+    : [];
+  const byId = new Map(generated.map((q) => [q.id, q]));
+  const byText = new Map(generated.map((q) => [normalizeQuestionText(q.text), q]));
+
+  const result: DiagnosticQuestion[] = [];
+  const seen = new Set<string>();
+
+  for (const raw of askedQuestions) {
+    if (!raw || typeof raw !== "object") continue;
+    const q = raw as Record<string, unknown>;
+
+    const id = typeof q.id === "string" ? q.id : "";
+    const textKey = normalizeQuestionText(q.text);
+
+    const matched =
+      (id && byId.get(id)) || (textKey && byText.get(textKey)) || null;
+    const resolved = matched ?? toDiagnosticQuestion(raw);
+    if (!resolved) continue;
+
+    if (seen.has(resolved.id)) continue;
+    seen.add(resolved.id);
+    result.push(resolved);
+  }
+
+  return result;
+}
+
 export function extractRetrievedQuestions(
   json: TranscriptUrlJson | null,
 ): DiagnosticQuestion[] {

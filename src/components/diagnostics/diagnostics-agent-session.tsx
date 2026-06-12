@@ -165,6 +165,7 @@ function SessionLayout({
   );
   const hasNavigatedRef = useRef(false);
   const isEndingRef = useRef(false);
+  const askedSeenRef = useRef<Set<string>>(new Set());
   const [guardActive, setGuardActive] = useState(true);
   const [showOverlay, setShowOverlay] = useState(true);
   const [countdown, setCountdown] = useState(5);
@@ -205,6 +206,41 @@ function SessionLayout({
       );
     };
   }, [session.room, sessionId, router]);
+
+  // The diagnostic agent publishes a `diagnostic_question_started` data event
+  // right before it asks each question (mark_question_started tool). Persist
+  // each one incrementally so report generation has the asked questions even
+  // when the uploaded transcript's tool calls are missing.
+  useEffect(() => {
+    const handleData = (payload: Uint8Array) => {
+      try {
+        const event = JSON.parse(new TextDecoder().decode(payload));
+        if (event?.type !== "diagnostic_question_started") return;
+
+        const question = event?.metadata?.question;
+        const text =
+          typeof question?.text === "string" ? question.text.trim() : "";
+        const id = typeof question?.id === "string" ? question.id : "";
+        const key = id || text;
+        if (!key || askedSeenRef.current.has(key)) return;
+        askedSeenRef.current.add(key);
+
+        console.info("[diagnostics] question_started", { id, sessionId, text });
+        void fetch("/api/sessions/asked-question", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId, question }),
+        }).catch(() => {});
+      } catch {
+        // ignore non-JSON / unrelated data messages
+      }
+    };
+
+    session.room.on(RoomEvent.DataReceived, handleData);
+    return () => {
+      session.room.off(RoomEvent.DataReceived, handleData);
+    };
+  }, [session.room, sessionId]);
 
   useEffect(() => {
     const agentMessages = messages.filter(

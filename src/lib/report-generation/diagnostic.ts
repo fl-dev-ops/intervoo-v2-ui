@@ -11,6 +11,7 @@ import {
 } from "./diagnostic-schema";
 import { scoreAssessment } from "./diagnostic-scoring";
 import {
+  extractAskedQuestionsFromMetadata,
   extractRetrievedQuestions,
   extractTranscriptMessages,
   fetchTranscriptFromUrl,
@@ -54,14 +55,28 @@ export async function prepareDiagnosticReportGeneration(sessionId: string) {
     throw new Error("No transcript is available for this session");
   }
 
-  // 2. Extract messages and questions
+  // 2. Extract messages and questions.
+  // Asked questions captured live from `diagnostic_question_started` events are
+  // the primary source; the transcript's `mark_question_started` tool calls are
+  // the fallback when the events were never persisted.
   const transcriptMessages = extractTranscriptMessages(transcriptJson);
-  const retrievedQuestions = extractRetrievedQuestions(transcriptJson);
+  const metadata =
+    session.metadata && typeof session.metadata === "object"
+      ? (session.metadata as Record<string, unknown>)
+      : {};
+  const capturedQuestions = extractAskedQuestionsFromMetadata(
+    metadata.asked_questions,
+    metadata.questions,
+  );
+  const retrievedQuestions = capturedQuestions.length
+    ? capturedQuestions
+    : extractRetrievedQuestions(transcriptJson);
 
   console.info("[diagnostics] diagnostic report input", {
     hasTranscript: Boolean(transcriptJson),
     hasAudio: Boolean(audioUrl),
     transcriptMessageCount: transcriptMessages.length,
+    questionSource: capturedQuestions.length ? "events" : "transcript",
     retrievedQuestionCount: retrievedQuestions.length,
     sessionId,
   });
