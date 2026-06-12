@@ -3,13 +3,13 @@
 import {
   ArrowLeft,
   Check,
+  FileText,
   Info,
   Play,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { DiagnosticsJobHeader } from "@/components/diagnostics/diagnostics-job-header";
 import {
   Accordion,
   AccordionContent,
@@ -23,9 +23,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
+import { InterviewReadinessScore } from "@/components/diagnostics/interview-readiness-score";
 import { authClient } from "@/lib/auth-client";
 import type { DiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import type { JobDetail } from "@/lib/jd-client";
 import type {
   DiagnosticLanguageDimension,
   DiagnosticLanguageLevel,
@@ -56,6 +58,7 @@ export type PublicRoundData =
     };
 
 export type PublicDiagnosticReportProps = {
+  apiJob?: JobDetail | null;
   backHref?: string;
   backLabel?: string;
   bandConfig: DiagnosticBandConfig | undefined;
@@ -72,6 +75,7 @@ export type PublicDiagnosticReportProps = {
 };
 
 export function PublicDiagnosticReport({
+  apiJob,
   backHref,
   backLabel,
   bandConfig,
@@ -95,10 +99,7 @@ export function PublicDiagnosticReport({
       ) : null}
       <main className="min-h-dvh bg-lavender md:pb-10">
         <div className="mx-auto w-full max-w-4xl space-y-6 md:py-8">
-          <DiagnosticsJobHeader
-            bandConfig={bandConfig}
-            overallScore={overallScore}
-          />
+          <ReportJobHeader apiJob={apiJob} bandConfig={bandConfig} overallScore={overallScore} />
 
           <section className="px-5 space-y-4 pb-8 md:px-0">
             <RoundTabs
@@ -117,6 +118,95 @@ export function PublicDiagnosticReport({
       </main>
     </>
   );
+}
+
+function ReportJobHeader({
+  apiJob,
+  bandConfig,
+  overallScore,
+}: {
+  apiJob?: JobDetail | null;
+  bandConfig: DiagnosticBandConfig | undefined;
+  overallScore: number | null;
+}) {
+  const companyName =
+    apiJob?.companyName ?? bandConfig?.companies?.[0] ?? "";
+  const jobTitle =
+    apiJob?.jobTitle ?? bandConfig?.title ?? "SDE at Product companies";
+  const experience = apiJob
+    ? formatJobExperience(apiJob.experienceMinYears, apiJob.experienceMaxYears)
+    : bandConfig?.salary ?? "";
+  const roundCount = apiJob?.rounds?.length ?? 4;
+  const description =
+    apiJob?.roleSummary ?? bandConfig?.description ?? "";
+  const sourceUrl = apiJob?.sourceUrl ?? null;
+
+  return (
+    <div className="w-full rounded-2xl border border-border bg-white p-4 md:p-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_280px]">
+        <div className="flex items-start gap-4">
+          <div className="flex size-[72px] shrink-0 items-center justify-center rounded-xl border border-[#DAD6DE] bg-white p-2 text-center text-sm font-extrabold leading-none text-[#F0642E]">
+            {getLogoText(companyName)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-[#6D6873]">
+              {companyName}
+            </p>
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-black">
+              {jobTitle}
+            </h1>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {experience && (
+                <span className="rounded-full bg-[#F3F0F4] px-3 py-1 text-xs font-bold text-black">
+                  {experience}
+                </span>
+              )}
+              <span className="rounded-full border border-[#E0DDE4] bg-white px-3 py-1 text-xs font-bold text-black">
+                {roundCount} Rounds
+              </span>
+            </div>
+            {description && (
+              <p className="mt-4 max-w-[520px] text-sm leading-6 text-[#6D6873]">
+                {description}
+              </p>
+            )}
+            {sourceUrl && (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#F7F3FF] px-3 py-2 text-sm font-semibold text-[#5E41CF]"
+              >
+                <FileText className="size-4 text-black" />
+                Read Job description
+              </a>
+            )}
+          </div>
+        </div>
+        <div className="shrink-0">
+          <InterviewReadinessScore score={overallScore} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatJobExperience(min: number | null, max: number | null) {
+  if (min == null && max == null) return "";
+  if (min != null && max != null) return `${min}-${max} years`;
+  if (min != null) return `${min}+ years`;
+  return `Up to ${max} years`;
+}
+
+function getLogoText(companyName: string) {
+  const words = companyName.split(/\s+/).filter(Boolean);
+  if (!words.length) return "JOB";
+  if (words.length === 1) return words[0].slice(0, 6).toUpperCase();
+  return words
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
 }
 
 function getUserInitial(user: { email: string | null; name: string | null }) {
