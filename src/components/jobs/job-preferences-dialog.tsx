@@ -1,23 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { IconChevronDown, IconX } from "@tabler/icons-react";
-import { LoaderCircle } from "lucide-react";
+import { useRef } from "react";
+import { IconX } from "@tabler/icons-react";
+import { CheckIcon, LoaderCircle, SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+} from "@/components/ui/combobox";
 import { cn } from "@/lib/utils";
 
 export type JobProfileFilters = {
@@ -34,7 +32,9 @@ type JobPreferencesDialogProps = {
   onApply: () => void;
   onClose: () => void;
   roleOptions: string[];
-  setFilters: (value: JobProfileFilters | ((prev: JobProfileFilters) => JobProfileFilters)) => void;
+  setFilters: (
+    value: JobProfileFilters | ((prev: JobProfileFilters) => JobProfileFilters),
+  ) => void;
   skillOptions: string[];
 };
 
@@ -75,32 +75,34 @@ export function JobPreferencesDialog({
             Job Preference
           </p>
           <div className="mt-6 space-y-4">
-            <MultiDropdown
+            <MultiSelectCombobox
               label="Role"
+              onChange={(roles) => setFilters((prev) => ({ ...prev, roles }))}
               options={roleOptions}
               placeholder="Select roles"
               selected={filters.roles}
-              onChange={(roles) => setFilters((prev) => ({ ...prev, roles }))}
             />
-            <MultiDropdown
+            <MultiSelectCombobox
               label="Company"
-              options={companyOptions}
-              placeholder="Select companies"
-              selected={filters.companies}
               onChange={(companies) =>
                 setFilters((prev) => ({ ...prev, companies }))
               }
+              options={companyOptions}
+              placeholder="Select companies"
+              selected={filters.companies}
             />
             <SalarySection
               salary={filters.salary}
-              setSalary={(salary) => setFilters((prev) => ({ ...prev, salary }))}
+              setSalary={(salary) =>
+                setFilters((prev) => ({ ...prev, salary }))
+              }
             />
-            <MultiDropdown
+            <MultiSelectCombobox
               label="Skills"
+              onChange={(skills) => setFilters((prev) => ({ ...prev, skills }))}
               options={skillOptions}
               placeholder="Select skills"
               selected={filters.skills}
-              onChange={(skills) => setFilters((prev) => ({ ...prev, skills }))}
             />
           </div>
         </div>
@@ -135,7 +137,7 @@ export function JobPreferencesDialog({
   );
 }
 
-export function MultiDropdown({
+export function MultiSelectCombobox({
   label,
   onChange,
   options,
@@ -148,71 +150,77 @@ export function MultiDropdown({
   placeholder: string;
   selected: string[];
 }) {
-  const [search, setSearch] = useState("");
-  const visibleOptions = [...new Set([...selected, ...options])].filter(Boolean);
-  const filtered = visibleOptions.filter((o) =>
-    o.toLowerCase().includes(search.toLowerCase()),
+  const visibleOptions = Array.from(
+    new Set([...selected, ...options].filter(Boolean)),
   );
-  const summary = selected.length ? selected.join(", ") : placeholder;
-
-  function toggle(option: string) {
-    onChange(
-      selected.includes(option)
-        ? selected.filter((item) => item !== option)
-        : [...selected, option],
-    );
-  }
+  const chipsRef = useRef<HTMLDivElement>(null);
 
   return (
-    <section>
-      <label className="text-sm text-[#6D6873]">
-        {label}
-      </label>
-      <Popover>
-        <PopoverTrigger
-          className="mt-1 flex h-12 w-full items-center justify-between rounded-lg border border-[#D8D5DD] bg-white px-3 text-left text-base text-black outline-none transition focus:border-[#6846E8] focus:ring-2 focus:ring-[#6846E8]/15"
-        >
-          <span className={cn("truncate", !selected.length && "text-[#8A8590]")}>{summary}</span>
-          <IconChevronDown className="size-5 shrink-0 text-[#6D6873]" />
-        </PopoverTrigger>
-        <PopoverContent
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm text-[#6D6873]">{label}</label>
+      <Combobox
+        items={visibleOptions}
+        multiple
+        onValueChange={(value) => onChange(value as string[])}
+        value={selected}
+      >
+        <ComboboxChips ref={chipsRef} className="flex min-h-12 w-full flex-wrap items-center gap-1.5 rounded-lg border border-[#D8D5DD] bg-white px-2.5 py-1.5 text-base shadow-xs transition-colors focus-within:border-[#6846E8] focus-within:ring-2 focus-within:ring-[#6846E8]/15">
+          <ComboboxValue>
+            {selected.map((value) => (
+              <ComboboxChip key={value}>{value}</ComboboxChip>
+            ))}
+          </ComboboxValue>
+          <ComboboxChipsInput
+            aria-label={label}
+            className="min-w-24 flex-1"
+            placeholder={selected.length === 0 ? placeholder : ""}
+          />
+        </ComboboxChips>
+        <ComboboxContent
+          anchor={chipsRef}
           align="start"
+          className="overflow-hidden rounded-xl border border-[#E3DDF0] p-0 shadow-xl"
           sideOffset={4}
-          className="w-[var(--trigger-width)] max-h-64 overflow-hidden rounded-xl border border-[#E3DDF0] p-0 shadow-xl"
         >
-          <Command shouldFilter={false}>
-            <CommandInput
-              value={search}
-              onValueChange={setSearch}
-              placeholder="Search..."
+          <div className="flex items-center gap-2 border-b border-[#F1ECF7] px-3 py-2.5">
+            <SearchIcon className="size-4 shrink-0 text-[#8A8590]" />
+            <ComboboxInput
+              className="h-8 flex-1 border-none bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              placeholder={`Search ${label.toLowerCase()}...`}
             />
-            <CommandList>
-              <CommandEmpty className="py-2 text-sm text-[#6D6873]">
+          </div>
+          <ComboboxList className="max-h-56 p-1">
+            {visibleOptions.length === 0 ? (
+              <ComboboxEmpty className="py-3 text-sm text-[#6D6873]">
                 No options available yet.
-              </CommandEmpty>
-              <CommandGroup className="max-h-48 overflow-y-auto">
-                {filtered.map((option) => {
-                  const isSelected = selected.includes(option);
-                  return (
-                    <CommandItem
-                      key={option}
-                      onSelect={() => toggle(option)}
-                      className="cursor-pointer"
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        tabIndex={-1}
-                      />
-                      <span className="min-w-0 truncate">{option}</span>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    </section>
+              </ComboboxEmpty>
+            ) : (
+              visibleOptions.map((option) => (
+                <ComboboxItem
+                  className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-black data-highlighted:bg-[#F7F1FF] data-highlighted:text-black"
+                  key={option}
+                  value={option}
+                >
+                  <span
+                    className={cn(
+                      "flex size-4 shrink-0 items-center justify-center rounded border",
+                      selected.includes(option)
+                        ? "border-[#5C3BD8] bg-[#5C3BD8] text-white"
+                        : "border-[#D8D5DD] bg-white",
+                    )}
+                  >
+                    {selected.includes(option) ? (
+                      <CheckIcon className="size-3" />
+                    ) : null}
+                  </span>
+                  <span className="min-w-0 truncate">{option}</span>
+                </ComboboxItem>
+              ))
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+    </div>
   );
 }
 
@@ -227,9 +235,7 @@ function SalarySection({
 
   return (
     <section>
-      <label className="text-sm text-[#6D6873]">
-        Salary
-      </label>
+      <label className="text-sm text-[#6D6873]">Salary</label>
       <select
         value={salary}
         onChange={(event) => setSalary(event.target.value)}
