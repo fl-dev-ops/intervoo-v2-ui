@@ -143,7 +143,7 @@ function ReportJobHeader({
 
   return (
     <div className="w-full rounded-2xl border border-border bg-white p-4 md:p-6">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_280px]">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4">
           <div className="flex size-[72px] shrink-0 items-center justify-center rounded-xl border border-[#DAD6DE] bg-white p-2 text-center text-sm font-extrabold leading-none text-[#F0642E]">
             {getLogoText(companyName)}
@@ -165,28 +165,29 @@ function ReportJobHeader({
                 {roundCount} Rounds
               </span>
             </div>
-            {description && (
-              <p className="mt-4 max-w-[520px] text-sm leading-6 text-[#6D6873]">
-                {description}
-              </p>
-            )}
-            {sourceUrl && (
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#F7F3FF] px-3 py-2 text-sm font-semibold text-[#5E41CF]"
-              >
-                <FileText className="size-4 text-black" />
-                Read Job description
-              </a>
-            )}
           </div>
         </div>
         <div className="shrink-0">
           <InterviewReadinessScore score={overallScore} />
         </div>
       </div>
+
+      {description && (
+        <p className="mt-4 text-sm leading-6 text-[#6D6873]">
+          {description}
+        </p>
+      )}
+      {sourceUrl && (
+        <a
+          href={sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-[#F7F3FF] px-3 py-2 text-sm font-semibold text-[#5E41CF]"
+        >
+          <FileText className="size-4 text-black" />
+          Read Job description
+        </a>
+      )}
     </div>
   );
 }
