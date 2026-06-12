@@ -81,7 +81,7 @@ export default function OnboardingPage() {
         }
         const data = await response.json();
         if (data.stage !== "ONBOARDING") {
-          router.push("/jobs");
+          router.push("/diagnostics");
           return;
         }
         setUserDefaults({
@@ -204,11 +204,11 @@ export default function OnboardingPage() {
     } catch {
       // ignore
     }
-    router.push("/jobs");
+    router.push("/diagnostics");
   }, [filters, router]);
 
   const handleSkipPreferences = useCallback(() => {
-    router.push("/jobs");
+    router.push("/diagnostics");
   }, [router]);
 
   const handleLogout = useCallback(async () => {

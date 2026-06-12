@@ -205,11 +205,18 @@ export function getDiagnosticRoundRecoveryState(
       DIAGNOSTIC_SESSION_STUCK_MINUTES * 60 * 1000;
 
   const isReportFailed = round.reportStatus === "FAILED";
+  const isReportMissing = !round.reportStatus || round.reportStatus === "PENDING";
+  const isReportStuck =
+    round.reportStatus === "PROCESSING" &&
+    Boolean(round.reportStartedAt) &&
+    nowMs - new Date(round.reportStartedAt as string | Date).getTime() >
+      DIAGNOSTIC_SESSION_STUCK_MINUTES * 60 * 1000;
 
   return {
-    isRecoverable: isSessionStuck || isReportFailed,
+    isRecoverable:
+      isSessionStuck || isReportFailed || isReportMissing || isReportStuck,
     isReportFailed,
-    isReportStuck: false,
+    isReportStuck,
     isSessionStuck,
   };
 }

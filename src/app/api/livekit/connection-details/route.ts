@@ -18,7 +18,7 @@ import {
 import { getUserStage } from "@/lib/progress";
 
 const LIVEKIT_AGENT_NAME = "intervoo-agent-hs";
-const DIAGNOSTIC_AGENT_ID = "diagnostic";
+const DIAGNOSTIC_AGENT_ID = "diagnostic_v2";
 const DIAGNOSTIC_QUESTION_CATEGORY_BY_ROUND: Record<string, string> = {
   behavioural: "behavioral",
   "career-readiness": "closing",

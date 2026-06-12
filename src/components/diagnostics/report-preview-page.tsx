@@ -33,10 +33,12 @@ export type DiagnosticReportPageState = {
 );
 
 export function DiagnosticReportPreviewPage({
+  jobId,
   publicUrl,
   showActions = false,
   state,
 }: {
+  jobId?: string | null;
   publicUrl?: string | null;
   showActions?: boolean;
   state: DiagnosticReportPageState;
@@ -44,6 +46,7 @@ export function DiagnosticReportPreviewPage({
   if (state.status === "final-ready") {
     return (
       <FinalDiagnosticReportPreview
+        jobId={jobId}
         preferredName={state.preferredName}
         publicUrl={publicUrl}
         report={state.report}
@@ -54,6 +57,7 @@ export function DiagnosticReportPreviewPage({
 
   return (
     <DiagnosticReportErrorState
+      jobId={jobId}
       message={state.errorMessage ?? "Failed to load report."}
       showActions={showActions}
     />
@@ -61,11 +65,13 @@ export function DiagnosticReportPreviewPage({
 }
 
 function FinalDiagnosticReportPreview({
+  jobId,
   preferredName,
   publicUrl,
   report,
   showActions,
 }: {
+  jobId?: string | null;
   preferredName?: string | null;
   publicUrl?: string | null;
   report: FinalDiagnosticReport;
@@ -76,7 +82,7 @@ function FinalDiagnosticReportPreview({
   return (
     <main className="min-h-dvh bg-background">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 md:py-10">
-        <HeaderActions publicUrl={publicUrl} showActions={showActions} />
+        <HeaderActions jobId={jobId} publicUrl={publicUrl} showActions={showActions} />
 
         <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-lg">
           <div className="bg-linear-to-br from-primary/15 via-transparent to-emerald-500/10 p-5 md:p-8">
@@ -210,9 +216,11 @@ function FinalDiagnosticReportPreview({
 }
 
 function DiagnosticReportErrorState({
+  jobId,
   message,
   showActions,
 }: {
+  jobId?: string | null;
   message: string;
   showActions: boolean;
 }) {
@@ -228,7 +236,7 @@ function DiagnosticReportErrorState({
         {showActions ? (
           <Link
             className={buttonVariants({ className: "mt-6 w-full", size: "lg" })}
-            href="/diagnostics/rounds"
+            href={jobId ? `/jobs/${jobId}` : "/jobs"}
           >
             Back to rounds
           </Link>
@@ -239,9 +247,11 @@ function DiagnosticReportErrorState({
 }
 
 function HeaderActions({
+  jobId,
   publicUrl,
   showActions,
 }: {
+  jobId?: string | null;
   publicUrl?: string | null;
   showActions: boolean;
 }) {
@@ -253,7 +263,7 @@ function HeaderActions({
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
       <Link
         className={buttonVariants({ size: "sm", variant: "outline" })}
-        href="/diagnostics/rounds"
+        href={jobId ? `/jobs/${jobId}` : "/jobs"}
       >
         Back to rounds
       </Link>

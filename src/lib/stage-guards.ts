@@ -22,7 +22,7 @@ export async function requirePageStage(allowedStages: AppStage[]) {
   const stage = await getUserStage(user.id);
 
   if (!allowedStages.includes(stage)) {
-    // redirect(getStagePath(stage));
+    redirect(getStagePath(stage));
   }
 
   return { stage, user };
@@ -33,8 +33,12 @@ export function getStagePath(stage: AppStage) {
     return "/onboarding";
   }
 
-  if (stage === "DIAGNOSTICS" || stage === "COMPLETED") {
+  if (stage === "DIAGNOSTICS") {
     return "/diagnostics";
+  }
+
+  if (stage === "COMPLETED") {
+    return "/diagnostics/final-report";
   }
 
   return "/";

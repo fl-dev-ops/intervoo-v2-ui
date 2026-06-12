@@ -47,11 +47,11 @@ export function RoundCompleteClient({
         ? "Go to job rounds"
         : "Generating report..."
       : "Go to interview rounds";
-  const jobHref = jobId ? `/jobs/${jobId}` : "/diagnostics/rounds";
+  const jobHref = jobId ? `/jobs/${jobId}` : "/jobs";
   const primaryHref = hasFailedReport
     ? jobId
       ? `/jobs/${jobId}/prejoin?round=${completedRoundId}`
-      : `/diagnostics/prejoin?round=${completedRoundId}`
+      : "/jobs"
     : nextRound
       ? jobHref
       : jobHref;

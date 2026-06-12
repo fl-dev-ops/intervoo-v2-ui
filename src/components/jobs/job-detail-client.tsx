@@ -17,16 +17,18 @@ import type { JobDetail } from "@/lib/jd-client";
 
 type JobDetailClientProps = {
   job: JobDetail;
+  readyRoundIds?: string[];
   user: { email: string | null; name: string | null };
 };
 
-export function JobDetailClient({ job, user }: JobDetailClientProps) {
+export function JobDetailClient({ job, readyRoundIds = [], user }: JobDetailClientProps) {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [startingRoundId, setStartingRoundId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const rounds = DIAGNOSTIC_ROUNDS.map((round, index) => ({
     ...round,
+    isReportReady: readyRoundIds.includes(round.id),
     questions: job.rounds[index]?.competencies?.length
       ? job.rounds[index].competencies
       : round.questions,
@@ -34,8 +36,8 @@ export function JobDetailClient({ job, user }: JobDetailClientProps) {
   const totalMinutes = rounds.length * 15;
 
   async function handleStart(roundId: string) {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
+    if (startingRoundId) return;
+    setStartingRoundId(roundId);
     setError(null);
 
     try {
@@ -46,7 +48,7 @@ export function JobDetailClient({ job, user }: JobDetailClientProps) {
           ? startError.message
           : "Failed to start diagnostics.",
       );
-      setIsSubmitting(false);
+      setStartingRoundId(null);
     }
   }
 
@@ -78,9 +80,9 @@ export function JobDetailClient({ job, user }: JobDetailClientProps) {
               return (
                 <article
                   key={round.id}
-                  className="grid grid-cols-[44px_1fr] gap-x-4"
+                  className="md:grid md:grid-cols-[44px_1fr] md:gap-x-4"
                 >
-                  <div className="relative flex justify-center">
+                  <div className="relative hidden justify-center md:flex">
                     {!isLast(index, rounds.length) && (
                       <div className="absolute top-10 bottom-[-28px] w-px bg-[#6C47FF]/70" />
                     )}
@@ -143,16 +145,26 @@ export function JobDetailClient({ job, user }: JobDetailClientProps) {
                     </p>
 
                     <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-                      {isActive ? (
+                      {!round.isReportReady ? (
                         <div>
-                          <p className="text-sm font-semibold text-[#6B6B72]">
+                          <p
+                            className={
+                              isActive
+                                ? "text-sm font-semibold text-[#6B6B72]"
+                                : "text-sm font-semibold text-white/70"
+                            }
+                          >
                             Questions may cover
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {round.questions.map((question) => (
                               <span
                                 key={question}
-                                className="rounded-xl border border-[#E2E0E6] bg-[#FAFAFA] px-3 py-2 text-xs font-medium text-black"
+                                className={
+                                  isActive
+                                    ? "rounded-xl border border-[#E2E0E6] bg-[#FAFAFA] px-3 py-2 text-xs font-medium text-black"
+                                    : "rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-medium text-white/80"
+                                }
                               >
                                 {question}
                               </span>
@@ -168,11 +180,11 @@ export function JobDetailClient({ job, user }: JobDetailClientProps) {
                             ? "h-11 rounded-full bg-button px-8 text-base font-bold text-white"
                             : "h-10 rounded-full bg-white/15 px-6 text-sm font-bold text-white hover:bg-white/20"
                         }
-                        disabled={isSubmitting}
+                        disabled={Boolean(startingRoundId)}
                         onClick={() => handleStart(round.id)}
                         type="button"
                       >
-                        {isSubmitting ? (
+                        {startingRoundId === round.id ? (
                           <>
                             <LoaderCircle className="mr-2 size-4 animate-spin" />
                             Starting...

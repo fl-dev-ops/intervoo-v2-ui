@@ -4,6 +4,20 @@ import { useState } from "react";
 import { IconChevronDown, IconX } from "@tabler/icons-react";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export type JobProfileFilters = {
@@ -134,56 +148,70 @@ export function MultiDropdown({
   placeholder: string;
   selected: string[];
 }) {
-  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const visibleOptions = [...new Set([...selected, ...options])].filter(Boolean);
+  const filtered = visibleOptions.filter((o) =>
+    o.toLowerCase().includes(search.toLowerCase()),
+  );
   const summary = selected.length ? selected.join(", ") : placeholder;
 
+  function toggle(option: string) {
+    onChange(
+      selected.includes(option)
+        ? selected.filter((item) => item !== option)
+        : [...selected, option],
+    );
+  }
+
   return (
-    <section className="relative">
+    <section>
       <label className="text-sm text-[#6D6873]">
         {label}
       </label>
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="mt-1 flex h-12 w-full items-center justify-between rounded-lg border border-[#D8D5DD] bg-white px-3 text-left text-base text-black outline-none transition focus:border-[#6846E8] focus:ring-2 focus:ring-[#6846E8]/15"
-      >
-        <span className={cn("truncate", !selected.length && "text-[#8A8590]")}>{summary}</span>
-        <IconChevronDown className={cn("size-5 shrink-0 transition", open && "rotate-180")} />
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 z-20 mt-2 max-h-64 overflow-y-auto rounded-xl border border-[#E3DDF0] bg-white p-2 shadow-xl">
-          {visibleOptions.length ? (
-            visibleOptions.map((option) => {
-              const isSelected = selected.includes(option);
-              return (
-                <label
-                  key={option}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-[#F7F1FF]"
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() =>
-                      onChange(
-                        isSelected
-                          ? selected.filter((item) => item !== option)
-                          : [...selected, option],
-                      )
-                    }
-                    className="size-4 accent-[#5C3BD8]"
-                  />
-                  <span className="min-w-0 truncate">{option}</span>
-                </label>
-              );
-            })
-          ) : (
-            <p className="px-3 py-2 text-sm text-[#6D6873]">
-              No options available yet.
-            </p>
-          )}
-        </div>
-      )}
+      <Popover>
+        <PopoverTrigger
+          className="mt-1 flex h-12 w-full items-center justify-between rounded-lg border border-[#D8D5DD] bg-white px-3 text-left text-base text-black outline-none transition focus:border-[#6846E8] focus:ring-2 focus:ring-[#6846E8]/15"
+        >
+          <span className={cn("truncate", !selected.length && "text-[#8A8590]")}>{summary}</span>
+          <IconChevronDown className="size-5 shrink-0 text-[#6D6873]" />
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          sideOffset={4}
+          className="w-[var(--trigger-width)] max-h-64 overflow-hidden rounded-xl border border-[#E3DDF0] p-0 shadow-xl"
+        >
+          <Command shouldFilter={false}>
+            <CommandInput
+              value={search}
+              onValueChange={setSearch}
+              placeholder="Search..."
+            />
+            <CommandList>
+              <CommandEmpty className="py-2 text-sm text-[#6D6873]">
+                No options available yet.
+              </CommandEmpty>
+              <CommandGroup className="max-h-48 overflow-y-auto">
+                {filtered.map((option) => {
+                  const isSelected = selected.includes(option);
+                  return (
+                    <CommandItem
+                      key={option}
+                      onSelect={() => toggle(option)}
+                      className="cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        tabIndex={-1}
+                      />
+                      <span className="min-w-0 truncate">{option}</span>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </section>
   );
 }

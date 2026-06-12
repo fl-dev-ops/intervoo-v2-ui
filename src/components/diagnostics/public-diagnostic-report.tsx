@@ -61,6 +61,7 @@ export type PublicDiagnosticReportProps = {
   bandConfig: DiagnosticBandConfig | undefined;
   focusedRoundNumber: number;
   isOwner: boolean;
+  jobId?: string | null;
   overallScore: number | null;
   preferredName: string | null;
   rounds: PublicRoundData[];
@@ -76,6 +77,7 @@ export function PublicDiagnosticReport({
   bandConfig,
   focusedRoundNumber,
   isOwner,
+  jobId,
   overallScore,
   preferredName: _preferredName,
   rounds,
@@ -108,7 +110,7 @@ export function PublicDiagnosticReport({
             {activeRound?.hasReport ? (
               <RoundDetailView round={activeRound} />
             ) : activeRound ? (
-              <RoundStartCard round={activeRound} isOwner={isOwner} />
+              <RoundStartCard round={activeRound} isOwner={isOwner} jobId={jobId} />
             ) : null}
           </section>
         </div>
@@ -570,9 +572,11 @@ function QuestionFeedbackCard({
 function RoundStartCard({
   round,
   isOwner,
+  jobId,
 }: {
   round: PublicRoundData & { hasReport: false };
   isOwner: boolean;
+  jobId?: string | null;
 }) {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
@@ -615,7 +619,7 @@ function RoundStartCard({
             type="button"
             onClick={() => {
               setIsNavigating(true);
-              router.push(`/diagnostics/prejoin?round=${round.roundType}`);
+              router.push(jobId ? `/jobs/${jobId}/prejoin?round=${round.roundType}` : "/jobs");
             }}
           >
             {isNavigating ? (

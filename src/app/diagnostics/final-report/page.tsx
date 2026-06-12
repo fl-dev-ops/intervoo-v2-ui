@@ -7,6 +7,7 @@ import {
   saveFinalDiagnosticReport,
 } from "@/lib/diagnostics/final-report";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import {
   isDiagnosticReportReady,
   isDiagnosticRoundStuckOrFailed,
@@ -48,6 +49,7 @@ export default async function DiagnosticsFinalReportPage() {
   }
 
   const bandConfig = getDiagnosticBandConfig(diagnostic.selectedBand);
+  const jobId = getSelectedJobId(diagnostic.selectedJob);
   const preferredName = diagnostic.user.resume?.name ?? null;
   const rounds = DIAGNOSTIC_ROUNDS.map((config, index) => {
     const roundNumber = index + 1;
@@ -149,11 +151,12 @@ export default async function DiagnosticsFinalReportPage() {
 
   return (
     <PublicDiagnosticReport
-      backHref="/diagnostics/rounds"
+      backHref={jobId ? `/jobs/${jobId}` : "/jobs"}
       backLabel="Back to rounds"
       bandConfig={bandConfig}
       focusedRoundNumber={readyRounds[0]?.roundNumber ?? 1}
       isOwner={true}
+      jobId={jobId}
       overallScore={overallScore}
       preferredName={preferredName}
       rounds={rounds}
