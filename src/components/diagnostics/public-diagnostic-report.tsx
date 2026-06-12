@@ -523,53 +523,55 @@ function QuestionFeedbackCard({
         </div>
       </div>
 
-      {/* User message — right-aligned, two parts */}
+      {/* User message — right-aligned, two parts joined */}
       {response.candidate_answer && (
-        <div className="flex flex-col items-end gap-2">
-          {/* Actual answer */}
-          <div className="max-w-[85%] rounded-2xl bg-[#6C47FF] px-4 py-3">
-            <p className="text-sm leading-6 text-white">
-              {response.candidate_answer}
-            </p>
-          </div>
-
-          {/* Feedback + reframed answer */}
-          <div className="max-w-[85%] space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Feedback
+        <div className="flex flex-col items-end">
+          <div className="max-w-[85%] overflow-hidden rounded-2xl">
+            {/* Actual answer */}
+            <div className="bg-[#6C47FF] px-4 py-3">
+              <p className="text-sm leading-6 text-white">
+                {response.candidate_answer}
               </p>
-              <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                Needs work
-              </span>
             </div>
 
-            {response.reframed_answer ? (
-              <div className="rounded-xl bg-[#FEF9E7] px-4 py-3">
-                <div className="mb-1.5 flex items-center gap-1.5">
-                  <span aria-hidden="true">✨</span>
-                  <p className="text-xs font-semibold text-foreground">
-                    Reframed Answer
-                  </p>
-                </div>
-                <p className="text-sm leading-6 text-[#6B6B72]">
-                  {response.reframed_answer}
+            {/* Feedback + reframed answer — joined below */}
+            <div className="space-y-2 bg-white px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Feedback
                 </p>
+                <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                  Needs work
+                </span>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {weakDimensions.map(({ label, feedback }) => (
-                  <div key={label} className="rounded-xl bg-white px-4 py-3">
-                    <p className="mb-1 text-xs font-semibold text-foreground">
-                      {label}
-                    </p>
-                    <p className="text-xs leading-5 text-muted-foreground">
-                      {feedback}
+
+              {response.reframed_answer ? (
+                <div className="rounded-xl bg-[#FEF9E7] px-4 py-3">
+                  <div className="mb-1.5 flex items-center gap-1.5">
+                    <span aria-hidden="true">✨</span>
+                    <p className="text-xs font-semibold text-foreground">
+                      Reframed Answer
                     </p>
                   </div>
-                ))}
-              </div>
-            )}
+                  <p className="text-sm leading-6 text-[#6B6B72]">
+                    {response.reframed_answer}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {weakDimensions.map(({ label, feedback }) => (
+                    <div key={label} className="rounded-xl bg-[#F0EFF2] px-4 py-3">
+                      <p className="mb-1 text-xs font-semibold text-foreground">
+                        {label}
+                      </p>
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        {feedback}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
