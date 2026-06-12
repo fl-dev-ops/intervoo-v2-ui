@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import { JobsClient } from "@/components/jobs/jobs-client";
 import { prisma } from "@/lib/db";
-import { searchJobs, type SearchInput } from "@/lib/jd-client";
+import { buildResumeSearchInput } from "@/lib/diagnostics/search-input";
+import { searchJobs } from "@/lib/jd-client";
 import { requirePageStage } from "@/lib/stage-guards";
-
-type ResumeProject = { title?: unknown; description?: unknown };
 
 export default async function JobsPage() {
   const { user } = await requirePageStage(["DIAGNOSTICS"]);
@@ -16,11 +15,15 @@ export default async function JobsPage() {
     redirect("/onboarding");
   }
 
-  const initialSearch = buildSearchInput({
-    experienceYears: resume.experienceYears,
-    projects: resume.projects,
+  const initialSearch = buildResumeSearchInput({
     role: resume.role,
+    experienceYears: resume.experienceYears,
     skills: resume.skills,
+    projects: resume.projects,
+    skillGlosses: resume.skillGlosses,
+    projectKeywords: resume.projectKeywords,
+    projectCapabilities: resume.projectCapabilities,
+    workInitiatives: resume.workInitiatives,
   });
   const result = await searchJobs(initialSearch);
 
@@ -32,37 +35,4 @@ export default async function JobsPage() {
       user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );
-}
-
-function buildSearchInput({
-  experienceYears,
-  projects,
-  role,
-  skills,
-}: {
-  experienceYears: number | null;
-  projects: unknown;
-  role: string;
-  skills: string[];
-}): SearchInput {
-  return {
-    companyText: "",
-    experienceYears,
-    projectTexts: getProjectTexts(projects),
-    roleText: role,
-    skillNames: skills,
-    sort: "score",
-  };
-}
-
-function getProjectTexts(projects: unknown) {
-  if (!Array.isArray(projects)) return [];
-
-  return projects
-    .map((project: ResumeProject) =>
-      [project.title, project.description]
-        .filter((value): value is string => typeof value === "string")
-        .join(" - "),
-    )
-    .filter(Boolean);
 }

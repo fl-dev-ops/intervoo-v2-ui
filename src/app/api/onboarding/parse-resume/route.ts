@@ -87,6 +87,12 @@ export async function POST(request: NextRequest) {
         const [title, description] = splitResumePair(proj);
         return { title, description };
       }),
+      // Rich matching fields — carried through untouched (not edited in the UI),
+      // index-aligned with skills/projects/experience above.
+      skillGlosses: profile.skillGlosses || {},
+      projectKeywords: profile.projectKeywords || [],
+      projectCapabilities: profile.projectCapabilities || [],
+      workInitiatives: profile.workInitiatives || [],
     };
 
     return NextResponse.json({ resume });

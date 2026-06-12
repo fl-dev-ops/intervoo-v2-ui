@@ -22,14 +22,17 @@ export type OnboardingProfile = {
     standing: string;
   };
   skills: string[];
+  skillGlosses: Record<string, string>;
   projects: string[];
   projectKeywords: string[][];
+  projectCapabilities: string[][];
   work_experience: {
     company: string;
     role: string;
     start_date: string;
     end_date: string;
   }[];
+  workInitiatives: string[][];
   experience: string[];
   scores: { cgpa: string; twelfth: string; tenth: string };
   roleHint: string;
@@ -53,13 +56,25 @@ const ResumeSchema = z.object({
       }),
     )
     .default([]),
-  skills: z.array(z.string()).default([]),
+  // Accept both the {name, gloss} shape and a bare string (model-drift safety).
+  skills: z
+    .array(
+      z.union([
+        z.object({
+          name: z.string(),
+          gloss: z.string().nullable().default(null),
+        }),
+        z.string().transform((name) => ({ name, gloss: null })),
+      ]),
+    )
+    .default([]),
   projects: z
     .array(
       z.object({
         name: z.string().nullable().default(null),
         description: z.string().nullable().default(null),
         keywords: z.array(z.string()).default([]),
+        capabilities: z.array(z.string()).default([]),
       }),
     )
     .default([]),
@@ -70,6 +85,7 @@ const ResumeSchema = z.object({
         role: z.string().nullable().default(null),
         start_date: z.string().nullable().default(null),
         end_date: z.string().nullable().default(null),
+        initiatives: z.array(z.string()).default([]),
       }),
     )
     .default([]),
@@ -89,9 +105,9 @@ Return ONLY a single JSON object, no prose, matching exactly this shape:
     { "institution": string, "degree": string, "major": string | null,
       "graduation_year": number | null, "cgpa": string | null, "is_current": boolean }
   ],
-  "skills": string[],
-  "projects": [ { "name": string, "description": string | null, "keywords": string[] } ],
-  "work_experience": [ { "company": string, "role": string, "start_date": string | null, "end_date": string | null } ],
+  "skills": [ { "name": string, "gloss": string } ],
+  "projects": [ { "name": string, "description": string | null, "keywords": string[], "capabilities": string[] } ],
+  "work_experience": [ { "company": string, "role": string, "start_date": string | null, "end_date": string | null, "initiatives": string[] } ],
   "experience_years": number,
   "strongest_domain": string | null
 }
@@ -101,12 +117,16 @@ Rules:
 - "email" must be the candidate's email address. Extract from resume header or contact info. Use null if not found.
 - "phone_number" must be the candidate's phone number with country code (e.g. "+919876543210"). Extract from resume header or contact info. Use null if not found.
 - "experience_years" must be a number. Calculate from work_experience dates if available, otherwise estimate from education level and current year. Use 0 only if truly no experience can be determined.
-- "skills" must be a flat, de-duplicated list of concrete skill names.
+- "skills" must be a flat, de-duplicated list. Include soft skills the resume explicitly lists (e.g. "Communication", "Team Collaboration") alongside technical skills — they match soft-skill job requirements.
+- Each skill's "gloss" is an 8-15 word line describing what the skill is, expanding acronyms and naming the domain, e.g. {"name": "AWS", "gloss": "AWS (Amazon Web Services): cloud computing platform, cloud infrastructure services"}. Glosses are embedded for semantic matching — never leave them empty.
 - "work_experience" is ONLY actual job-related work: paid employment (full-time, part-time, contract) or internships at a real company or organization. Each entry must be a role the candidate was employed for. Internships count here.
 - "start_date" and "end_date" for work_experience should be in "MMM YYYY" format (e.g. "Jan 2020", "Mar 2018"). Use "Present" for current role. Use null if not found.
+- "work_experience initiatives" must describe what was actually built or delivered — concrete systems, tools, analyses, or features, each as one sentence. Exclude soft-skill descriptions ("improved communication"), team sizes, and process words. Extract 2-4 per role; fewer if the resume gives fewer concrete details.
 - "projects" is ONLY side-projects, personal projects, academic/course projects, hackathon work, and open-source contributions. These are NOT employment.
 - Never put a project in "work_experience" and never put a job in "projects". If something has no employing company (e.g. a personal app, a GitHub repo, a college project), it is a project, not work experience.
+- FALLBACK: If the resume contains NO standalone projects at all, derive 2-4 "projects" entries from the most significant work_experience initiatives instead — each a distinct system, feature, or migration the candidate built or led. Use the initiative as "name", a one-sentence summary as "description", 3-8 keywords, and 3-5 capabilities. Keep "work_experience" as the normal company/role entries only. Apply this fallback ONLY when "projects" would otherwise be empty.
 - "project keywords" must be domain skills or tech concepts only (e.g. "real-time systems", "WebSocket", "distributed caching"). Exclude soft skills, team size, awards, and process words.
+- "project capabilities" = 3-5 short, verb-led statements describing what the candidate built or did, phrased like job-description responsibilities (start with a verb, 4-9 words, no metrics, no soft skills, no tool-only fragments), e.g. "Design retrieval-augmented generation architectures", "Write clean, maintainable code following OOP principles". Derive from the project's own description; never copy examples verbatim. If a project describes no action, use [].
 - "cgpa" is ONLY a numeric grade. Accept formats like "8.44", "3.7", "9.2/10", "72%", or grade classes like "First Class". Reject and set to null anything that describes how the degree was taken or its honours level — for example "Dist." / "Distance" / "Distance Education", "Regular", "Part-time" / "Full-time", "Online" / "Correspondence", "Hons." / "Honours". If the resume shows e.g. "B.E. (Dist.)" with no numeric grade, set cgpa to null and leave the "(Dist.)" out of every field (it is not a score, not a major, not a degree suffix worth keeping).
 - Return only the JSON object.`;
 
@@ -164,6 +184,15 @@ async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
     }));
   const work = workExperience.map((w) => [w.role, w.company].filter(Boolean).join(" · "));
 
+  const skillNames = dedupe(
+    parsed.skills.map((s) => s.name.trim()).filter(Boolean),
+  );
+  const skillGlosses: Record<string, string> = {};
+  for (const s of parsed.skills) {
+    const name = s.name.trim();
+    if (name && s.gloss?.trim()) skillGlosses[name] = s.gloss.trim();
+  }
+
   return {
     name: parsed.name ?? "",
     email: parsed.email ?? "",
@@ -175,10 +204,13 @@ async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
       years: edu?.graduation_year ? String(edu.graduation_year) : "",
       standing: edu?.is_current ? "current" : "",
     },
-    skills: dedupe(parsed.skills.map((s) => s.trim()).filter(Boolean)),
+    skills: skillNames,
+    skillGlosses,
     projects,
     projectKeywords: parsed.projects.map((p) => p.keywords ?? []),
+    projectCapabilities: parsed.projects.map((p) => p.capabilities ?? []),
     work_experience: workExperience,
+    workInitiatives: parsed.work_experience.map((w) => w.initiatives ?? []),
     experience: work,
     scores: {
       cgpa: edu?.cgpa != null ? String(edu.cgpa) : "",
@@ -194,7 +226,9 @@ async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
 function buildResumeText(parsed: ParsedResume): string {
   const roleHint =
     parsed.strongest_domain ?? parsed.work_experience[0]?.role ?? "";
-  const skills = dedupe(parsed.skills.map((s) => s.trim()).filter(Boolean));
+  const skills = dedupe(
+    parsed.skills.map((s) => s.name.trim()).filter(Boolean),
+  );
   const projects = parsed.projects
     .filter((p) => p.name)
     .map((p) =>

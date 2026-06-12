@@ -36,6 +36,11 @@ type ResumePayload = {
   skills: string[];
   experience: ExperienceEntry[];
   projects: ProjectEntry[];
+  // Rich matching fields (optional; absent for manually-built profiles).
+  skillGlosses?: Record<string, string>;
+  projectKeywords?: string[][];
+  projectCapabilities?: string[][];
+  workInitiatives?: string[][];
 };
 
 function validateBody(body: unknown): body is ResumePayload {
@@ -101,6 +106,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, email, phoneNumber, role, experienceYears, education, skills, experience, projects } = body;
+    const skillGlosses = body.skillGlosses ?? {};
+    const projectKeywords = body.projectKeywords ?? [];
+    const projectCapabilities = body.projectCapabilities ?? [];
+    const workInitiatives = body.workInitiatives ?? [];
 
     await prisma.$transaction([
       prisma.user.update({
@@ -122,6 +131,10 @@ export async function POST(request: NextRequest) {
           skills,
           experience,
           projects,
+          skillGlosses,
+          projectKeywords,
+          projectCapabilities,
+          workInitiatives,
         },
         update: {
           name: name.trim(),
@@ -131,6 +144,10 @@ export async function POST(request: NextRequest) {
           skills,
           experience,
           projects,
+          skillGlosses,
+          projectKeywords,
+          projectCapabilities,
+          workInitiatives,
         },
       }),
       prisma.userProgress.upsert({

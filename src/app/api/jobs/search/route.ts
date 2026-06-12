@@ -9,6 +9,7 @@ export async function POST(request: NextRequest) {
       experienceYears: body.experienceYears ?? null,
       projectTexts: body.projectTexts ?? [],
       roleText: body.roleText ?? "",
+      skills: Array.isArray(body.skills) ? body.skills : undefined,
       skillNames: Array.isArray(body.skillNames) ? body.skillNames : [],
       sort: body.sort ?? "score",
     });

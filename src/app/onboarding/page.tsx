@@ -36,6 +36,12 @@ type ResumeData = {
     title: string;
     description: string;
   }[];
+  // Rich matching fields — parsed once, carried through untouched (not edited
+  // in the review UI), index-aligned with skills/projects/experience.
+  skillGlosses?: Record<string, string>;
+  projectKeywords?: string[][];
+  projectCapabilities?: string[][];
+  workInitiatives?: string[][];
 };
 
 type UserDefaults = {
@@ -173,10 +179,19 @@ export default function OnboardingPage() {
       setIsCompleting(true);
 
       try {
+        // Rich matching fields aren't edited in review — source them from the
+        // parsed resume so they survive regardless of review-step edits.
+        const payload = {
+          ...data,
+          skillGlosses: resumeData?.skillGlosses ?? {},
+          projectKeywords: resumeData?.projectKeywords ?? [],
+          projectCapabilities: resumeData?.projectCapabilities ?? [],
+          workInitiatives: resumeData?.workInitiatives ?? [],
+        };
         const response = await fetch("/api/onboarding/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
@@ -194,7 +209,7 @@ export default function OnboardingPage() {
         setIsCompleting(false);
       }
     },
-    [loadOptions],
+    [loadOptions, resumeData],
   );
 
   const handleApplyPreferences = useCallback(() => {

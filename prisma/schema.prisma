@@ -81,6 +81,10 @@ model Resume {
   skills          String[] @default([])
   experience      Json     @default("[]")
   projects        Json     @default("[]")
+  skillGlosses        Json @default("{}")
+  projectKeywords     Json @default("[]")
+  projectCapabilities Json @default("[]")
+  workInitiatives     Json @default("[]")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

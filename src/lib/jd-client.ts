@@ -55,6 +55,9 @@ export type JobDetail = {
 export type SearchInput = {
   companyText: string;
   roleText: string;
+  // Glossed skills drive semantic coverage on the external API; `skillNames` is
+  // the token-only fallback the API uses when `skills` is absent.
+  skills?: { name: string; gloss?: string | null }[];
   skillNames: string[];
   experienceYears: number | null;
   projectTexts?: string[];
