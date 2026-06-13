@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   FileText,
@@ -19,11 +19,18 @@ import type { JobDetail } from "@/lib/jd-client";
 type JobDetailClientProps = {
   job: JobDetail;
   readyRoundIds?: string[];
+  processingRoundIds?: string[];
   diagnosticId?: string | null;
   user: { email: string | null; name: string | null };
 };
 
-export function JobDetailClient({ job, readyRoundIds = [], diagnosticId, user }: JobDetailClientProps) {
+export function JobDetailClient({
+  job,
+  readyRoundIds = [],
+  processingRoundIds = [],
+  diagnosticId,
+  user,
+}: JobDetailClientProps) {
   const router = useRouter();
   const [startingRoundId, setStartingRoundId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,11 +38,24 @@ export function JobDetailClient({ job, readyRoundIds = [], diagnosticId, user }:
   const rounds = DIAGNOSTIC_ROUNDS.map((round, index) => ({
     ...round,
     isReportReady: readyRoundIds.includes(round.id),
+    isReportProcessing: processingRoundIds.includes(round.id),
     questions: job.rounds[index]?.competencies?.length
       ? job.rounds[index].competencies
       : round.questions,
   }));
   const totalMinutes = rounds.length * 15;
+
+  // While a round's report is still generating, refresh so the CTA flips to
+  // "View Report" once it is ready.
+  useEffect(() => {
+    if (processingRoundIds.length === 0) return;
+
+    const intervalId = window.setInterval(() => {
+      router.refresh();
+    }, 1500);
+
+    return () => window.clearInterval(intervalId);
+  }, [processingRoundIds, router]);
 
   async function handleStart(roundId: string) {
     if (startingRoundId) return;
@@ -188,6 +208,19 @@ export function JobDetailClient({ job, readyRoundIds = [], diagnosticId, user }:
                         >
                           <Eye className="mr-2 size-4" />
                           View Report
+                        </Button>
+                      ) : round.isReportProcessing ? (
+                        <Button
+                          className={
+                            isActive
+                              ? "h-11 rounded-full bg-button px-8 text-base font-bold text-white"
+                              : "h-10 rounded-full bg-white/15 px-6 text-sm font-bold text-white hover:bg-white/20"
+                          }
+                          disabled
+                          type="button"
+                        >
+                          <LoaderCircle className="mr-2 size-4 animate-spin" />
+                          Generating report...
                         </Button>
                       ) : (
                         <Button
