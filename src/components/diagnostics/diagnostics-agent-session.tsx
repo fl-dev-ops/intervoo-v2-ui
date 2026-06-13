@@ -83,6 +83,7 @@ interface DiagnosticsAgentSessionProps {
   jobTitle?: string;
   companies?: string[];
   coach?: string;
+  userName?: string | null;
 }
 
 export function DiagnosticsAgentSession({
@@ -92,6 +93,7 @@ export function DiagnosticsAgentSession({
   sessionId,
   jobTitle,
   coach,
+  userName,
 }: DiagnosticsAgentSessionProps) {
   const tokenSource = useMemo(
     () =>
@@ -133,6 +135,7 @@ export function DiagnosticsAgentSession({
         jobTitle={jobTitle}
         roundId={roundId}
         sessionId={sessionId}
+        userName={userName}
       />
     </SessionProvider>
   );
@@ -143,11 +146,13 @@ function SessionLayout({
   sessionId,
   jobTitle,
   coach,
+  userName,
 }: {
   roundId?: string;
   sessionId: string;
   jobTitle?: string;
   coach?: string;
+  userName?: string | null;
 }) {
   const router = useRouter();
   const session = useSessionContext();
@@ -463,10 +468,9 @@ function SessionLayout({
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-[#312260]">
-              {/*<CameraOff className="size-6 text-white/50" />*/}
               <Avatar size="lg">
                 <AvatarFallback className={"bg-[#4F379A] text-white"}>
-                  CN
+                  {getInitials(userName)}
                 </AvatarFallback>
               </Avatar>
             </div>
@@ -511,6 +515,14 @@ function SessionLayout({
       </motion.div>
     </SessionExitGuard>
   );
+}
+
+function getInitials(name: string | null | undefined) {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 function SessionTimer() {

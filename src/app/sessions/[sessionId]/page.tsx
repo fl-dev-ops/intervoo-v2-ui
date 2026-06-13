@@ -28,7 +28,7 @@ export default async function SessionPage({ params, searchParams }: Props) {
     coach,
   } = await searchParams;
 
-  await requirePageStage(["DIAGNOSTICS"]);
+  const { user } = await requirePageStage(["DIAGNOSTICS"]);
 
   if (!token || !serverUrl || !roomName || !sessionId) {
     redirect("/jobs");
@@ -44,6 +44,7 @@ export default async function SessionPage({ params, searchParams }: Props) {
       sessionId={sessionId}
       serverUrl={serverUrl}
       token={token}
+      userName={user.name ?? null}
     />
   );
 }
