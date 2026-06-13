@@ -136,7 +136,7 @@ export function PublicDiagnosticReport({
                       {formatEducation(resume.education)}
                     </p>
                     <p className="shrink-0 text-sm font-medium text-[#6D6873]">
-                      Completed rounds {completedRoundCount}/4
+                      Completed rounds <span className="font-bold">{completedRoundCount}/4</span>
                     </p>
                   </div>
                 </div>
@@ -273,8 +273,7 @@ function RoundDetailView({
   const { label: performanceLabel, color: performanceColor } =
     getPerformanceBadge(score);
 
-  const config = DIAGNOSTIC_ROUNDS[round.roundNumber - 1];
-  const roundName = config?.title ?? `Round ${round.roundNumber}`;
+  const questionCount = assessment.question_responses.length;
 
   return (
     <div className="space-y-4">
@@ -282,8 +281,7 @@ function RoundDetailView({
         improvements={report.improvement_areas}
         performanceColor={performanceColor}
         performanceLabel={performanceLabel}
-        roundName={roundName}
-        roundNumber={round.roundNumber}
+        questionCount={questionCount}
         strengths={report.strengths}
       />
 
@@ -296,15 +294,13 @@ function FeedbackCard({
   improvements,
   performanceColor,
   performanceLabel,
-  roundName,
-  roundNumber,
+  questionCount,
   strengths,
 }: {
   improvements: string[];
   performanceColor: string;
   performanceLabel: string;
-  roundName: string;
-  roundNumber: number;
+  questionCount: number;
   strengths: string[];
 }) {
   if (strengths.length === 0 && improvements.length === 0) {
@@ -314,15 +310,21 @@ function FeedbackCard({
   return (
     <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-base font-bold text-foreground">
-          Round {roundNumber} - {roundName}
+        <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <span aria-hidden="true">⭐</span>
+          Key Summary
         </h3>
-        <span
-          className="rounded-full px-3 py-1 text-xs font-semibold text-white"
-          style={{ backgroundColor: performanceColor }}
-        >
-          {performanceLabel}
-        </span>
+        <div className="flex items-center gap-3 text-sm font-bold text-black">
+          <span className="flex items-center gap-1">
+            <span aria-hidden="true">⏱</span>
+            Talktime: 12 min
+          </span>
+          <span className="text-border">|</span>
+          <span className="flex items-center gap-1">
+            <span aria-hidden="true">💬</span>
+            {questionCount} questions
+          </span>
+        </div>
       </div>
 
       <div className="space-y-3">
