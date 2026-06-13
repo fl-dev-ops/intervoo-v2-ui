@@ -66,13 +66,45 @@ export default async function JobDetailPage({ params }: Props) {
     )
     .map((round) => round.roundType);
 
+  const roundScores = Object.fromEntries(
+    roundsForJob.map((round) => [
+      round.roundType,
+      getRoundScore(round.session?.report?.reportJson),
+    ]),
+  );
+
   return (
     <JobDetailClient
       job={result.data.job}
       readyRoundIds={readyRoundIds}
       processingRoundIds={processingRoundIds}
+      roundScores={roundScores}
       diagnosticId={diagnostic?.id ?? null}
       user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );
+}
+
+function getRoundScore(reportJson: unknown): number | null {
+  if (
+    !reportJson ||
+    typeof reportJson !== "object" ||
+    Array.isArray(reportJson)
+  ) {
+    return null;
+  }
+
+  const assessment = (reportJson as Record<string, unknown>).assessment_result;
+
+  if (
+    !assessment ||
+    typeof assessment !== "object" ||
+    Array.isArray(assessment)
+  ) {
+    return null;
+  }
+
+  const score = (assessment as Record<string, unknown>).total_score;
+
+  return typeof score === "number" ? Math.round(score) : null;
 }

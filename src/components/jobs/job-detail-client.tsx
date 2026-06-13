@@ -2,18 +2,28 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, LoaderCircle, Play, Eye } from "lucide-react";
-import { IconUserCheck } from "@tabler/icons-react";
+import { ArrowLeft, CheckIcon, LoaderCircle, Play } from "lucide-react";
+import {
+  IconCodeAsterisk,
+  IconEyeSearch,
+  IconUserCheck,
+  IconUsersGroup,
+} from "@tabler/icons-react";
 import { AppHeader } from "@/components/app-header";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
 import { Button } from "@/components/ui/button";
-import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
+import {
+  DIAGNOSTIC_ROUNDS,
+  type DiagnosticRoundConfig,
+} from "@/lib/diagnostics/rounds-config";
 import type { JobDetail } from "@/lib/jd-client";
+import { cn } from "@/lib/utils";
 
 type JobDetailClientProps = {
   job: JobDetail;
   readyRoundIds?: string[];
   processingRoundIds?: string[];
+  roundScores?: Record<string, number | null>;
   diagnosticId?: string | null;
   user: { email: string | null; name: string | null };
 };
@@ -22,6 +32,7 @@ export function JobDetailClient({
   job,
   readyRoundIds = [],
   processingRoundIds = [],
+  roundScores = {},
   diagnosticId,
   user,
 }: JobDetailClientProps) {
@@ -33,11 +44,11 @@ export function JobDetailClient({
     ...round,
     isReportReady: readyRoundIds.includes(round.id),
     isReportProcessing: processingRoundIds.includes(round.id),
+    score: roundScores[round.id] ?? null,
     questions: job.rounds[index]?.competencies?.length
       ? job.rounds[index].competencies
       : round.questions,
   }));
-  const totalMinutes = rounds.length * 15;
   const activeRoundIndex = Math.max(
     rounds.findIndex(
       (round) => !round.isReportReady && !round.isReportProcessing,
@@ -95,7 +106,10 @@ export function JobDetailClient({
           <JobDetailCard
             companyName={job.companyName}
             description={job.roleSummary ?? undefined}
-            experience={formatExperienceLabel(job.experienceMinYears, job.experienceMaxYears)}
+            experience={formatExperienceLabel(
+              job.experienceMinYears,
+              job.experienceMaxYears,
+            )}
             overallScore={null}
             roundCount={rounds.length}
             sourceUrl={job.sourceUrl}
@@ -103,164 +117,29 @@ export function JobDetailClient({
           />
         </div>
 
-        <div className="mt-7 w-full rounded-[28px] bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] px-5 py-9 md:px-8 md:py-10">
-          <div className="space-y-7">
+        <div className="mt-7 w-full rounded-t-3xl bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] p-5 md:rounded-b-3xl md:p-8">
+          <div className="space-y-3">
             {rounds.map((round, index) => {
+              const roundNumber = index + 1;
               const isActive = index === activeRoundIndex;
+              const isDone = round.isReportReady;
+              const isProcessing = round.isReportProcessing;
               return (
-                <article
+                <RoundTimelineItem
                   key={round.id}
-                  className="md:grid md:grid-cols-[44px_1fr] md:gap-x-4"
-                >
-                  <div className="relative hidden justify-center md:flex">
-                    {!isLast(index, rounds.length) && (
-                      <div className="absolute top-10 bottom-[-28px] w-px bg-[#6C47FF]/70" />
-                    )}
-                    <div
-                      className={
-                        isActive
-                          ? "relative z-10 flex size-11 items-center justify-center rounded-full bg-[#6C47FF] text-white"
-                          : "relative z-10 mt-3 flex size-8 items-center justify-center rounded-full border border-[#7A5CD7]/70 bg-[#2B176B] text-[#A991F4]"
-                      }
-                    >
-                      {isActive ? (
-                        <IconUserCheck className="size-5" />
-                      ) : (
-                        index + 1
-                      )}
-                    </div>
-                  </div>
-
-                  <div
-                    className={
-                      isActive
-                        ? "rounded-xl bg-white px-5 py-5 shadow-sm md:px-7"
-                        : "rounded-xl border border-white/15 bg-white/10 px-5 py-5 text-white/70 md:px-7"
-                    }
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <p
-                        className={
-                          isActive
-                            ? "text-xs font-bold uppercase tracking-[0.18em] text-[#D08A2C]"
-                            : "text-xs font-bold uppercase tracking-[0.18em] text-white/40"
-                        }
-                      >
-                        ROUND {index + 1}
-                      </p>
-                      <span
-                        className={
-                          isActive
-                            ? "rounded-full bg-[#EFEFEF] px-3 py-1 text-sm font-semibold text-black"
-                            : "rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white"
-                        }
-                      >
-                        15 min
-                      </span>
-                    </div>
-
-                    <h2
-                      className={
-                        isActive
-                          ? "mt-4 text-xl font-bold tracking-tight text-black"
-                          : "mt-3 text-xl font-bold tracking-tight text-white"
-                      }
-                    >
-                      {round.title}
-                    </h2>
-                    <p
-                      className={
-                        isActive
-                          ? "mt-1 max-w-[650px] text-sm leading-6 text-[#6B6B72]"
-                          : "mt-1 max-w-[650px] text-sm leading-6 text-white/55"
-                      }
-                    >
-                      {round.description}
-                    </p>
-
-                    <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-                      {!round.isReportReady ? (
-                        <div>
-                          <p
-                            className={
-                              isActive
-                                ? "text-sm font-semibold text-[#6B6B72]"
-                                : "text-sm font-semibold text-white/70"
-                            }
-                          >
-                            Questions may cover
-                          </p>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {round.questions.map((question) => (
-                              <span
-                                key={question}
-                                className={
-                                  isActive
-                                    ? "rounded-xl border border-[#E2E0E6] bg-[#FAFAFA] px-3 py-2 text-xs font-medium text-black"
-                                    : "rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-medium text-white/80"
-                                }
-                              >
-                                {question}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : (
-                        <div />
-                      )}
-                      {round.isReportReady && diagnosticId ? (
-                        <Button
-                          className={
-                            isActive
-                              ? "h-11 rounded-full bg-button px-8 text-base font-bold text-white"
-                              : "h-10 rounded-full bg-white/15 px-6 text-sm font-bold text-white hover:bg-white/20"
-                          }
-                          onClick={() => router.push(`/report/${diagnosticId}`)}
-                          type="button"
-                        >
-                          <Eye className="mr-2 size-4" />
-                          View Report
-                        </Button>
-                      ) : round.isReportProcessing ? (
-                        <Button
-                          className={
-                            isActive
-                              ? "h-11 rounded-full bg-button px-8 text-base font-bold text-white"
-                              : "h-10 rounded-full bg-white/15 px-6 text-sm font-bold text-white hover:bg-white/20"
-                          }
-                          disabled
-                          type="button"
-                        >
-                          <LoaderCircle className="mr-2 size-4 animate-spin" />
-                          Generating report...
-                        </Button>
-                      ) : (
-                        <Button
-                          className={
-                            isActive
-                              ? "h-11 rounded-full bg-button px-8 text-base font-bold text-white"
-                              : "h-10 rounded-full bg-white/15 px-6 text-sm font-bold text-white hover:bg-white/20"
-                          }
-                          disabled={Boolean(startingRoundId)}
-                          onClick={() => handleStart(round.id)}
-                          type="button"
-                        >
-                          {startingRoundId === round.id ? (
-                            <>
-                              <LoaderCircle className="mr-2 size-4 animate-spin" />
-                              Starting...
-                            </>
-                          ) : (
-                            <>
-                              <Play className="mr-2 size-4 fill-current" />
-                              Start Round {index + 1}
-                            </>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </article>
+                  config={round}
+                  diagnosticId={diagnosticId}
+                  isCurrent={isActive}
+                  isDone={isDone}
+                  isLast={isLast(index, rounds.length)}
+                  isProcessing={isProcessing}
+                  questions={round.questions}
+                  roundNumber={roundNumber}
+                  score={round.score}
+                  startingRoundId={startingRoundId}
+                  onStart={() => handleStart(round.id)}
+                  onViewReport={() => router.push(`/report/${diagnosticId}`)}
+                />
               );
             })}
           </div>
@@ -274,6 +153,289 @@ export function JobDetailClient({
       </section>
     </main>
   );
+}
+
+function RoundTimelineItem({
+  config,
+  diagnosticId,
+  isCurrent,
+  isDone,
+  isLast,
+  isProcessing,
+  onStart,
+  onViewReport,
+  questions,
+  roundNumber,
+  score,
+  startingRoundId,
+}: {
+  config: DiagnosticRoundConfig;
+  diagnosticId?: string | null;
+  isCurrent: boolean;
+  isDone: boolean;
+  isLast: boolean;
+  isProcessing: boolean;
+  onStart: () => void;
+  onViewReport: () => void;
+  questions: string[];
+  roundNumber: number;
+  score: number | null;
+  startingRoundId: string | null;
+}) {
+  const showQuestions = !isDone && !isProcessing;
+  const isActiveCard = isCurrent && !isProcessing;
+
+  return (
+    <article className="relative grid grid-cols-[3rem_1fr] gap-x-2 gap-y-2 md:gap-x-4 md:gap-y-0">
+      <div className="flex items-center justify-center">
+        <RoundStateIcon
+          config={config}
+          isCurrent={isCurrent}
+          isDone={isDone || isProcessing}
+        />
+      </div>
+
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <span
+          className={cn(
+            "text-xs font-semibold uppercase tracking-[0.12em]",
+            isActiveCard
+              ? "text-purple-400"
+               : isDone || isProcessing
+                 ? "text-[#3DD24A]"
+                 : "text-white/40",
+          )}
+        >
+          ROUND {roundNumber}
+        </span>
+        <span
+          className={cn(
+            "rounded-full px-4 py-1.5 text-xs font-semibold text-white",
+            isActiveCard
+              ? "border border-white/25 bg-white/10"
+              : "bg-white/10",
+          )}
+        >
+          {config.duration}
+        </span>
+      </div>
+
+      <div className="hidden justify-center md:flex">
+        {!isLast && (
+          <div
+            className={cn(
+              "hidden h-full min-h-28 w-1 rounded-full md:block",
+              isActiveCard
+                ? "bg-[linear-gradient(180deg,rgba(108,71,255,0.75)_0%,rgba(0,180,0,0)_100%)]"
+                : isDone || isProcessing
+                  ? "bg-[linear-gradient(180deg,rgba(61,210,74,0.75)_0%,rgba(0,180,0,0)_100%)]"
+                  : "bg-[linear-gradient(180deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0)_100%)]",
+            )}
+          />
+        )}
+      </div>
+
+      <div className="col-span-2 min-w-0 pb-6 md:col-span-1">
+        <div
+          className={cn(
+            "rounded-2xl border p-5 transition md:p-6",
+            isActiveCard
+              ? "border-white/80 bg-white shadow-sm"
+              : "border-white/15 bg-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.12)]",
+          )}
+        >
+          <div
+            className={cn(
+              "grid gap-4",
+              isDone || isProcessing
+                ? "md:grid-cols-[minmax(0,1fr)_auto] md:gap-5"
+                : "md:grid-cols-1",
+            )}
+          >
+            <div className="min-w-0">
+              <div className="flex items-center justify-between gap-3">
+                <h2
+                  className={cn(
+                    "text-base font-semibold tracking-tight",
+                    isActiveCard ? "text-foreground" : "text-white",
+                  )}
+                >
+                  {config.title}
+                </h2>
+                {isDone && <RoundResultBadge score={score} />}
+              </div>
+              <p
+                className={cn(
+                  "mt-2 max-w-3xl text-sm leading-6",
+                  isActiveCard
+                    ? "text-muted-foreground"
+                    : "text-white/55",
+                )}
+              >
+                {config.description}
+              </p>
+              {isDone && diagnosticId ? (
+                <div className="mt-3 flex justify-end md:hidden">
+                  <Button
+                    className="h-auto rounded-none border-0 bg-transparent p-0 text-sm font-medium text-[#A991F4] shadow-none hover:bg-transparent hover:text-[#C4B5FD]"
+                    variant="ghost"
+                    type="button"
+                    onClick={onViewReport}
+                  >
+                    View report
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+
+            {isDone && diagnosticId ? (
+              <div className="hidden shrink-0 flex-col items-end justify-end gap-6 md:flex">
+                <Button
+                  className="h-auto rounded-none border-0 bg-transparent p-0 text-sm font-medium text-[#A991F4] shadow-none hover:bg-transparent hover:text-[#C4B5FD]"
+                  variant="ghost"
+                  type="button"
+                  onClick={onViewReport}
+                >
+                  View report
+                </Button>
+              </div>
+            ) : null}
+
+            {isProcessing ? (
+              <div className="flex shrink-0 items-start justify-start md:items-center md:justify-end">
+                <span className="text-sm font-medium text-white/80">
+                  Calculating your report
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          {showQuestions && (
+            <div className="grid items-end gap-4 md:grid-cols-3">
+              <div className="md:col-span-2">
+                <p
+                  className={cn(
+                    "mt-4 text-sm font-medium",
+                    isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
+                  )}
+                >
+                  Questions may cover
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {questions.map((question) => (
+                    <span
+                      key={question}
+                      className={cn(
+                        "rounded-lg border px-3 py-1.5 text-xs",
+                        isActiveCard
+                          ? "border-border bg-muted/50 text-gray-600"
+                          : "border-white/15 bg-white/10 text-white/70",
+                      )}
+                    >
+                      {question}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {!isProcessing ? (
+                <Button
+                  className="col-span-2 w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:col-span-1 md:ml-auto"
+                  disabled={Boolean(startingRoundId)}
+                  type="button"
+                  size="lg"
+                  onClick={onStart}
+                >
+                  {startingRoundId === config.id ? (
+                    <>
+                      <LoaderCircle className="mr-1 size-4 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-1 size-3 fill-current" />
+                      Start Round {roundNumber}
+                    </>
+                  )}
+                </Button>
+              ) : null}
+            </div>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function RoundStateIcon({
+  config,
+  isCurrent,
+  isDone,
+}: {
+  config: DiagnosticRoundConfig;
+  isCurrent: boolean;
+  isDone: boolean;
+}) {
+  const Icon = getRoundIcon(config.id);
+
+  return (
+    <div
+      className={cn(
+        "relative z-10 flex size-10 items-center justify-center rounded-full border-2 md:size-12",
+        isDone
+          ? "border-emerald-500 bg-[linear-gradient(180deg,#3DD24A_0%,#00B400_100%)] text-white"
+          : isCurrent
+            ? "border-[#6C47FF] bg-[#6C47FF] text-white"
+            : "border-white/20 bg-[#1a0b2e] text-white/40",
+      )}
+    >
+      {isDone ? <CheckIcon className="size-5" /> : <Icon className="size-5" />}
+    </div>
+  );
+}
+
+function getRoundIcon(roundId: string) {
+  switch (roundId) {
+    case "screening":
+      return IconUserCheck;
+    case "behavioural":
+      return IconEyeSearch;
+    case "technical-thinking":
+      return IconCodeAsterisk;
+    case "career-readiness":
+      return IconUsersGroup;
+    default:
+      return IconUserCheck;
+  }
+}
+
+function RoundResultBadge({ score }: { score: number | null }) {
+  const result = getRoundResult(score);
+
+  return (
+    <span
+      className={cn(
+        "rounded-full px-4 py-1 text-xs font-semibold text-white",
+        result.className,
+      )}
+    >
+      {result.label}
+    </span>
+  );
+}
+
+function getRoundResult(score: number | null): {
+  label: string;
+  className: string;
+} {
+  if (typeof score !== "number") {
+    return { label: "Completed", className: "bg-[#4D8F62]" };
+  }
+
+  if (score >= 90) return { label: "Excellent", className: "bg-[#4D8F62]" };
+  if (score >= 70) return { label: "Good", className: "bg-[#F49B22]" };
+  if (score >= 50) return { label: "Average", className: "bg-[#DE7B48]" };
+  return { label: "Poor", className: "bg-[#C7433F]" };
 }
 
 function formatExperienceLabel(min: number | null, max: number | null) {
