@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  IconBrandWechat,
-  IconClock,
-  IconMessageQuestion,
-} from "@tabler/icons-react";
+import { IconBrandWechat, IconClock } from "@tabler/icons-react";
 import { Check, Info, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -276,14 +272,10 @@ function RoundDetailView({
   const report = round.report;
   const assessment = report.assessment_result;
 
-  const questionCount =
-    round.askedQuestionCount ?? assessment.question_responses.length;
-
   return (
     <div>
       <FeedbackCard
         improvements={report.improvement_areas}
-        questionCount={questionCount}
         strengths={report.strengths}
         talkTimeMinutes={round.talkTimeMinutes}
       />
@@ -295,12 +287,10 @@ function RoundDetailView({
 
 function FeedbackCard({
   improvements,
-  questionCount,
   strengths,
   talkTimeMinutes,
 }: {
   improvements: string[];
-  questionCount: number;
   strengths: string[];
   talkTimeMinutes: number | null;
 }) {
@@ -319,11 +309,6 @@ function FeedbackCard({
           <span className="flex items-center gap-1">
             <IconClock className="size-4" />
             Talktime: {formatTalkTime(talkTimeMinutes)}
-          </span>
-          <span className="text-border">|</span>
-          <span className="flex items-center gap-1">
-            <IconMessageQuestion className="size-4" />
-            {questionCount} questions
           </span>
         </div>
       </div>
