@@ -116,7 +116,7 @@ export function JobsClient({
       companyText: nextFilters.companies.join(", "),
       roleText: nextFilters.roles.join(", "),
       skillNames: nextFilters.skills,
-      sort: "score",
+      sort: "default",
     };
 
     setIsSearching(true);

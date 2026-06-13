@@ -88,6 +88,6 @@ export function buildResumeSearchInput(
     skillNames: resume.skills,
     experienceYears: resume.experienceYears,
     projectTexts: [...projectTexts, ...initiativeTexts],
-    sort: "score",
+    sort: "default",
   };
 }
