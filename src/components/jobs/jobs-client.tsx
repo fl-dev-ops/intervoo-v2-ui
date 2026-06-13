@@ -61,8 +61,9 @@ export function JobsClient({
   useEffect(() => {
     const savedFilters = readStoredFilters();
     if (!savedFilters) {
-      // No saved preferences — auto-open dialog pre-populated from profile
+      // No saved preferences — search with profile defaults and open dialog
       setHasLoadedFilters(true);
+      void searchWithFilters(filters, { closeDialog: false });
       void openProfileDialog();
       return;
     }
