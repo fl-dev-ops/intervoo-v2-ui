@@ -8,7 +8,6 @@ import {
   ResumeReviewStep,
 } from "@/components/onboarding";
 import { AppHeader } from "@/components/app-header";
-import { JobPreferencesDialog, type JobProfileFilters } from "@/components/jobs/job-preferences-dialog";
 import { authClient } from "@/lib/auth-client";
 
 type ResumeData = {
@@ -50,13 +49,9 @@ type UserDefaults = {
   phoneNumber: string;
 };
 
-type Option = { id?: string; name: string };
-
-const JOB_PROFILE_FILTERS_KEY = "intervoo:job-profile-filters";
-
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState<"upload" | "review" | "preferences">("upload");
+  const [step, setStep] = useState<"upload" | "review">("upload");
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -67,15 +62,6 @@ export default function OnboardingPage() {
     email: "",
     phoneNumber: "",
   });
-  const [options, setOptions] = useState<{ companies: Option[]; skills: Option[] }>({ companies: [], skills: [] });
-  const [filters, setFilters] = useState<JobProfileFilters>({
-    companies: [],
-    roles: [],
-    salary: "",
-    skills: [],
-  });
-  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const checkStage = async () => {
@@ -87,7 +73,7 @@ export default function OnboardingPage() {
         }
         const data = await response.json();
         if (data.stage !== "ONBOARDING") {
-          router.push("/diagnostics");
+          router.push("/jobs");
           return;
         }
         setUserDefaults({
@@ -126,12 +112,6 @@ export default function OnboardingPage() {
       const data = await response.json();
       const merged = mergeWithUserDefaults(data.resume, userDefaults);
       setResumeData(merged);
-      setFilters({
-        companies: [],
-        roles: merged.role ? [merged.role] : [],
-        salary: "",
-        skills: merged.skills,
-      });
       setStep("review");
     } catch (err) {
       setParseError(
@@ -157,30 +137,11 @@ export default function OnboardingPage() {
     setStep("review");
   }, [userDefaults]);
 
-  const loadOptions = useCallback(async () => {
-    setIsLoadingOptions(true);
-    try {
-      const response = await fetch("/api/jobs/options");
-      const payload = (await response.json()) as { companies?: Option[]; skills?: Option[]; error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Failed to load options");
-      setOptions({
-        companies: payload.companies ?? [],
-        skills: payload.skills ?? [],
-      });
-    } catch {
-      // silently fail
-    } finally {
-      setIsLoadingOptions(false);
-    }
-  }, []);
-
   const handleComplete = useCallback(
     async (data: ResumeData) => {
       setIsCompleting(true);
 
       try {
-        // Rich matching fields aren't edited in review — source them from the
-        // parsed resume so they survive regardless of review-step edits.
         const payload = {
           ...data,
           skillGlosses: resumeData?.skillGlosses ?? {},
@@ -199,8 +160,7 @@ export default function OnboardingPage() {
           throw new Error(error.error || "Failed to complete onboarding");
         }
 
-        setStep("preferences");
-        void loadOptions();
+        router.push("/jobs");
       } catch (err) {
         setParseError(
           err instanceof Error ? err.message : "Failed to complete onboarding",
@@ -209,22 +169,8 @@ export default function OnboardingPage() {
         setIsCompleting(false);
       }
     },
-    [loadOptions, resumeData],
+    [resumeData, router],
   );
-
-  const handleApplyPreferences = useCallback(() => {
-    setIsSearching(true);
-    try {
-      localStorage.setItem(JOB_PROFILE_FILTERS_KEY, JSON.stringify(filters));
-    } catch {
-      // ignore
-    }
-    router.push("/diagnostics");
-  }, [filters, router]);
-
-  const handleSkipPreferences = useCallback(() => {
-    router.push("/diagnostics");
-  }, [router]);
 
   const handleLogout = useCallback(async () => {
     await authClient.signOut({
@@ -233,13 +179,6 @@ export default function OnboardingPage() {
       },
     });
   }, [router]);
-
-  const roleOptions = (() => {
-    const names = new Set<string>();
-    if (filters.roles) filters.roles.forEach((r) => names.add(r));
-    if (resumeData?.role) names.add(resumeData.role);
-    return [...names].sort();
-  })();
 
   if (isLoading) {
     return (
@@ -259,7 +198,7 @@ export default function OnboardingPage() {
           isParsing={isParsing}
           error={parseError}
         />
-      ) : step === "review" ? (
+      ) : (
         resumeData && (
           <ResumeReviewStep
             initialData={resumeData}
@@ -268,16 +207,6 @@ export default function OnboardingPage() {
             isCompleting={isCompleting}
           />
         )
-      ) : (
-        <JobPreferencesDialog
-          companyOptions={options.companies.map((c) => c.name)}
-          filters={filters}
-          onApply={handleApplyPreferences}
-          onClose={handleSkipPreferences}
-          roleOptions={roleOptions}
-          setFilters={setFilters}
-          skillOptions={options.skills.map((s) => s.name)}
-        />
       )}
     </div>
   );

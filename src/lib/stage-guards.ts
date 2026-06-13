@@ -34,7 +34,7 @@ export function getStagePath(stage: AppStage) {
   }
 
   if (stage === "DIAGNOSTICS") {
-    return "/diagnostics";
+    return "/jobs";
   }
 
   if (stage === "COMPLETED") {
