@@ -2,6 +2,7 @@
 
 import { Check, FileText, Info, Play } from "lucide-react";
 import {
+  IconBrandWechat,
   IconClock,
   IconMessageQuestion,
 } from "@tabler/icons-react";
@@ -510,7 +511,8 @@ function QuestionWiseAnalysis({
         value="question-analysis"
       >
         <AccordionTrigger className="p-4 text-left hover:no-underline">
-          <span className="text-base font-bold text-foreground">
+          <span className="flex items-center gap-2 text-base font-bold text-foreground">
+            <IconBrandWechat className="size-5" />
             Question wise analysis
           </span>
         </AccordionTrigger>
