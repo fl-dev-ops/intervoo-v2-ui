@@ -78,6 +78,8 @@ export function AppHeader({ user, onLogout }: AppHeaderProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        ) : user === undefined ? (
+          <div className="size-9 animate-pulse rounded-full bg-[#E4E0E7]" />
         ) : null}
       </div>
     </header>
