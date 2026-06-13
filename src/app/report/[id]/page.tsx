@@ -57,6 +57,7 @@ export default async function ReportPage({
     const askedQuestionCount = getAskedQuestionCount(
       dbRound?.session?.metadata,
     );
+    const questionsMayCover = apiJob?.rounds[index]?.competencies ?? [];
 
     if (isDiagnosticReportReady(roundReport?.status)) {
       const hydrated =
@@ -76,6 +77,7 @@ export default async function ReportPage({
             dbRound?.session?.endedAt ?? null,
           ),
           askedQuestionCount,
+          questionsMayCover,
           report: hydrated as DiagnosticReportJson,
         };
       }
@@ -102,6 +104,7 @@ export default async function ReportPage({
         dbRound?.session?.endedAt ?? null,
       ),
       askedQuestionCount,
+      questionsMayCover,
       report: null,
       isFailed,
     };

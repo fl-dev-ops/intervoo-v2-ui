@@ -35,6 +35,7 @@ export type PublicRoundData =
       shareToken: string | null;
       talkTimeMinutes: number | null;
       askedQuestionCount: number | null;
+      questionsMayCover: string[];
       report: DiagnosticReportJson;
     }
   | {
@@ -45,6 +46,7 @@ export type PublicRoundData =
       shareToken: string | null;
       talkTimeMinutes: number | null;
       askedQuestionCount: number | null;
+      questionsMayCover: string[];
       report: null;
       isFailed: boolean;
     };
@@ -629,14 +631,14 @@ function RoundStartCard({
         {config?.description ?? ""}
       </p>
 
-      {config && (
+      {round.questionsMayCover.length > 0 && (
         <div className="mt-4 grid items-end gap-4 md:grid-cols-3">
           <div className="md:col-span-2">
             <p className="text-sm font-medium text-[#6B6B7A]">
               Questions may cover
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {config.questions.map((question) => (
+              {round.questionsMayCover.map((question) => (
                 <span
                   key={question}
                   className="rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs text-gray-600"
