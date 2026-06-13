@@ -97,13 +97,18 @@ export function JobPreferencesDialog({
           </div>
         </div>
 
-        <div className={cn("mt-auto gap-4 bg-[#F7F1FF] py-6", canClose ? "grid grid-cols-[1fr_1.35fr]" : "flex justify-end")}>
+        <div
+          className={cn(
+            "mt-auto gap-4 bg-[#F7F1FF] py-6",
+            canClose ? "grid grid-cols-2" : "flex justify-end",
+          )}
+        >
           {canClose && (
             <Button
               type="button"
               variant="ghost"
               onClick={onClose}
-              className="h-12 rounded-full bg-white/70 text-base font-bold text-[#5A5562]"
+              className="h-12 flex-1 rounded-full bg-white/70 text-base font-bold text-[#5A5562]"
             >
               Cancel
             </Button>
@@ -111,7 +116,7 @@ export function JobPreferencesDialog({
           <Button
             type="button"
             onClick={onApply}
-            className="h-12 w-full max-w-[50%] rounded-full bg-gradient-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white"
+            className="h-12 flex-1 rounded-full bg-linear-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white"
           >
             Save preference
           </Button>
