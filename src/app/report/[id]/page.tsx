@@ -13,6 +13,7 @@ import {
   isDiagnosticReportReady,
   isDiagnosticRoundStuckOrFailed,
 } from "@/lib/diagnostics/rules";
+import { getJobDetail } from "@/lib/jd-client";
 import { updateUserStage } from "@/lib/progress";
 import {
   getHydratedReportFromMetadata,
@@ -44,6 +45,9 @@ export default async function ReportPage({
   const bandConfig = getDiagnosticBandConfig(diagnostic.selectedBand);
   const jobId = getSelectedJobId(diagnostic.selectedJob);
   const preferredName = diagnostic.user.resume?.name ?? null;
+
+  const jobResult = jobId ? await getJobDetail(jobId) : null;
+  const apiJob = jobResult?.data?.job ?? null;
   const rounds = DIAGNOSTIC_ROUNDS.map((config, index) => {
     const roundNumber = index + 1;
     const dbRound = diagnostic.rounds.find(
@@ -139,6 +143,7 @@ export default async function ReportPage({
 
   return (
     <PublicDiagnosticReport
+      apiJob={apiJob}
       backHref={jobId ? `/jobs/${jobId}` : "/jobs"}
       backLabel="Back to rounds"
       bandConfig={bandConfig}
