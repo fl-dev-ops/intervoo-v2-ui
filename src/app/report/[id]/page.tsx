@@ -147,6 +147,7 @@ export default async function ReportPage({
       backHref={jobId ? `/jobs/${jobId}` : "/jobs"}
       backLabel="Back to rounds"
       bandConfig={bandConfig}
+      completedRoundCount={readyRounds.length}
       focusedRoundNumber={readyRounds[0]?.roundNumber ?? 1}
       isOwner={true}
       jobId={jobId}
@@ -158,6 +159,13 @@ export default async function ReportPage({
         name: diagnostic.user.resume?.name ?? null,
         email: diagnostic.user.email ?? null,
         phoneNumber: diagnostic.user.phoneNumber ?? null,
+        education: (diagnostic.user.resume?.education ?? []) as Array<{
+          degree: string;
+          stream: string;
+          institution: string;
+          graduationYear: string;
+          score: string;
+        }>,
       }}
     />
   );

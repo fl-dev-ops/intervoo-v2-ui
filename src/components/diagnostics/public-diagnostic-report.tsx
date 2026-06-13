@@ -49,6 +49,7 @@ export type PublicDiagnosticReportProps = {
   backHref?: string;
   backLabel?: string;
   bandConfig: DiagnosticBandConfig | undefined;
+  completedRoundCount?: number;
   focusedRoundNumber: number;
   isOwner: boolean;
   jobId?: string | null;
@@ -58,6 +59,13 @@ export type PublicDiagnosticReportProps = {
     name: string | null;
     email: string | null;
     phoneNumber: string | null;
+    education?: Array<{
+      degree: string;
+      stream: string;
+      institution: string;
+      graduationYear: string;
+      score: string;
+    }>;
   };
   rounds: PublicRoundData[];
   user?: {
@@ -71,6 +79,7 @@ export function PublicDiagnosticReport({
   backHref: _backHref,
   backLabel: _backLabel,
   bandConfig,
+  completedRoundCount = 0,
   focusedRoundNumber,
   isOwner,
   jobId,
@@ -112,12 +121,25 @@ export function PublicDiagnosticReport({
           {/* User details secondary header */}
           {resume && (
             <div className="rounded-2xl bg-white px-5 py-4">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-[#6D6873]">
-                {resume.name && (
-                  <span className="font-semibold text-black">{resume.name}</span>
-                )}
-                {resume.email && <span>{resume.email}</span>}
-                {resume.phoneNumber && <span>{resume.phoneNumber}</span>}
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white">
+                  {getInitial(resume.name ?? resume.email)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  {/* First row — full name */}
+                  <p className="text-base font-semibold text-black truncate">
+                    {resume.name || "User"}
+                  </p>
+                  {/* Second row — education left, completed rounds right */}
+                  <div className="mt-0.5 flex items-center justify-between gap-2">
+                    <p className="text-sm text-[#6D6873] truncate">
+                      {formatEducation(resume.education)}
+                    </p>
+                    <p className="shrink-0 text-sm font-medium text-[#6D6873]">
+                      Completed rounds {completedRoundCount}/4
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -153,6 +175,22 @@ export function PublicDiagnosticReport({
       </main>
     </>
   );
+}
+
+function getInitial(nameOrEmail: string | null | undefined): string {
+  const source = nameOrEmail?.trim() || "U";
+  return source.charAt(0).toUpperCase();
+}
+
+function formatEducation(
+  education?: Array<{ degree: string; stream: string; institution: string }>,
+): string {
+  if (!education?.length) return "";
+  const latest = education[0];
+  const parts = [latest.degree, latest.stream, latest.institution].filter(
+    Boolean,
+  );
+  return parts.join(", ");
 }
 
 function RoundTabs({
