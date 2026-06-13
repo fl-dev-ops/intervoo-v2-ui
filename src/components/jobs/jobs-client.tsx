@@ -49,6 +49,7 @@ export function JobsClient({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState(initialError);
   const [hasLoadedFilters, setHasLoadedFilters] = useState(false);
 
@@ -148,7 +149,12 @@ export function JobsClient({
 
   async function applyProfile() {
     writeStoredFilters(filters);
-    await searchWithFilters(filters, { closeDialog: true });
+    setIsApplying(true);
+    try {
+      await searchWithFilters(filters, { closeDialog: true });
+    } finally {
+      setIsApplying(false);
+    }
   }
 
   return (
@@ -216,7 +222,7 @@ export function JobsClient({
       {isDialogOpen && (
         <ProfileDialog
           companyOptions={options.companies.map((company) => company.name)}
-          isLoading={isLoadingOptions || isSearching}
+          isLoading={isLoadingOptions || isApplying}
           onApply={applyProfile}
           onClose={() => setIsDialogOpen(false)}
           roleOptions={roleOptions}
