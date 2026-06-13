@@ -157,7 +157,7 @@ export function JobsClient({
   return (
     <main className="min-h-screen bg-[#F5F3F7] font-sans text-black">
       <AppHeader user={user} />
-      <section className="mx-auto w-full max-w-[900px] px-4 pb-12 pt-6">
+      <section className="mx-auto w-full max-w-225 px-4 pb-12 pt-6">
         <h1 className="text-lg font-extrabold tracking-tight text-[#353238]">
           Jobs matching your{" "}
           <button

@@ -99,8 +99,7 @@ export function PublicDiagnosticReport({
 
   const activeRound = rounds.find((r) => r.roundNumber === activeRoundNumber);
 
-  const companyName =
-    apiJob?.companyName ?? bandConfig?.companies?.[0] ?? "";
+  const companyName = apiJob?.companyName ?? bandConfig?.companies?.[0] ?? "";
   const jobTitle =
     apiJob?.jobTitle ?? bandConfig?.title ?? "SDE at Product companies";
   const experience = apiJob
@@ -114,15 +113,14 @@ export function PublicDiagnosticReport({
       })()
     : (bandConfig?.salary ?? "");
   const roundCount = apiJob?.rounds?.length ?? 4;
-  const description =
-    apiJob?.roleSummary ?? bandConfig?.description ?? "";
+  const description = apiJob?.roleSummary ?? bandConfig?.description ?? "";
   const sourceUrl = apiJob?.sourceUrl ?? null;
 
   return (
     <>
       <AppHeader user={user} />
       <main className="min-h-dvh bg-lavender md:pb-10">
-        <div className="mx-auto w-full max-w-4xl space-y-6 px-5 md:py-8 md:px-0">
+        <div className="mx-auto w-full max-w-225 space-y-6 px-4 md:py-8">
           {/* User details secondary header */}
           {resume && (
             <div className="rounded-2xl bg-white px-5 py-4">
@@ -141,7 +139,10 @@ export function PublicDiagnosticReport({
                       {formatEducation(resume.education)}
                     </p>
                     <p className="shrink-0 text-sm font-medium text-[#6D6873]">
-                      Completed rounds <span className="font-bold text-black">{completedRoundCount}/4</span>
+                      Completed rounds{" "}
+                      <span className="font-bold text-black">
+                        {completedRoundCount}/4
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -543,8 +544,8 @@ function QuestionFeedbackCard({
       {/* Agent message — white bubble, left-aligned */}
       <div className="flex justify-start">
         <div className="max-w-[85%] rounded-2xl bg-white px-4 py-3">
-          <p className="text-sm font-medium text-muted-foreground">Sara</p>
-          <p className="mt-0.5 text-sm font-normal leading-6 text-foreground">
+          <p className="text-sm font-bold text-black-foreground mb-1!">Sara</p>
+          <p className="text-sm font-normal leading-6 text-foreground">
             {response.question_text}
           </p>
         </div>

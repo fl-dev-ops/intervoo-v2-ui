@@ -38,7 +38,7 @@ export function AppHeader({ user, onLogout }: AppHeaderProps) {
 
   return (
     <header className="border-b border-[#EDEAF0] bg-white">
-      <div className="mx-auto flex h-16 w-full max-w-[1080px] items-center justify-between px-6 md:h-[72px]">
+      <div className="mx-auto flex h-16 w-full max-w-225 items-center justify-between px-4 md:h-[72px]">
         <div className="flex items-center gap-3">
           <Image
             src="/intervoo-logo-light.svg"

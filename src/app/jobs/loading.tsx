@@ -4,7 +4,7 @@ export default function JobsLoading() {
   return (
     <main className="min-h-screen bg-[#F5F3F7] font-sans text-black">
       <AppHeader />
-      <section className="mx-auto w-full max-w-[900px] px-4 pb-12 pt-6">
+      <section className="mx-auto w-full max-w-225 px-4 pb-12 pt-6">
         {/* Title skeleton */}
         <div className="h-7 w-64 animate-pulse rounded-lg bg-[#E4E0E7]" />
 
