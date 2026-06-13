@@ -39,12 +39,17 @@ export function JobDetailClient({
   const router = useRouter();
   const [startingRoundId, setStartingRoundId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [localReadyRoundIds, setLocalReadyRoundIds] = useState(readyRoundIds);
+  const [localProcessingRoundIds, setLocalProcessingRoundIds] = useState(
+    processingRoundIds,
+  );
+  const [localRoundScores, setLocalRoundScores] = useState(roundScores);
 
   const rounds = DIAGNOSTIC_ROUNDS.map((round, index) => ({
     ...round,
-    isReportReady: readyRoundIds.includes(round.id),
-    isReportProcessing: processingRoundIds.includes(round.id),
-    score: roundScores[round.id] ?? null,
+    isReportReady: localReadyRoundIds.includes(round.id),
+    isReportProcessing: localProcessingRoundIds.includes(round.id),
+    score: localRoundScores[round.id] ?? null,
     questions: job.rounds[index]?.competencies?.length
       ? job.rounds[index].competencies
       : round.questions,
@@ -56,19 +61,44 @@ export function JobDetailClient({
     0,
   );
   const hasCompletedRound =
-    readyRoundIds.length > 0 || processingRoundIds.length > 0;
+    localReadyRoundIds.length > 0 || localProcessingRoundIds.length > 0;
+
+  useEffect(() => {
+    setLocalReadyRoundIds(readyRoundIds);
+    setLocalProcessingRoundIds(processingRoundIds);
+    setLocalRoundScores(roundScores);
+  }, [processingRoundIds, readyRoundIds, roundScores]);
 
   // While a round's report is still generating, refresh so the CTA flips to
   // "View Report" once it is ready.
   useEffect(() => {
-    if (processingRoundIds.length === 0) return;
+    if (localProcessingRoundIds.length === 0) return;
 
     const intervalId = window.setInterval(() => {
-      router.refresh();
-    }, 1500);
+      void fetch(`/api/jobs/${encodeURIComponent(job.jobId)}/round-status`, {
+        cache: "no-store",
+      })
+        .then((response) => {
+          if (!response.ok) return null;
+          return response.json() as Promise<{
+            processingRoundIds?: string[];
+            readyRoundIds?: string[];
+            roundScores?: Record<string, number | null>;
+          }>;
+        })
+        .then((status) => {
+          if (!status) return;
+          setLocalReadyRoundIds(status.readyRoundIds ?? []);
+          setLocalProcessingRoundIds(status.processingRoundIds ?? []);
+          setLocalRoundScores(status.roundScores ?? {});
+        })
+        .catch(() => {
+          router.refresh();
+        });
+    }, 2000);
 
     return () => window.clearInterval(intervalId);
-  }, [processingRoundIds, router]);
+  }, [job.jobId, localProcessingRoundIds.length, router]);
 
   async function handleStart(roundId: string) {
     if (startingRoundId) return;
