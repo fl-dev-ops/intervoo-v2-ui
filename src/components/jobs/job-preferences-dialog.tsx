@@ -97,7 +97,7 @@ export function JobPreferencesDialog({
           </div>
         </div>
 
-        <div className={cn("sticky bottom-0 mt-auto gap-4 bg-[#F7F1FF] py-6", canClose ? "grid grid-cols-[1fr_1.35fr]" : "")}>
+        <div className={cn("sticky bottom-0 mt-auto gap-4 bg-[#F7F1FF] py-6", canClose ? "grid grid-cols-[1fr_1.35fr]" : "flex justify-end")}>
           {canClose && (
             <Button
               type="button"
@@ -111,9 +111,9 @@ export function JobPreferencesDialog({
           <Button
             type="button"
             onClick={onApply}
-            className="h-12 rounded-full bg-gradient-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white"
+            className="h-12 w-full max-w-[50%] rounded-full bg-gradient-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white"
           >
-            Check job match
+            Save preference
           </Button>
         </div>
       </div>
