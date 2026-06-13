@@ -51,6 +51,7 @@ export function JobsClient({
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(initialError);
   const [hasLoadedFilters, setHasLoadedFilters] = useState(false);
+  const [hasSavedFilters, setHasSavedFilters] = useState(false);
 
   const roleOptions = useMemo(() => {
     const names = new Set(cards.map((card) => card.jobTitle).filter(Boolean));
@@ -63,6 +64,7 @@ export function JobsClient({
     if (!savedFilters) {
       // No saved preferences — search with profile defaults and open dialog
       setHasLoadedFilters(true);
+      setHasSavedFilters(false);
       void searchWithFilters(filters, { closeDialog: false });
       void openProfileDialog();
       return;
@@ -70,6 +72,7 @@ export function JobsClient({
 
     setFilters(savedFilters);
     setHasLoadedFilters(true);
+    setHasSavedFilters(true);
     void searchWithFilters(savedFilters, { closeDialog: false });
   }, []);
 
@@ -215,6 +218,7 @@ export function JobsClient({
 
       {isDialogOpen && (
         <ProfileDialog
+          canClose={hasSavedFilters}
           companyOptions={options.companies.map((company) => company.name)}
           onApply={applyProfile}
           onClose={() => setIsDialogOpen(false)}
@@ -262,6 +266,7 @@ function JobListCard({ card }: { card: JobCard }) {
 }
 
 function ProfileDialog(props: {
+  canClose?: boolean;
   companyOptions: string[];
   filters: JobProfileFilters;
   onApply: () => void;

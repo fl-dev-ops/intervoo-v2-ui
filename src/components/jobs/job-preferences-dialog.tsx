@@ -14,6 +14,7 @@ export type JobProfileFilters = {
 };
 
 type JobPreferencesDialogProps = {
+  canClose?: boolean;
   companyOptions: string[];
   filters: JobProfileFilters;
   onApply: () => void;
@@ -26,6 +27,7 @@ type JobPreferencesDialogProps = {
 };
 
 export function JobPreferencesDialog({
+  canClose = true,
   companyOptions,
   filters,
   onApply,
@@ -46,14 +48,16 @@ export function JobPreferencesDialog({
               Your job preferences
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex size-10 items-center justify-center rounded-full bg-white text-black shadow-sm"
-            aria-label="Close filters"
-          >
-            <IconX className="size-5" />
-          </button>
+          {canClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex size-10 items-center justify-center rounded-full bg-white text-black shadow-sm"
+              aria-label="Close filters"
+            >
+              <IconX className="size-5" />
+            </button>
+          )}
         </div>
 
         <div className="mt-6 rounded-[22px] border border-[#E4DDEC] bg-white p-6 shadow-[0_24px_70px_rgba(58,37,109,0.08)]">
@@ -93,15 +97,17 @@ export function JobPreferencesDialog({
           </div>
         </div>
 
-        <div className="sticky bottom-0 mt-auto grid grid-cols-[1fr_1.35fr] gap-4 bg-[#F7F1FF] py-6">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onClose}
-            className="h-12 rounded-full bg-white/70 text-base font-bold text-[#5A5562]"
-          >
-            Cancel
-          </Button>
+        <div className={cn("sticky bottom-0 mt-auto gap-4 bg-[#F7F1FF] py-6", canClose ? "grid grid-cols-[1fr_1.35fr]" : "")}>
+          {canClose && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onClose}
+              className="h-12 rounded-full bg-white/70 text-base font-bold text-[#5A5562]"
+            >
+              Cancel
+            </Button>
+          )}
           <Button
             type="button"
             onClick={onApply}
