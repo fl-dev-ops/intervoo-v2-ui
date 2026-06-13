@@ -220,6 +220,7 @@ export function JobsClient({
         <ProfileDialog
           canClose={hasSavedFilters}
           companyOptions={options.companies.map((company) => company.name)}
+          isApplying={isSearching}
           onApply={applyProfile}
           onClose={() => setIsDialogOpen(false)}
           roleOptions={roleOptions}
@@ -269,6 +270,7 @@ function ProfileDialog(props: {
   canClose?: boolean;
   companyOptions: string[];
   filters: JobProfileFilters;
+  isApplying?: boolean;
   onApply: () => void;
   onClose: () => void;
   roleOptions: string[];

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { IconX } from "@tabler/icons-react";
-import { CheckIcon, SearchIcon } from "lucide-react";
+import { CheckIcon, Loader2, SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,7 @@ type JobPreferencesDialogProps = {
   canClose?: boolean;
   companyOptions: string[];
   filters: JobProfileFilters;
+  isApplying?: boolean;
   onApply: () => void;
   onClose: () => void;
   roleOptions: string[];
@@ -30,6 +31,7 @@ export function JobPreferencesDialog({
   canClose = true,
   companyOptions,
   filters,
+  isApplying = false,
   onApply,
   onClose,
   roleOptions,
@@ -115,10 +117,18 @@ export function JobPreferencesDialog({
           )}
           <Button
             type="button"
+            disabled={isApplying}
             onClick={onApply}
             className="h-12 flex-1 rounded-full bg-linear-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white"
           >
-            Save preference
+            {isApplying ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Searching...
+              </>
+            ) : (
+              "Save preference"
+            )}
           </Button>
         </div>
       </div>
