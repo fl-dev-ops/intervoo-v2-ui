@@ -2,13 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  FileText,
-  LoaderCircle,
-  Play,
-  Eye,
-} from "lucide-react";
+import { ArrowLeft, FileText, LoaderCircle, Play, Eye } from "lucide-react";
 import { IconUserCheck } from "@tabler/icons-react";
 import { AppHeader } from "@/components/app-header";
 import { InterviewReadinessScore } from "@/components/diagnostics/interview-readiness-score";
@@ -77,7 +71,7 @@ export function JobDetailClient({
   return (
     <main className="min-h-dvh bg-[#F6F3F8] font-sans text-black">
       <AppHeader user={user} />
-      <section className="mx-auto w-full max-w-[900px] px-4 pb-14 pt-6">
+      <section className="mx-auto w-full max-w-225 px-4 pb-14 pt-6">
         <button
           type="button"
           onClick={() => router.push("/jobs")}
@@ -115,7 +109,11 @@ export function JobDetailClient({
                           : "relative z-10 mt-3 flex size-8 items-center justify-center rounded-full border border-[#7A5CD7]/70 bg-[#2B176B] text-[#A991F4]"
                       }
                     >
-                      {isActive ? <IconUserCheck className="size-5" /> : index + 1}
+                      {isActive ? (
+                        <IconUserCheck className="size-5" />
+                      ) : (
+                        index + 1
+                      )}
                     </div>
                   </div>
 
@@ -246,7 +244,7 @@ export function JobDetailClient({
                           )}
                         </Button>
                       )}
-                      </div>
+                    </div>
                   </div>
                 </article>
               );
@@ -264,28 +262,43 @@ export function JobDetailClient({
   );
 }
 
-function JobSummaryCard({ job, roundCount }: { job: JobDetail; roundCount: number }) {
+function JobSummaryCard({
+  job,
+  roundCount,
+}: {
+  job: JobDetail;
+  roundCount: number;
+}) {
   return (
     <div className="rounded-2xl bg-white px-5 py-5">
-      <div className="flex items-start gap-4">
-        <div className="flex size-[72px] shrink-0 items-center justify-center rounded-xl border border-[#DAD6DE] bg-white p-2 text-center text-sm font-extrabold leading-none text-[#F0642E]">
-          {getLogoText(job.companyName)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-[#6D6873]">{job.companyName}</p>
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-black">
-            {job.jobTitle}
-          </h1>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <span className="rounded-full bg-[#F3F0F4] px-3 py-1 text-xs font-bold text-black">
-              {formatExperienceLabel(job.experienceMinYears, job.experienceMaxYears)}
-            </span>
-            <span className="rounded-full border border-[#E0DDE4] bg-white px-3 py-1 text-xs font-bold text-black">
-              {roundCount} Rounds
-            </span>
+      <div>
+        <div className="flex items-center gap-4">
+          <div className="flex size-18 shrink-0 items-center justify-center rounded-xl border border-[#DAD6DE] bg-white p-2 text-center text-sm font-extrabold leading-none text-[#F0642E]">
+            {getLogoText(job.companyName)}
           </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-[#6D6873]">
+              {job.companyName}
+            </p>
+            <h1 className="mt-1 text-xl font-extrabold tracking-tight text-black">
+              {job.jobTitle}
+            </h1>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="rounded-full bg-[#F3F0F4] px-3 py-1 text-xs font-bold text-black">
+                {formatExperienceLabel(
+                  job.experienceMinYears,
+                  job.experienceMaxYears,
+                )}
+              </span>
+              <span className="rounded-full border border-[#E0DDE4] bg-white px-3 py-1 text-xs font-bold text-black">
+                {roundCount} Rounds
+              </span>
+            </div>
+          </div>
+        </div>
+        <div>
           {job.roleSummary && (
-            <p className="mt-4 max-w-[520px] text-sm leading-6 text-[#6D6873]">
+            <p className="mt-4 max-w-130 text-sm leading-6 text-[#6D6873]">
               {job.roleSummary}
             </p>
           )}
@@ -317,7 +330,11 @@ function getLogoText(companyName: string) {
   const words = companyName.split(/\s+/).filter(Boolean);
   if (!words.length) return "JOB";
   if (words.length === 1) return words[0].slice(0, 6).toUpperCase();
-  return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase();
+  return words
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
 }
 
 function isLast(index: number, length: number) {
