@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ArrowLeft,
-  Check,
-  FileText,
-  Info,
-  Play,
-} from "lucide-react";
+import { ArrowLeft, Check, FileText, Info, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -99,7 +93,11 @@ export function PublicDiagnosticReport({
       ) : null}
       <main className="min-h-dvh bg-lavender md:pb-10">
         <div className="mx-auto w-full max-w-4xl space-y-6 md:py-8">
-          <ReportJobHeader apiJob={apiJob} bandConfig={bandConfig} overallScore={overallScore} />
+          <ReportJobHeader
+            apiJob={apiJob}
+            bandConfig={bandConfig}
+            overallScore={overallScore}
+          />
 
           <section className="px-5 space-y-4 pb-8 md:px-0">
             <RoundTabs
@@ -111,7 +109,11 @@ export function PublicDiagnosticReport({
             {activeRound?.hasReport ? (
               <RoundDetailView round={activeRound} />
             ) : activeRound ? (
-              <RoundStartCard round={activeRound} isOwner={isOwner} jobId={jobId} />
+              <RoundStartCard
+                round={activeRound}
+                isOwner={isOwner}
+                jobId={jobId}
+              />
             ) : null}
           </section>
         </div>
@@ -129,45 +131,47 @@ function ReportJobHeader({
   bandConfig: DiagnosticBandConfig | undefined;
   overallScore: number | null;
 }) {
-  const companyName =
-    apiJob?.companyName ?? bandConfig?.companies?.[0] ?? "";
+  const companyName = apiJob?.companyName ?? bandConfig?.companies?.[0] ?? "";
   const jobTitle =
     apiJob?.jobTitle ?? bandConfig?.title ?? "SDE at Product companies";
   const experience = apiJob
     ? formatJobExperience(apiJob.experienceMinYears, apiJob.experienceMaxYears)
-    : bandConfig?.salary ?? "";
+    : (bandConfig?.salary ?? "");
   const roundCount = apiJob?.rounds?.length ?? 4;
-  const description =
-    apiJob?.roleSummary ?? bandConfig?.description ?? "";
+  const description = apiJob?.roleSummary ?? bandConfig?.description ?? "";
   const sourceUrl = apiJob?.sourceUrl ?? null;
 
   return (
     <div className="grid w-full gap-4 md:grid-cols-[1fr_330px]">
       {/* Left card — company details */}
       <div className="rounded-2xl bg-white px-5 py-5">
-        <div className="flex items-start gap-4">
-          <div className="flex size-[72px] shrink-0 items-center justify-center rounded-xl border border-[#DAD6DE] bg-white p-2 text-center text-sm font-extrabold leading-none text-[#F0642E]">
-            {getLogoText(companyName)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-[#6D6873]">
-              {companyName}
-            </p>
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-black">
-              {jobTitle}
-            </h1>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {experience && (
-                <span className="rounded-full bg-[#F3F0F4] px-3 py-1 text-xs font-bold text-black">
-                  {experience}
-                </span>
-              )}
-              <span className="rounded-full border border-[#E0DDE4] bg-white px-3 py-1 text-xs font-bold text-black">
-                {roundCount} Rounds
-              </span>
+        <div>
+          <div className="flex items-center gap-4">
+            <div className="flex size-18 shrink-0 items-center justify-center rounded-xl border border-[#DAD6DE] bg-white p-2 text-center text-sm font-extrabold leading-none text-[#F0642E]">
+              {getLogoText(companyName)}
             </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-[#6D6873]">
+                {companyName}
+              </p>
+              <h1 className="mt-1 text-xl font-extrabold tracking-tight text-black">
+                {jobTitle}
+              </h1>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {experience && (
+                  <span className="rounded-full bg-[#F3F0F4] px-3 py-1 text-xs font-bold text-black">
+                    {experience}
+                  </span>
+                )}
+                <span className="rounded-full border border-[#E0DDE4] bg-white px-3 py-1 text-xs font-bold text-black">
+                  {roundCount} Rounds
+                </span>
+              </div>
+            </div>
+          </div>
+          <div>
             {description && (
-              <p className="mt-4 max-w-[520px] text-sm leading-6 text-[#6D6873]">
+              <p className="mt-4 max-w-130 text-sm leading-6 text-[#6D6873]">
                 {description}
               </p>
             )}
@@ -501,23 +505,30 @@ function getQuestionAvgScore(response: DiagnosticQuestionResponse): number {
   const scores: number[] = [];
 
   for (const [, level] of Object.entries(response.thinking_levels ?? {})) {
-    if (level) scores.push(THINKING_SCORE_MAP[level as DiagnosticThinkingLevel]);
+    if (level)
+      scores.push(THINKING_SCORE_MAP[level as DiagnosticThinkingLevel]);
   }
   for (const [, level] of Object.entries(response.language_levels ?? {})) {
-    if (level) scores.push(LANGUAGE_SCORE_MAP[level as DiagnosticLanguageLevel]);
+    if (level)
+      scores.push(LANGUAGE_SCORE_MAP[level as DiagnosticLanguageLevel]);
   }
 
   if (!scores.length) return 3;
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
-function getWeakDimensions(response: DiagnosticQuestionResponse): WeakDimension[] {
+function getWeakDimensions(
+  response: DiagnosticQuestionResponse,
+): WeakDimension[] {
   const weak: WeakDimension[] = [];
 
   for (const [dim, level] of Object.entries(response.thinking_levels ?? {})) {
-    const score = level ? THINKING_SCORE_MAP[level as DiagnosticThinkingLevel] : null;
+    const score = level
+      ? THINKING_SCORE_MAP[level as DiagnosticThinkingLevel]
+      : null;
     if (score !== null && score <= 2) {
-      const feedback = response.reasoning.thinking?.[dim as DiagnosticThinkingDimension];
+      const feedback =
+        response.reasoning.thinking?.[dim as DiagnosticThinkingDimension];
       if (feedback) {
         weak.push({
           label: THINKING_DIMENSION_LABELS[dim as DiagnosticThinkingDimension],
@@ -528,9 +539,12 @@ function getWeakDimensions(response: DiagnosticQuestionResponse): WeakDimension[
   }
 
   for (const [dim, level] of Object.entries(response.language_levels ?? {})) {
-    const score = level ? LANGUAGE_SCORE_MAP[level as DiagnosticLanguageLevel] : null;
+    const score = level
+      ? LANGUAGE_SCORE_MAP[level as DiagnosticLanguageLevel]
+      : null;
     if (score !== null && score <= 2) {
-      const feedback = response.reasoning.language?.[dim as DiagnosticLanguageDimension];
+      const feedback =
+        response.reasoning.language?.[dim as DiagnosticLanguageDimension];
       if (feedback) {
         weak.push({
           label: LANGUAGE_DIMENSION_LABELS[dim as DiagnosticLanguageDimension],
@@ -571,7 +585,7 @@ function QuestionWiseAnalysis({
   return (
     <Accordion className="gap-4" defaultValue={["question-analysis"]}>
       <AccordionItem
-        className="overflow-hidden rounded-2xl border border-border shadow-sm"
+        className="overflow-hidden rounded-2xl border border-border shadow-sm bg-white"
         value="question-analysis"
       >
         <AccordionTrigger className="p-4 text-left hover:no-underline">
@@ -579,8 +593,8 @@ function QuestionWiseAnalysis({
             Question wise analysis
           </span>
         </AccordionTrigger>
-        <AccordionContent>
-          <div className="space-y-4 bg-[#F0EFF2] px-4 pb-4">
+        <AccordionContent className="px-4">
+          <div className="space-y-4 bg-[#F0EFF2] p-4 rounded-xl">
             {selected.map(({ response, weakDimensions }) => (
               <QuestionFeedbackCard
                 key={response.question_id}
@@ -630,7 +644,7 @@ function QuestionFeedbackCard({
             {/* Feedback + reframed answer — joined below */}
             <div className="bg-white px-4 py-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground m-0!">
                   Feedback
                 </p>
                 <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
@@ -653,7 +667,10 @@ function QuestionFeedbackCard({
               ) : (
                 <div className="mt-2 space-y-2">
                   {weakDimensions.map(({ label, feedback }) => (
-                    <div key={label} className="rounded-xl bg-[#F0EFF2] px-4 py-3">
+                    <div
+                      key={label}
+                      className="rounded-xl bg-[#F0EFF2] px-4 py-3"
+                    >
                       <p className="mb-1 text-xs font-semibold text-foreground">
                         {label}
                       </p>
@@ -724,7 +741,11 @@ function RoundStartCard({
             type="button"
             onClick={() => {
               setIsNavigating(true);
-              router.push(jobId ? `/jobs/${jobId}/prejoin?round=${round.roundType}` : "/jobs");
+              router.push(
+                jobId
+                  ? `/jobs/${jobId}/prejoin?round=${round.roundType}`
+                  : "/jobs",
+              );
             }}
           >
             {isNavigating ? (
