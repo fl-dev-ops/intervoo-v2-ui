@@ -208,8 +208,8 @@ function RoundTabs({
   onSelect: (roundNumber: number) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-      <div className="grid grid-cols-4 p-2 md:gap-x-2">
+    <div className="overflow-hidden rounded-2xl bg-white p-4">
+      <div className="flex gap-3 overflow-x-auto pb-1">
         {rounds.map((round) => {
           const isActive = round.roundNumber === activeRoundNumber;
           const config = DIAGNOSTIC_ROUNDS[round.roundNumber - 1];
@@ -224,44 +224,39 @@ function RoundTabs({
                     ? "Culture fit"
                     : config.title
             : "Round";
+          const performance = round.hasReport
+            ? getPerformanceBadge(
+                Math.round(round.report.assessment_result.total_score),
+              )
+            : null;
+
           return (
-            <div className="w-full" key={round.roundNumber}>
-              <button
-                className={cn(
-                  "ring-2 ring-inset ring-transparent w-full flex flex-col items-center gap-2 px-2 py-4 text-center transition p-4 rounded-lg",
-                  isActive && "ring-[#6C47FF] bg-[#F6F3FF]",
-                )}
-                type="button"
-                onClick={() => onSelect(round.roundNumber)}
-              >
-                <RoundTabIcon hasReport={round.hasReport} />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Round {round.roundNumber}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{shortTitle}</p>
-                </div>
-              </button>
-            </div>
+            <button
+              className={cn(
+                "flex h-12 min-w-[180px] items-center justify-between gap-4 rounded-xl border border-[#D7D7D7] bg-white px-4 text-left text-base font-medium text-[#353238] transition hover:border-[#6C47FF]/60",
+                isActive && "border-[#6C47FF] bg-[#F7F3FF]",
+              )}
+              key={round.roundNumber}
+              type="button"
+              onClick={() => onSelect(round.roundNumber)}
+            >
+              <span className="truncate">{shortTitle}</span>
+              {performance ? (
+                <span
+                  className="shrink-0 rounded-full px-4 py-1.5 text-sm font-bold text-white"
+                  style={{ backgroundColor: performance.color }}
+                >
+                  {performance.label}
+                </span>
+              ) : (
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#ECE5FF] text-[#6C47FF]">
+                  <Play className="size-4 fill-current" />
+                </span>
+              )}
+            </button>
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function RoundTabIcon({ hasReport }: { hasReport: boolean }) {
-  if (hasReport) {
-    return (
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(180deg,#3DD24A_0%,#00B400_100%)]">
-        <Check className="h-5 w-5 text-white" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#6C47FF] bg-white">
-      <Play className="h-4 w-4 fill-[#6C47FF]" />
     </div>
   );
 }
