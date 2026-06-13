@@ -272,7 +272,6 @@ export default function OnboardingPage() {
         <JobPreferencesDialog
           companyOptions={options.companies.map((c) => c.name)}
           filters={filters}
-          isLoading={isSearching || isLoadingOptions}
           onApply={handleApplyPreferences}
           onClose={handleSkipPreferences}
           roleOptions={roleOptions}

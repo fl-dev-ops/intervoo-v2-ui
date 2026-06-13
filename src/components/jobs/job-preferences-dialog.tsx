@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { IconX } from "@tabler/icons-react";
-import { CheckIcon, LoaderCircle, SearchIcon } from "lucide-react";
+import { CheckIcon, SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,6 @@ export type JobProfileFilters = {
 type JobPreferencesDialogProps = {
   companyOptions: string[];
   filters: JobProfileFilters;
-  isLoading: boolean;
   onApply: () => void;
   onClose: () => void;
   roleOptions: string[];
@@ -29,7 +28,6 @@ type JobPreferencesDialogProps = {
 export function JobPreferencesDialog({
   companyOptions,
   filters,
-  isLoading,
   onApply,
   onClose,
   roleOptions,
@@ -107,17 +105,9 @@ export function JobPreferencesDialog({
           <Button
             type="button"
             onClick={onApply}
-            disabled={isLoading}
             className="h-12 rounded-full bg-gradient-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white"
           >
-            {isLoading ? (
-              <>
-                <LoaderCircle className="mr-2 size-4 animate-spin" />
-                Applying
-              </>
-            ) : (
-              "Check job match"
-            )}
+            Check job match
           </Button>
         </div>
       </div>
