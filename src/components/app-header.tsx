@@ -1,7 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LogOut, User } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { authClient } from "@/lib/auth-client";
 
 type AppHeaderProps = {
   user?: { email: string | null; name: string | null } | null;
@@ -14,6 +22,20 @@ function getInitial(user: { email: string | null; name: string | null }) {
 }
 
 export function AppHeader({ user, onLogout }: AppHeaderProps) {
+  const router = useRouter();
+
+  async function handleLogout() {
+    if (onLogout) {
+      onLogout();
+      return;
+    }
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => router.push("/login"),
+      },
+    });
+  }
+
   return (
     <header className="border-b border-[#EDEAF0] bg-white">
       <div className="mx-auto flex h-16 w-full max-w-[1080px] items-center justify-between px-6 md:h-[72px]">
@@ -33,19 +55,29 @@ export function AppHeader({ user, onLogout }: AppHeaderProps) {
             <p className="mt-1 text-xs text-black/80">by Foreverlearning.in</p>
           </div>
         </div>
-        {onLogout ? (
-          <button
-            type="button"
-            onClick={onLogout}
-            className="flex size-10 items-center justify-center rounded-full text-[#565656] transition hover:bg-[#F4F1FA] hover:text-black"
-            aria-label="Logout"
-          >
-            <LogOut className="size-5" />
-          </button>
-        ) : user ? (
-          <div className="flex size-9 items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white">
-            {getInitial(user)}
-          </div>
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white transition hover:ring-2 hover:ring-[#6C47FF]/30"
+                />
+              }
+            >
+              {getInitial(user)}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={() => router.push("/profile")}>
+                <User className="mr-2 size-4" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 size-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : null}
       </div>
     </header>
