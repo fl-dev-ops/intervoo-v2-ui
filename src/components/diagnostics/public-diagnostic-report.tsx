@@ -1,6 +1,11 @@
 "use client";
 
 import { Check, FileText, Info, Play } from "lucide-react";
+import {
+  IconClock,
+  IconMessageQuestion,
+  IconStarFilled,
+} from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppHeader } from "@/components/app-header";
@@ -136,7 +141,7 @@ export function PublicDiagnosticReport({
                       {formatEducation(resume.education)}
                     </p>
                     <p className="shrink-0 text-sm font-medium text-[#6D6873]">
-                      Completed rounds <span className="font-bold">{completedRoundCount}/4</span>
+                      Completed rounds <span className="font-bold text-black">{completedRoundCount}/4</span>
                     </p>
                   </div>
                 </div>
@@ -311,17 +316,17 @@ function FeedbackCard({
     <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
-          <span aria-hidden="true">⭐</span>
+          <IconStarFilled className="size-5 text-[#F4B400]" />
           Key Summary
         </h3>
-        <div className="flex items-center gap-3 text-sm font-bold text-black">
+        <div className="flex items-center gap-3 text-sm text-[#7B7B7B]">
           <span className="flex items-center gap-1">
-            <span aria-hidden="true">⏱</span>
+            <IconClock className="size-4" />
             Talktime: 12 min
           </span>
           <span className="text-border">|</span>
           <span className="flex items-center gap-1">
-            <span aria-hidden="true">💬</span>
+            <IconMessageQuestion className="size-4" />
             {questionCount} questions
           </span>
         </div>
