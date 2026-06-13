@@ -4,7 +4,6 @@ import { Check, FileText, Info, Play } from "lucide-react";
 import {
   IconClock,
   IconMessageQuestion,
-  IconStarFilled,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -316,7 +315,7 @@ function FeedbackCard({
     <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
-          <IconStarFilled className="size-5 text-[#F4B400]" />
+          <span aria-hidden="true">✨</span>
           Key Summary
         </h3>
         <div className="flex items-center gap-3 text-sm text-[#7B7B7B]">
