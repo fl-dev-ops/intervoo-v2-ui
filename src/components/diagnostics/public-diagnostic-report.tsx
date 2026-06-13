@@ -159,7 +159,7 @@ export function PublicDiagnosticReport({
             jobTitle={jobTitle}
           />
 
-          <section className="space-y-4 pb-8">
+          <section className="overflow-hidden rounded-2xl bg-white pb-8 shadow-sm">
             <RoundTabs
               activeRoundNumber={activeRoundNumber}
               rounds={rounds}
@@ -169,11 +169,13 @@ export function PublicDiagnosticReport({
             {activeRound?.hasReport ? (
               <RoundDetailView round={activeRound} />
             ) : activeRound ? (
-              <RoundStartCard
-                round={activeRound}
-                isOwner={isOwner}
-                jobId={jobId}
-              />
+              <div className="px-4 pb-4">
+                <RoundStartCard
+                  round={activeRound}
+                  isOwner={isOwner}
+                  jobId={jobId}
+                />
+              </div>
             ) : null}
           </section>
         </div>
@@ -208,7 +210,7 @@ function RoundTabs({
   onSelect: (roundNumber: number) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl bg-white p-4">
+    <div className="bg-white p-4">
       <div className="flex gap-3 overflow-x-auto pb-1">
         {rounds.map((round) => {
           const isActive = round.roundNumber === activeRoundNumber;
@@ -276,7 +278,7 @@ function RoundDetailView({
   const questionCount = assessment.question_responses.length;
 
   return (
-    <div className="space-y-4">
+    <div>
       <FeedbackCard
         improvements={report.improvement_areas}
         performanceColor={performanceColor}
@@ -308,7 +310,7 @@ function FeedbackCard({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+    <div className="bg-white px-4 pb-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
           <span aria-hidden="true">✨</span>
@@ -500,9 +502,9 @@ function QuestionWiseAnalysis({
   if (!selected.length) return null;
 
   return (
-    <Accordion className="gap-4" defaultValue={["question-analysis"]}>
+    <Accordion defaultValue={["question-analysis"]}>
       <AccordionItem
-        className="overflow-hidden rounded-2xl border border-border shadow-sm bg-white"
+        className="overflow-hidden border-t border-border bg-white"
         value="question-analysis"
       >
         <AccordionTrigger className="p-4 text-left hover:no-underline">
