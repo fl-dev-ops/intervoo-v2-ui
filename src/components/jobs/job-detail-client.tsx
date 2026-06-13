@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, FileText, LoaderCircle, Play, Eye } from "lucide-react";
+import { ArrowLeft, LoaderCircle, Play, Eye } from "lucide-react";
 import { IconUserCheck } from "@tabler/icons-react";
 import { AppHeader } from "@/components/app-header";
-import { InterviewReadinessScore } from "@/components/diagnostics/interview-readiness-score";
+import { JobDetailCard } from "@/components/jobs/job-detail-card";
 import { Button } from "@/components/ui/button";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import type { JobDetail } from "@/lib/jd-client";
@@ -81,11 +81,15 @@ export function JobDetailClient({
           Back
         </button>
 
-        <div className="mt-8 grid w-full gap-4 md:grid-cols-[1fr_330px]">
-          <JobSummaryCard job={job} roundCount={rounds.length} />
-          <InterviewReadinessScore
-            className="h-full border-0 bg-white p-4 shadow-none md:bg-white"
-            score={null}
+        <div className="mt-8">
+          <JobDetailCard
+            companyName={job.companyName}
+            description={job.roleSummary ?? undefined}
+            experience={formatExperienceLabel(job.experienceMinYears, job.experienceMaxYears)}
+            overallScore={null}
+            roundCount={rounds.length}
+            sourceUrl={job.sourceUrl}
+            jobTitle={job.jobTitle}
           />
         </div>
 
@@ -262,79 +266,11 @@ export function JobDetailClient({
   );
 }
 
-function JobSummaryCard({
-  job,
-  roundCount,
-}: {
-  job: JobDetail;
-  roundCount: number;
-}) {
-  return (
-    <div className="rounded-2xl bg-white px-5 py-5">
-      <div>
-        <div className="flex items-center gap-4">
-          <div className="flex size-18 shrink-0 items-center justify-center rounded-xl border border-[#DAD6DE] bg-white p-2 text-center text-sm font-extrabold leading-none text-[#F0642E]">
-            {getLogoText(job.companyName)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-[#6D6873]">
-              {job.companyName}
-            </p>
-            <h1 className="mt-1 text-xl font-extrabold tracking-tight text-black">
-              {job.jobTitle}
-            </h1>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className="rounded-full bg-[#F3F0F4] px-3 py-1 text-xs font-bold text-black">
-                {formatExperienceLabel(
-                  job.experienceMinYears,
-                  job.experienceMaxYears,
-                )}
-              </span>
-              <span className="rounded-full border border-[#E0DDE4] bg-white px-3 py-1 text-xs font-bold text-black">
-                {roundCount} Rounds
-              </span>
-            </div>
-          </div>
-        </div>
-        <div>
-          {job.roleSummary && (
-            <p className="mt-4 max-w-130 text-sm leading-6 text-[#6D6873]">
-              {job.roleSummary}
-            </p>
-          )}
-          {job.sourceUrl && (
-            <a
-              href={job.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#F7F3FF] px-3 py-2 text-sm font-semibold text-[#5E41CF]"
-            >
-              <FileText className="size-4 text-black" />
-              Read Job description
-            </a>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function formatExperienceLabel(min: number | null, max: number | null) {
-  if (min == null && max == null) return "Experience not listed";
+  if (min == null && max == null) return "";
   if (min != null && max != null) return `${min}-${max} years`;
   if (min != null) return `${min}+ years`;
   return `Up to ${max} years`;
-}
-
-function getLogoText(companyName: string) {
-  const words = companyName.split(/\s+/).filter(Boolean);
-  if (!words.length) return "JOB";
-  if (words.length === 1) return words[0].slice(0, 6).toUpperCase();
-  return words
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase();
 }
 
 function isLast(index: number, length: number) {

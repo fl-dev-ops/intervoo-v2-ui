@@ -1,24 +1,17 @@
 "use client";
 
-import { ArrowLeft, Check, FileText, Info, Play } from "lucide-react";
-import Link from "next/link";
+import { Check, FileText, Info, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AppHeader } from "@/components/app-header";
+import { JobDetailCard } from "@/components/jobs/job-detail-card";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
-import { InterviewReadinessScore } from "@/components/diagnostics/interview-readiness-score";
-import { authClient } from "@/lib/auth-client";
 import type { DiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import type { JobDetail } from "@/lib/jd-client";
@@ -61,6 +54,11 @@ export type PublicDiagnosticReportProps = {
   jobId?: string | null;
   overallScore: number | null;
   preferredName: string | null;
+  resume?: {
+    name: string | null;
+    email: string | null;
+    phoneNumber: string | null;
+  };
   rounds: PublicRoundData[];
   user?: {
     email: string | null;
@@ -70,14 +68,15 @@ export type PublicDiagnosticReportProps = {
 
 export function PublicDiagnosticReport({
   apiJob,
-  backHref,
-  backLabel,
+  backHref: _backHref,
+  backLabel: _backLabel,
   bandConfig,
   focusedRoundNumber,
   isOwner,
   jobId,
   overallScore,
   preferredName: _preferredName,
+  resume,
   rounds,
   user,
 }: PublicDiagnosticReportProps) {
@@ -86,20 +85,54 @@ export function PublicDiagnosticReport({
 
   const activeRound = rounds.find((r) => r.roundNumber === activeRoundNumber);
 
+  const companyName =
+    apiJob?.companyName ?? bandConfig?.companies?.[0] ?? "";
+  const jobTitle =
+    apiJob?.jobTitle ?? bandConfig?.title ?? "SDE at Product companies";
+  const experience = apiJob
+    ? (() => {
+        const min = apiJob.experienceMinYears;
+        const max = apiJob.experienceMaxYears;
+        if (min == null && max == null) return "";
+        if (min != null && max != null) return `${min}-${max} years`;
+        if (min != null) return `${min}+ years`;
+        return `Up to ${max} years`;
+      })()
+    : (bandConfig?.salary ?? "");
+  const roundCount = apiJob?.rounds?.length ?? 4;
+  const description =
+    apiJob?.roleSummary ?? bandConfig?.description ?? "";
+  const sourceUrl = apiJob?.sourceUrl ?? null;
+
   return (
     <>
-      {user ? (
-        <ReportHeader backHref={backHref} backLabel={backLabel} user={user} />
-      ) : null}
+      <AppHeader user={user} />
       <main className="min-h-dvh bg-lavender md:pb-10">
-        <div className="mx-auto w-full max-w-4xl space-y-6 md:py-8">
-          <ReportJobHeader
-            apiJob={apiJob}
-            bandConfig={bandConfig}
+        <div className="mx-auto w-full max-w-4xl space-y-6 px-5 md:py-8 md:px-0">
+          {/* User details secondary header */}
+          {resume && (
+            <div className="rounded-2xl bg-white px-5 py-4">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-[#6D6873]">
+                {resume.name && (
+                  <span className="font-semibold text-black">{resume.name}</span>
+                )}
+                {resume.email && <span>{resume.email}</span>}
+                {resume.phoneNumber && <span>{resume.phoneNumber}</span>}
+              </div>
+            </div>
+          )}
+
+          <JobDetailCard
+            companyName={companyName}
+            description={description}
+            experience={experience}
             overallScore={overallScore}
+            roundCount={roundCount}
+            sourceUrl={sourceUrl}
+            jobTitle={jobTitle}
           />
 
-          <section className="px-5 space-y-4 pb-8 md:px-0">
+          <section className="space-y-4 pb-8">
             <RoundTabs
               activeRoundNumber={activeRoundNumber}
               rounds={rounds}
@@ -119,162 +152,6 @@ export function PublicDiagnosticReport({
         </div>
       </main>
     </>
-  );
-}
-
-function ReportJobHeader({
-  apiJob,
-  bandConfig,
-  overallScore,
-}: {
-  apiJob?: JobDetail | null;
-  bandConfig: DiagnosticBandConfig | undefined;
-  overallScore: number | null;
-}) {
-  const companyName = apiJob?.companyName ?? bandConfig?.companies?.[0] ?? "";
-  const jobTitle =
-    apiJob?.jobTitle ?? bandConfig?.title ?? "SDE at Product companies";
-  const experience = apiJob
-    ? formatJobExperience(apiJob.experienceMinYears, apiJob.experienceMaxYears)
-    : (bandConfig?.salary ?? "");
-  const roundCount = apiJob?.rounds?.length ?? 4;
-  const description = apiJob?.roleSummary ?? bandConfig?.description ?? "";
-  const sourceUrl = apiJob?.sourceUrl ?? null;
-
-  return (
-    <div className="grid w-full gap-4 md:grid-cols-[1fr_330px]">
-      {/* Left card — company details */}
-      <div className="rounded-2xl bg-white px-5 py-5">
-        <div>
-          <div className="flex items-center gap-4">
-            <div className="flex size-18 shrink-0 items-center justify-center rounded-xl border border-[#DAD6DE] bg-white p-2 text-center text-sm font-extrabold leading-none text-[#F0642E]">
-              {getLogoText(companyName)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-[#6D6873]">
-                {companyName}
-              </p>
-              <h1 className="mt-1 text-xl font-extrabold tracking-tight text-black">
-                {jobTitle}
-              </h1>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {experience && (
-                  <span className="rounded-full bg-[#F3F0F4] px-3 py-1 text-xs font-bold text-black">
-                    {experience}
-                  </span>
-                )}
-                <span className="rounded-full border border-[#E0DDE4] bg-white px-3 py-1 text-xs font-bold text-black">
-                  {roundCount} Rounds
-                </span>
-              </div>
-            </div>
-          </div>
-          <div>
-            {description && (
-              <p className="mt-4 max-w-130 text-sm leading-6 text-[#6D6873]">
-                {description}
-              </p>
-            )}
-            {sourceUrl && (
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#F7F3FF] px-3 py-2 text-sm font-semibold text-[#5E41CF]"
-              >
-                <FileText className="size-4 text-black" />
-                Read Job description
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Right card — interview readiness */}
-      <div className="rounded-2xl bg-white p-4">
-        <InterviewReadinessScore score={overallScore} />
-      </div>
-    </div>
-  );
-}
-
-function formatJobExperience(min: number | null, max: number | null) {
-  if (min == null && max == null) return "";
-  if (min != null && max != null) return `${min}-${max} years`;
-  if (min != null) return `${min}+ years`;
-  return `Up to ${max} years`;
-}
-
-function getLogoText(companyName: string) {
-  const words = companyName.split(/\s+/).filter(Boolean);
-  if (!words.length) return "JOB";
-  if (words.length === 1) return words[0].slice(0, 6).toUpperCase();
-  return words
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase();
-}
-
-function getUserInitial(user: { email: string | null; name: string | null }) {
-  const source = user.name?.trim() || user.email?.trim() || "U";
-  return source.charAt(0).toUpperCase();
-}
-
-function ReportHeader({
-  backHref,
-  backLabel,
-  user,
-}: {
-  backHref?: string;
-  backLabel?: string;
-  user: { email: string | null; name: string | null };
-}) {
-  const router = useRouter();
-
-  async function handleLogout() {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => router.push("/login"),
-      },
-    });
-  }
-
-  return (
-    <header className="bg-white shadow">
-      <div className="flex items-center justify-between gap-4 px-2 py-2">
-        <div className="flex min-w-0 items-center gap-3">
-          {backHref ? (
-            <Link
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-foreground transition hover:bg-muted"
-              href={backHref}
-              aria-label={backLabel ?? "Back"}
-            >
-              <ArrowLeft className="size-4" />
-            </Link>
-          ) : null}
-          <h1 className="min-w-0 truncate text-base font-semibold tracking-tight text-foreground">
-            Diagnostic Report
-          </h1>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-[#4D7ED8] bg-[#4D7ED8] text-lg font-semibold text-white shadow-[inset_0_0_0_3px_white] transition hover:bg-[#416FC1] md:size-12"
-            type="button"
-          >
-            {getUserInitial(user)}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem
-              className="cursor-pointer text-destructive focus:text-destructive"
-              onClick={handleLogout}
-            >
-              Logout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
   );
 }
 

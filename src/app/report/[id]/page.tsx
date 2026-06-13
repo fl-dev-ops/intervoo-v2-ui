@@ -154,6 +154,11 @@ export default async function ReportPage({
       preferredName={preferredName}
       rounds={rounds}
       user={{ email: user.email ?? null, name: user.name ?? null }}
+      resume={{
+        name: diagnostic.user.resume?.name ?? null,
+        email: diagnostic.user.email ?? null,
+        phoneNumber: diagnostic.user.phoneNumber ?? null,
+      }}
     />
   );
 }
