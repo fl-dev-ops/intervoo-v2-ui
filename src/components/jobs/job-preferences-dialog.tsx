@@ -97,7 +97,7 @@ export function JobPreferencesDialog({
           </div>
         </div>
 
-        <div className={cn("sticky bottom-0 mt-auto gap-4 bg-[#F7F1FF] py-6", canClose ? "grid grid-cols-[1fr_1.35fr]" : "flex justify-end")}>
+        <div className={cn("mt-auto gap-4 bg-[#F7F1FF] py-6", canClose ? "grid grid-cols-[1fr_1.35fr]" : "flex justify-end")}>
           {canClose && (
             <Button
               type="button"
