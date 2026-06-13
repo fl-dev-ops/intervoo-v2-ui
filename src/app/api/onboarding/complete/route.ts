@@ -117,7 +117,6 @@ export async function POST(request: NextRequest) {
         data: {
           name: name.trim(),
           email: email.trim(),
-          phoneNumber: phoneNumber.trim() || null,
         },
       }),
       prisma.resume.upsert({
