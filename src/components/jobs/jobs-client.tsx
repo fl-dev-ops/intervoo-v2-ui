@@ -61,7 +61,9 @@ export function JobsClient({
   useEffect(() => {
     const savedFilters = readStoredFilters();
     if (!savedFilters) {
+      // No saved preferences — auto-open dialog pre-populated from profile
       setHasLoadedFilters(true);
+      void openProfileDialog();
       return;
     }
 
@@ -159,7 +161,7 @@ export function JobsClient({
             onClick={openProfileDialog}
             className="inline-flex items-center gap-1 underline underline-offset-2"
           >
-            profile
+            preference
             <IconEdit className="size-4" />
           </button>
         </h1>
@@ -203,7 +205,7 @@ export function JobsClient({
               <Search className="mx-auto size-8 text-[#6D6873]" />
               <p className="mt-3 text-base font-bold">No matching jobs found</p>
               <p className="mt-1 text-sm text-[#6D6873]">
-                Edit your profile filters and try again.
+                Edit your preference filters and try again.
               </p>
             </div>
           )}
