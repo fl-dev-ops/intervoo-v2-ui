@@ -35,7 +35,15 @@ export default async function SessionCompletedPage({
     where: { id: sessionId },
     include: {
       diagnosticRound: {
-        include: { diagnostic: true },
+        include: {
+          diagnostic: {
+            include: {
+              rounds: {
+                include: { session: { include: { report: true } } },
+              },
+            },
+          },
+        },
       },
       report: true,
     },
@@ -61,6 +69,19 @@ export default async function SessionCompletedPage({
 
   const completedRound = session.diagnosticRound;
   const nextRound = DIAGNOSTIC_ROUNDS[completedRound.roundNumber] ?? null;
+  const completedRoundIds = new Set(
+    completedRound.diagnostic.rounds
+      .filter((round) =>
+        isDiagnosticRoundReadyForProgression({
+          session: { report: round.session?.report ?? null },
+          status: round.status,
+        }),
+      )
+      .map((round) => round.roundType),
+  );
+  const allRoundsComplete = DIAGNOSTIC_ROUNDS.every((round) =>
+    completedRoundIds.has(round.id),
+  );
   const reportStatus = session.report?.status ?? null;
   const reportErrorMessage = session.report?.errorMessage ?? null;
   const failureReason =
@@ -75,6 +96,7 @@ export default async function SessionCompletedPage({
   return (
     <RoundCompleteClient
       canStartNext={canStartNext}
+      allRoundsComplete={allRoundsComplete}
       completedRoundId={completedRound.roundType}
       completedRoundNumber={completedRound.roundNumber}
       completedRoundTitle={getRoundDisplayTitle(completedRound.roundType)}

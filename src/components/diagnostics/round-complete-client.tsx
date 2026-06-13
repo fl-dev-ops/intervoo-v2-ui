@@ -15,6 +15,7 @@ type NextRound = {
 };
 
 type RoundCompleteClientProps = {
+  allRoundsComplete: boolean;
   canStartNext: boolean;
   completedRoundId: string;
   completedRoundNumber: number;
@@ -27,6 +28,7 @@ type RoundCompleteClientProps = {
 };
 
 export function RoundCompleteClient({
+  allRoundsComplete,
   canStartNext,
   completedRoundId,
   completedRoundNumber,
@@ -39,13 +41,13 @@ export function RoundCompleteClient({
 }: RoundCompleteClientProps) {
   const router = useRouter();
   const hasFailedReport = reportStatus === "FAILED";
-  const isFinalRound = !nextRound;
+  const isFinalRound = allRoundsComplete;
   const primaryLabel = hasFailedReport
     ? `Retake Round ${completedRoundNumber}`
-    : nextRound
-      ? canStartNext
+    : !canStartNext
+      ? "Generating report..."
+      : nextRound
         ? "Go to job rounds"
-        : "Generating report..."
       : "Go to interview rounds";
   const jobHref = jobId ? `/jobs/${jobId}` : "/jobs";
   const primaryHref = hasFailedReport
@@ -73,6 +75,7 @@ export function RoundCompleteClient({
   useEffect(() => {
     console.info("[diagnostics] round complete client state", {
       canStartNext,
+      allRoundsComplete,
       completedRoundId,
       completedRoundNumber,
       completedRoundTitle,
@@ -88,6 +91,7 @@ export function RoundCompleteClient({
     });
   }, [
     canStartNext,
+    allRoundsComplete,
     completedRoundId,
     completedRoundNumber,
     completedRoundTitle,
@@ -138,7 +142,7 @@ export function RoundCompleteClient({
   }, [hasFailedReport]);
 
   useEffect(() => {
-    if (hasFailedReport || canStartNext || !nextRound) {
+    if (hasFailedReport || canStartNext) {
       return;
     }
 
@@ -147,7 +151,7 @@ export function RoundCompleteClient({
     }, 1500);
 
     return () => window.clearInterval(intervalId);
-  }, [canStartNext, hasFailedReport, nextRound, router]);
+  }, [canStartNext, hasFailedReport, router]);
 
   return (
     <main className="relative grid min-h-dvh overflow-hidden bg-lavender text-foreground page-container">
@@ -183,7 +187,7 @@ export function RoundCompleteClient({
             </p>
 
             <div className="mt-8 space-y-4">
-              {nextRound && !canStartNext && !hasFailedReport ? (
+              {!canStartNext && !hasFailedReport ? (
                 <button
                   className={cn(
                     buttonVariants({ size: "lg" }),

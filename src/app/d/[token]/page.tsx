@@ -5,11 +5,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getDiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
-import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import {
   isDiagnosticReportReady,
   isDiagnosticRoundStuckOrFailed,
 } from "@/lib/diagnostics/rules";
+import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { getJobDetail } from "@/lib/jd-client";
 import {
   getHydratedReportFromMetadata,
@@ -80,6 +80,9 @@ export default async function PublicDiagnosticReportPage({
       (r) => r.roundNumber === roundNumber,
     );
     const report = dbRound?.session?.report ?? null;
+    const askedQuestionCount = getAskedQuestionCount(
+      dbRound?.session?.metadata,
+    );
 
     if (isDiagnosticReportReady(report?.status)) {
       const hydrated =
@@ -94,6 +97,11 @@ export default async function PublicDiagnosticReportPage({
           roundTitle: config.title,
           hasReport: true as const,
           shareToken: report.shareToken ?? null,
+          talkTimeMinutes: getTalkTimeMinutes(
+            dbRound?.session?.startedAt ?? null,
+            dbRound?.session?.endedAt ?? null,
+          ),
+          askedQuestionCount,
           report: hydrated as DiagnosticReportJson,
         };
       }
@@ -115,6 +123,11 @@ export default async function PublicDiagnosticReportPage({
       roundTitle: config.title,
       hasReport: false as const,
       shareToken: report?.shareToken ?? null,
+      talkTimeMinutes: getTalkTimeMinutes(
+        dbRound?.session?.startedAt ?? null,
+        dbRound?.session?.endedAt ?? null,
+      ),
+      askedQuestionCount,
       report: null,
       isFailed,
     };
@@ -169,4 +182,27 @@ export default async function PublicDiagnosticReportPage({
       }
     />
   );
+}
+
+function getTalkTimeMinutes(startedAt: Date | null, endedAt: Date | null) {
+  if (!startedAt || !endedAt) {
+    return null;
+  }
+
+  const durationMs = endedAt.getTime() - startedAt.getTime();
+
+  if (durationMs <= 0) {
+    return null;
+  }
+
+  return Math.max(1, Math.round(durationMs / 60_000));
+}
+
+function getAskedQuestionCount(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const askedQuestions = (metadata as Record<string, unknown>).asked_questions;
+  return Array.isArray(askedQuestions) ? askedQuestions.length : null;
 }

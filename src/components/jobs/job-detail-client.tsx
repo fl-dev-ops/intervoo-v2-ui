@@ -262,7 +262,11 @@ function RoundTimelineItem({
                 >
                   {config.title}
                 </h2>
-                {isDone && <RoundResultBadge score={score} />}
+                {isDone ? (
+                  <span className="md:hidden">
+                    <RoundResultBadge score={score} />
+                  </span>
+                ) : null}
               </div>
               <p
                 className={cn(
@@ -289,7 +293,8 @@ function RoundTimelineItem({
             </div>
 
             {isDone && diagnosticId ? (
-              <div className="hidden shrink-0 flex-col items-end justify-end gap-6 md:flex">
+              <div className="hidden shrink-0 flex-col items-end justify-between gap-6 md:flex">
+                <RoundResultBadge score={score} />
                 <Button
                   className="h-auto rounded-none border-0 bg-transparent p-0 text-sm font-medium text-[#A991F4] shadow-none hover:bg-transparent hover:text-[#C4B5FD]"
                   variant="ghost"

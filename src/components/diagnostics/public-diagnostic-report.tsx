@@ -1,11 +1,11 @@
 "use client";
 
-import { Check, FileText, Info, Play } from "lucide-react";
 import {
   IconBrandWechat,
   IconClock,
   IconMessageQuestion,
 } from "@tabler/icons-react";
+import { Check, Info, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppHeader } from "@/components/app-header";
@@ -37,6 +37,8 @@ export type PublicRoundData =
       roundTitle: string;
       hasReport: true;
       shareToken: string | null;
+      talkTimeMinutes: number | null;
+      askedQuestionCount: number | null;
       report: DiagnosticReportJson;
     }
   | {
@@ -45,6 +47,8 @@ export type PublicRoundData =
       roundTitle: string;
       hasReport: false;
       shareToken: string | null;
+      talkTimeMinutes: number | null;
+      askedQuestionCount: number | null;
       report: null;
       isFailed: boolean;
     };
@@ -160,7 +164,7 @@ export function PublicDiagnosticReport({
             jobTitle={jobTitle}
           />
 
-          <section className="overflow-hidden rounded-2xl bg-white pb-8 shadow-sm">
+          <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
             <RoundTabs
               activeRoundNumber={activeRoundNumber}
               rounds={rounds}
@@ -271,21 +275,17 @@ function RoundDetailView({
 }) {
   const report = round.report;
   const assessment = report.assessment_result;
-  const score = Math.round(assessment.total_score);
 
-  const { label: performanceLabel, color: performanceColor } =
-    getPerformanceBadge(score);
-
-  const questionCount = assessment.question_responses.length;
+  const questionCount =
+    round.askedQuestionCount ?? assessment.question_responses.length;
 
   return (
     <div>
       <FeedbackCard
         improvements={report.improvement_areas}
-        performanceColor={performanceColor}
-        performanceLabel={performanceLabel}
         questionCount={questionCount}
         strengths={report.strengths}
+        talkTimeMinutes={round.talkTimeMinutes}
       />
 
       <QuestionWiseAnalysis responses={assessment.question_responses} />
@@ -295,16 +295,14 @@ function RoundDetailView({
 
 function FeedbackCard({
   improvements,
-  performanceColor,
-  performanceLabel,
   questionCount,
   strengths,
+  talkTimeMinutes,
 }: {
   improvements: string[];
-  performanceColor: string;
-  performanceLabel: string;
   questionCount: number;
   strengths: string[];
+  talkTimeMinutes: number | null;
 }) {
   if (strengths.length === 0 && improvements.length === 0) {
     return null;
@@ -320,7 +318,7 @@ function FeedbackCard({
         <div className="flex items-center gap-3 text-sm text-[#7B7B7B]">
           <span className="flex items-center gap-1">
             <IconClock className="size-4" />
-            Talktime: 12 min
+            Talktime: {formatTalkTime(talkTimeMinutes)}
           </span>
           <span className="text-border">|</span>
           <span className="flex items-center gap-1">
@@ -371,6 +369,14 @@ function FeedbackCard({
       </div>
     </div>
   );
+}
+
+function formatTalkTime(talkTimeMinutes: number | null) {
+  if (typeof talkTimeMinutes !== "number" || talkTimeMinutes <= 0) {
+    return "--";
+  }
+
+  return `${talkTimeMinutes} min`;
 }
 
 // ─── Question-wise analysis ───────────────────────────────────────────────────
