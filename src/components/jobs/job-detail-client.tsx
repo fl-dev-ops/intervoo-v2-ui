@@ -38,6 +38,14 @@ export function JobDetailClient({
       : round.questions,
   }));
   const totalMinutes = rounds.length * 15;
+  const activeRoundIndex = Math.max(
+    rounds.findIndex(
+      (round) => !round.isReportReady && !round.isReportProcessing,
+    ),
+    0,
+  );
+  const hasCompletedRound =
+    readyRoundIds.length > 0 || processingRoundIds.length > 0;
 
   // While a round's report is still generating, refresh so the CTA flips to
   // "View Report" once it is ready.
@@ -72,14 +80,16 @@ export function JobDetailClient({
     <main className="min-h-dvh bg-[#F6F3F8] font-sans text-black">
       <AppHeader user={user} />
       <section className="mx-auto w-full max-w-225 px-4 pb-14 pt-6">
-        <button
-          type="button"
-          onClick={() => router.push("/jobs")}
-          className="inline-flex items-center gap-2 text-base font-semibold text-black"
-        >
-          <ArrowLeft className="size-5" />
-          Back
-        </button>
+        {!hasCompletedRound && (
+          <button
+            type="button"
+            onClick={() => router.push("/jobs")}
+            className="inline-flex items-center gap-2 text-base font-semibold text-black"
+          >
+            <ArrowLeft className="size-5" />
+            Back
+          </button>
+        )}
 
         <div className="mt-8">
           <JobDetailCard
@@ -96,7 +106,7 @@ export function JobDetailClient({
         <div className="mt-7 w-full rounded-[28px] bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] px-5 py-9 md:px-8 md:py-10">
           <div className="space-y-7">
             {rounds.map((round, index) => {
-              const isActive = index === 0;
+              const isActive = index === activeRoundIndex;
               return (
                 <article
                   key={round.id}
