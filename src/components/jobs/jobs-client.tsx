@@ -1,9 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 import { IconEdit } from "@tabler/icons-react";
 import { Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/app-header";
 import {
   JobPreferencesDialog,
@@ -35,7 +35,6 @@ export function JobsClient({
   user,
 }: JobsClientProps) {
   const [cards, setCards] = useState(initialCards);
-  const [searchInput, setSearchInput] = useState<SearchInput>(initialSearch);
   const [options, setOptions] = useState<JobOptions>({
     companies: [],
     skills: [],
@@ -112,10 +111,12 @@ export function JobsClient({
     { closeDialog }: { closeDialog: boolean },
   ) {
     const nextSearch: SearchInput = {
-      ...searchInput,
       companyText: nextFilters.companies.join(", "),
       roleText: nextFilters.roles.join(", "),
+      skills: nextFilters.skills.map((name) => ({ name, gloss: null })),
       skillNames: nextFilters.skills,
+      experienceYears: null,
+      projectTexts: [],
       sort: "default",
     };
 
@@ -136,7 +137,6 @@ export function JobsClient({
       if (!response.ok)
         throw new Error(payload.error ?? "Failed to search jobs");
       setCards(payload.cards ?? []);
-      setSearchInput(nextSearch);
       if (closeDialog) setIsDialogOpen(false);
     } catch (searchError) {
       setError(
