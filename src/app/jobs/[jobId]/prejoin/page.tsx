@@ -1,8 +1,12 @@
 import { redirect } from "next/navigation";
 import { CustomPreJoin } from "@/components/prejoin/custom-prejoin";
-import { prisma } from "@/lib/db";
+import {
+  getInProgressDiagnosticForUser,
+  getOrCreateDiagnosticForJob,
+} from "@/lib/diagnostics/jd-progress";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import { canStartDiagnosticRound } from "@/lib/diagnostics/rules";
+import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { getJobDetail } from "@/lib/jd-client";
 import { requirePageStage } from "@/lib/stage-guards";
 
@@ -14,7 +18,7 @@ type Props = {
 const FIRST_ROUND_ID = "screening";
 
 export default async function JobPrejoinPage({ params, searchParams }: Props) {
-  const { user } = await requirePageStage(["DIAGNOSTICS"]);
+  const { user } = await requirePageStage(["DIAGNOSTICS", "COMPLETED"]);
   const { jobId } = await params;
   const { round } = await searchParams;
   const roundId = round && getRoundConfig(round) ? round : FIRST_ROUND_ID;
@@ -25,15 +29,19 @@ export default async function JobPrejoinPage({ params, searchParams }: Props) {
     redirect("/jobs");
   }
 
-  const existingDiagnostic = await prisma.diagnostic.findFirst({
-    where: { userId: user.id },
-    include: {
-      rounds: { include: { session: { include: { report: true } } } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const inProgressDiagnostic = await getInProgressDiagnosticForUser(user.id);
+  const inProgressJobId = getSelectedJobId(inProgressDiagnostic?.selectedJob);
 
-  const existingRound = existingDiagnostic?.rounds.find(
+  if (inProgressDiagnostic && inProgressJobId && inProgressJobId !== jobId) {
+    redirect(`/jobs/${inProgressJobId}`);
+  }
+
+  const diagnostic = await getOrCreateDiagnosticForJob(
+    user.id,
+    result.data.job,
+  );
+
+  const existingRound = diagnostic.rounds.find(
     (round) => round.roundType === roundId,
   );
 
@@ -50,26 +58,9 @@ export default async function JobPrejoinPage({ params, searchParams }: Props) {
     redirect(`/jobs/${jobId}`);
   }
 
-  if (existingDiagnostic) {
-    await prisma.diagnostic.update({
-      where: { id: existingDiagnostic.id },
-      data: {
-        selectedBand: null,
-        selectedJob: result.data.job as object,
-      },
-    });
-  } else {
-    await prisma.diagnostic.create({
-      data: {
-        userId: user.id,
-        selectedBand: null,
-        selectedJob: result.data.job as object,
-      },
-    });
-  }
-
   return (
     <CustomPreJoin
+      diagnosticId={diagnostic.id}
       hideCoachSelection
       roundId={roundId}
       userName={user.name ?? user.email ?? null}

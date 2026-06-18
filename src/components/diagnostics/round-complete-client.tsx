@@ -46,17 +46,21 @@ export function RoundCompleteClient({
     ? `Retake Round ${completedRoundNumber}`
     : !canStartNext
       ? "Generating report..."
-      : nextRound
-        ? "Go to job rounds"
-      : "Go to interview rounds";
+      : isFinalRound
+        ? "Start new interview practice"
+        : nextRound
+          ? "Go to job rounds"
+          : "Go to interview rounds";
   const jobHref = jobId ? `/jobs/${jobId}` : "/jobs";
   const primaryHref = hasFailedReport
     ? jobId
       ? `/jobs/${jobId}/prejoin?round=${completedRoundId}`
       : "/jobs"
-    : nextRound
-      ? jobHref
-      : jobHref;
+    : isFinalRound
+      ? "/jobs"
+      : nextRound
+        ? jobHref
+        : jobHref;
   const heading = hasFailedReport
     ? failureReason === "insufficient_speech"
       ? "We need a bit more from you"

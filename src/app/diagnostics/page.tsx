@@ -1,16 +1,12 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { getInProgressDiagnosticForUser } from "@/lib/diagnostics/jd-progress";
 import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function DiagnosticsPage() {
-  const { user } = await requirePageStage(["DIAGNOSTICS"]);
+  const { user } = await requirePageStage(["DIAGNOSTICS", "COMPLETED"]);
 
-  const diagnostic = await prisma.diagnostic.findFirst({
-    where: { userId: user.id },
-    select: { id: true, selectedJob: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const diagnostic = await getInProgressDiagnosticForUser(user.id);
 
   const selectedJobId = getSelectedJobId(diagnostic?.selectedJob);
 

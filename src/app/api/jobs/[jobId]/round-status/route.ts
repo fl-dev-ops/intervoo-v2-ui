@@ -1,8 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
+import { getLatestDiagnosticForJob } from "@/lib/diagnostics/jd-progress";
 import {
   isDiagnosticRoundReadyForProgression,
   isDiagnosticSessionComplete,
@@ -20,20 +19,8 @@ export async function GET(
     }
 
     const { jobId } = await params;
-    const diagnostic = await prisma.diagnostic.findFirst({
-      where: { userId: session.user.id },
-      include: {
-        rounds: {
-          include: { session: { include: { report: true } } },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const roundsForJob =
-      getSelectedJobId(diagnostic?.selectedJob) === jobId
-        ? diagnostic?.rounds ?? []
-        : [];
+    const diagnostic = await getLatestDiagnosticForJob(session.user.id, jobId);
+    const roundsForJob = diagnostic?.rounds ?? [];
 
     const readyRoundIds = roundsForJob
       .filter((round) =>

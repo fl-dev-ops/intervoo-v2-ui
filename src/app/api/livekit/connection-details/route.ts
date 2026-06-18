@@ -8,6 +8,7 @@ import { createDiagnosticSessionWorkflow } from "@/workflows/diagnostic-session"
 type ConnectionDetailsBody = {
   type?: unknown;
   coach?: unknown;
+  diagnostic_id?: unknown;
   round_id?: unknown;
 };
 
@@ -31,11 +32,21 @@ export async function POST(request: NextRequest) {
     }
 
     const roundId = typeof body.round_id === "string" ? body.round_id : "";
+    const diagnosticId =
+      typeof body.diagnostic_id === "string" ? body.diagnostic_id : "";
     const coach = body.coach === "arjun" ? "arjun" : "Sara";
     const baseUrl = process.env.WEBHOOK_BASE_URL || request.nextUrl.origin;
 
+    if (!diagnosticId) {
+      return NextResponse.json(
+        { error: "Missing diagnostic ID" },
+        { status: 400 },
+      );
+    }
+
     console.info("[diagnostics] connection-details workflow request", {
       coach,
+      diagnosticId,
       requestedRoundId: roundId || null,
       sessionType: body.type,
       userId: session.user.id,
@@ -45,6 +56,7 @@ export async function POST(request: NextRequest) {
       {
         baseUrl,
         coach,
+        diagnosticId,
         roundId,
         userId: session.user.id,
       },
@@ -86,9 +98,11 @@ async function getDiagnosticSessionWorkflowResult(
 function getErrorStatus(error: unknown) {
   const message = getErrorMessage(error);
   if (message.includes("Invalid round ID")) return 400;
+  if (message.includes("Missing diagnostic ID")) return 400;
   if (
     [
       "Invalid session type",
+      "Diagnostic not found",
       "Round already started",
       "Select a job before starting a round",
       "Diagnostics are not available for this user stage",

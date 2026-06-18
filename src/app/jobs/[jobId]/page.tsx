@@ -1,18 +1,18 @@
 import { redirect } from "next/navigation";
 import { JobDetailClient } from "@/components/jobs/job-detail-client";
 import { prisma } from "@/lib/db";
+import { getLatestDiagnosticForJob } from "@/lib/diagnostics/jd-progress";
 import {
   isDiagnosticRoundReadyForProgression,
   isDiagnosticSessionComplete,
 } from "@/lib/diagnostics/rules";
-import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { getJobDetail } from "@/lib/jd-client";
 import { requirePageStage } from "@/lib/stage-guards";
 
 type Props = { params: Promise<{ jobId: string }> };
 
 export default async function JobDetailPage({ params }: Props) {
-  const { user } = await requirePageStage(["DIAGNOSTICS"]);
+  const { user } = await requirePageStage(["DIAGNOSTICS", "COMPLETED"]);
   const { jobId } = await params;
 
   const resume = await prisma.resume.findUnique({
@@ -29,20 +29,8 @@ export default async function JobDetailPage({ params }: Props) {
     redirect("/jobs");
   }
 
-  const diagnostic = await prisma.diagnostic.findFirst({
-    where: { userId: user.id },
-    include: {
-      rounds: {
-        include: { session: { include: { report: true } } },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const roundsForJob =
-    getSelectedJobId(diagnostic?.selectedJob) === jobId
-      ? diagnostic?.rounds ?? []
-      : [];
+  const diagnostic = await getLatestDiagnosticForJob(user.id, jobId);
+  const roundsForJob = diagnostic?.rounds ?? [];
 
   const readyRoundIds = roundsForJob
     .filter((round) =>

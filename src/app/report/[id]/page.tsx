@@ -14,7 +14,6 @@ import {
 } from "@/lib/diagnostics/rules";
 import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { getJobDetail } from "@/lib/jd-client";
-import { updateUserStage } from "@/lib/progress";
 import {
   getHydratedReportFromMetadata,
   toHydratedDiagnosticReport,
@@ -150,11 +149,6 @@ export default async function ReportPage({
 
   if (report) {
     await saveFinalDiagnosticReport({ diagnosticId: diagnostic.id, report });
-    await updateUserStage(user.id, "COMPLETED");
-    await prisma.userProgress.updateMany({
-      where: { userId: user.id },
-      data: { diagnosticsCompletedAt: new Date() },
-    });
   }
 
   return (

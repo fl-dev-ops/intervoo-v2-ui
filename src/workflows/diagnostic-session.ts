@@ -43,6 +43,7 @@ type Coach = keyof typeof COACH_AGENT_DETAILS;
 export type DiagnosticSessionWorkflowInput = {
   baseUrl: string;
   coach?: Coach;
+  diagnosticId: string;
   roundId: string;
   userId: string;
 };
@@ -135,7 +136,7 @@ async function prepareDiagnosticSessionStep(
   }
 
   const stage = await getUserStage(input.userId);
-  if (stage !== "DIAGNOSTICS") {
+  if (stage !== "DIAGNOSTICS" && stage !== "COMPLETED") {
     throw new FatalError("Diagnostics are not available for this user stage");
   }
 
@@ -147,18 +148,22 @@ async function prepareDiagnosticSessionStep(
     throw new FatalError("User not found");
   }
 
-  const diagnostic = await prisma.diagnostic.findFirst({
-    where: { userId: input.userId },
+  const diagnostic = await prisma.diagnostic.findUnique({
+    where: { id: input.diagnosticId },
     include: {
       rounds: {
         include: { session: { include: { report: true } } },
       },
     },
-    orderBy: { createdAt: "desc" },
   });
+
+  if (!diagnostic || diagnostic.userId !== input.userId) {
+    throw new FatalError("Diagnostic not found");
+  }
+
   const selectedJob = getSelectedDiagnosticJob(diagnostic?.selectedJob);
 
-  if (!diagnostic || !selectedJob) {
+  if (!selectedJob) {
     throw new FatalError("Select a job before starting a round");
   }
 

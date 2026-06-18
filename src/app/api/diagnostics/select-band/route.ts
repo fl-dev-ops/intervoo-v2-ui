@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       stage,
       userId: session.user.id,
     });
-    if (stage !== "DIAGNOSTICS") {
+    if (stage !== "DIAGNOSTICS" && stage !== "COMPLETED") {
       console.info("[diagnostics] select-band rejected", {
         reason: "invalid_stage",
         stage,
@@ -61,7 +61,14 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json()) as { band?: unknown; job?: unknown };
 
-    let selectedJob: ApiJobDetail | { title: string; salary: string; description: string; companies: string[] };
+    let selectedJob:
+      | ApiJobDetail
+      | {
+          title: string;
+          salary: string;
+          description: string;
+          companies: string[];
+        };
     let band: string;
 
     if (body.job && typeof body.job === "object") {
@@ -78,7 +85,10 @@ export async function POST(request: NextRequest) {
       band = parseDiagnosticBand(body.band) ?? "band2";
 
       const jobOptions = buildDiagnosticJobOptions();
-      const staticJob = getDiagnosticJobOption(jobOptions, band as "band1" | "band2" | "band3");
+      const staticJob = getDiagnosticJobOption(
+        jobOptions,
+        band as "band1" | "band2" | "band3",
+      );
 
       if (!staticJob) {
         console.info("[diagnostics] select-band rejected", {
@@ -136,7 +146,8 @@ export async function POST(request: NextRequest) {
     console.info("[diagnostics] select-band saved", {
       band,
       diagnosticId: diagnostic.id,
-      selectedJob: "jobTitle" in selectedJob ? selectedJob.jobTitle : selectedJob.title,
+      selectedJob:
+        "jobTitle" in selectedJob ? selectedJob.jobTitle : selectedJob.title,
       userId: session.user.id,
     });
 

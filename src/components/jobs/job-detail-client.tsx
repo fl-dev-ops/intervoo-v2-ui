@@ -1,14 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ArrowLeft, CheckIcon, LoaderCircle, Play } from "lucide-react";
 import {
   IconCodeAsterisk,
   IconEyeSearch,
   IconUserCheck,
   IconUsersGroup,
 } from "@tabler/icons-react";
+import { ArrowLeft, CheckIcon, LoaderCircle, Play } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/app-header";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
 import { Button } from "@/components/ui/button";
@@ -40,9 +40,8 @@ export function JobDetailClient({
   const [startingRoundId, setStartingRoundId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localReadyRoundIds, setLocalReadyRoundIds] = useState(readyRoundIds);
-  const [localProcessingRoundIds, setLocalProcessingRoundIds] = useState(
-    processingRoundIds,
-  );
+  const [localProcessingRoundIds, setLocalProcessingRoundIds] =
+    useState(processingRoundIds);
   const [localRoundScores, setLocalRoundScores] = useState(roundScores);
 
   const rounds = DIAGNOSTIC_ROUNDS.map((round, index) => ({
@@ -62,6 +61,7 @@ export function JobDetailClient({
   );
   const hasCompletedRound =
     localReadyRoundIds.length > 0 || localProcessingRoundIds.length > 0;
+  const isPracticeComplete = localReadyRoundIds.length >= rounds.length;
 
   useEffect(() => {
     setLocalReadyRoundIds(readyRoundIds);
@@ -147,6 +147,38 @@ export function JobDetailClient({
           />
         </div>
 
+        {isPracticeComplete && diagnosticId ? (
+          <div className="mt-4 rounded-2xl bg-white px-5 py-4 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-base font-bold text-black">
+                  All rounds completed
+                </p>
+                <p className="mt-1 text-sm text-[#6D6873]">
+                  View your final report or start practice for another JD.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  className="rounded-full bg-button px-5 text-sm font-bold text-white"
+                  type="button"
+                  onClick={() => router.push(`/report/${diagnosticId}`)}
+                >
+                  View final report
+                </Button>
+                <Button
+                  className="rounded-full border-[#6C47FF] bg-white px-5 text-sm font-bold text-[#5E41CF] hover:bg-[#F6F3FF]"
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push("/jobs")}
+                >
+                  Start new practice
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-7 w-full rounded-t-3xl bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] p-5 md:rounded-b-3xl md:p-8">
           <div className="space-y-3">
             {rounds.map((round, index) => {
@@ -231,9 +263,9 @@ function RoundTimelineItem({
             "text-xs font-semibold uppercase tracking-[0.12em]",
             isActiveCard
               ? "text-purple-400"
-               : isDone || isProcessing
-                 ? "text-[#3DD24A]"
-                 : "text-white/40",
+              : isDone || isProcessing
+                ? "text-[#3DD24A]"
+                : "text-white/40",
           )}
         >
           ROUND {roundNumber}
@@ -241,9 +273,7 @@ function RoundTimelineItem({
         <span
           className={cn(
             "rounded-full px-4 py-1.5 text-xs font-semibold text-white",
-            isActiveCard
-              ? "border border-white/25 bg-white/10"
-              : "bg-white/10",
+            isActiveCard ? "border border-white/25 bg-white/10" : "bg-white/10",
           )}
         >
           {config.duration}
@@ -301,9 +331,7 @@ function RoundTimelineItem({
               <p
                 className={cn(
                   "mt-2 max-w-3xl text-sm leading-6",
-                  isActiveCard
-                    ? "text-muted-foreground"
-                    : "text-white/55",
+                  isActiveCard ? "text-muted-foreground" : "text-white/55",
                 )}
               >
                 {config.description}

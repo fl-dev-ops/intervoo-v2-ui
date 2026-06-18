@@ -15,6 +15,7 @@ import type { CoachOption } from "@/lib/coaches";
 type PermissionState = "checking" | "prompt" | "granted" | "denied";
 
 interface CustomPreJoinProps {
+  diagnosticId?: string;
   roundId?: string;
   coach?: CoachOption;
   hideCoachSelection?: boolean;
@@ -23,6 +24,7 @@ interface CustomPreJoinProps {
 
 export function CustomPreJoin({
   coach,
+  diagnosticId,
   hideCoachSelection = false,
   roundId,
   userName,
@@ -287,6 +289,7 @@ export function CustomPreJoin({
     console.info("[diagnostics] prejoin join clicked", {
       activeAudioDeviceId,
       activeVideoDeviceId,
+      diagnosticId: diagnosticId ?? null,
       roundId: roundId ?? null,
       selectedCoach: selectedCoach ?? null,
     });
@@ -296,6 +299,7 @@ export function CustomPreJoin({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          diagnostic_id: diagnosticId,
           round_id: roundId,
           type: "DIAGNOSTIC_ROUND",
           ...(selectedCoach ? { coach: selectedCoach } : {}),
@@ -359,6 +363,7 @@ export function CustomPreJoin({
     activeAudioDeviceId,
     activeVideoDeviceId,
     canJoin,
+    diagnosticId,
     joinDisabledReason,
     roundId,
     router,

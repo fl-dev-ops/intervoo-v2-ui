@@ -162,6 +162,27 @@ export function PublicDiagnosticReport({
             jobTitle={jobTitle}
           />
 
+          {isOwner && completedRoundCount >= 4 ? (
+            <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-base font-bold text-black">
+                    Ready for another practice?
+                  </p>
+                  <p className="mt-1 text-sm text-[#6D6873]">
+                    Pick another JD and complete a fresh set of four rounds.
+                  </p>
+                </div>
+                <a
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-button px-5 text-sm font-bold text-white transition hover:opacity-95"
+                  href="/jobs"
+                >
+                  Start new interview practice
+                </a>
+              </div>
+            </div>
+          ) : null}
+
           <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
             <RoundTabs
               activeRoundNumber={activeRoundNumber}

@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getInProgressDiagnosticForUser } from "@/lib/diagnostics/jd-progress";
 import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { getUserStage } from "@/lib/progress";
 
@@ -20,19 +20,11 @@ export default async function Home() {
     redirect("/onboarding");
   }
 
-  if (stage === "DIAGNOSTICS") {
-    const diagnostic = await prisma.diagnostic.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
-      select: { selectedJob: true },
-    });
+  if (stage === "DIAGNOSTICS" || stage === "COMPLETED") {
+    const diagnostic = await getInProgressDiagnosticForUser(session.user.id);
     const jobId = getSelectedJobId(diagnostic?.selectedJob);
 
     redirect(jobId ? `/jobs/${jobId}` : "/jobs");
-  }
-
-  if (stage === "COMPLETED") {
-    redirect("/report");
   }
 
   return (
