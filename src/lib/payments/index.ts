@@ -3,6 +3,7 @@ import "server-only";
 import { createHmac } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { areAllDiagnosticRoundsComplete } from "@/lib/diagnostics/rules";
+import { serverEnv } from "@/lib/env";
 import { getRazorpayKeyId, razorpay } from "@/lib/razorpay";
 
 /**
@@ -118,11 +119,7 @@ export function verifyPaymentSignature(params: {
   razorpaySignature: string;
 }): boolean {
   const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = params;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
-  if (!keySecret) {
-    throw new Error("Missing RAZORPAY_KEY_SECRET");
-  }
+  const keySecret = serverEnv.RAZORPAY_KEY_SECRET;
 
   const body = `${razorpayOrderId}|${razorpayPaymentId}`;
   const expectedSignature = createHmac("sha256", keySecret)
