@@ -2,12 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "@livekit/components-styles";
 import "./globals.css";
+import { PostHogPageView, PostHogProvider } from "@posthog/next";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "sonner";
+import { PostHogIdentify } from "@/components/posthog-identify";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { PostHogProvider, PostHogPageView } from "@posthog/next";
-import { PostHogIdentify } from "@/components/posthog-identify";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -76,6 +77,7 @@ export default function RootLayout({
           >
             <TooltipProvider>
               <ScrollArea className="min-h-0 flex-1">{children}</ScrollArea>
+              <Toaster position="top-right" />
             </TooltipProvider>
           </ThemeProvider>
         </PostHogProvider>

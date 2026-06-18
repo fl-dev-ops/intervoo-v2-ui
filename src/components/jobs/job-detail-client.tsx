@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/app-header";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
+import { RazorpayCheckout } from "@/components/payments/razorpay-checkout";
 import { Button } from "@/components/ui/button";
 import {
   DIAGNOSTIC_ROUNDS,
@@ -25,6 +26,8 @@ type JobDetailClientProps = {
   processingRoundIds?: string[];
   roundScores?: Record<string, number | null>;
   diagnosticId?: string | null;
+  requiresPayment?: boolean;
+  isPaid?: boolean;
   user: { email: string | null; name: string | null };
 };
 
@@ -34,6 +37,7 @@ export function JobDetailClient({
   processingRoundIds = [],
   roundScores = {},
   diagnosticId,
+  requiresPayment = false,
   user,
 }: JobDetailClientProps) {
   const router = useRouter();
@@ -175,6 +179,33 @@ export function JobDetailClient({
                   Start new practice
                 </Button>
               </div>
+            </div>
+          </div>
+        ) : null}
+
+        {requiresPayment && !hasCompletedRound ? (
+          <div className="mt-4 rounded-2xl bg-white px-5 py-6 shadow-sm">
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-[#F6F3FF]">
+                <Play className="size-6 text-[#6C47FF]" />
+              </div>
+              <h3 className="text-lg font-bold text-black">
+                Unlock this JD practice
+              </h3>
+              <p className="mt-2 max-w-sm text-sm text-[#6D6873]">
+                You've completed your free practice. Pay ₹299 to unlock
+                interviews for this job description.
+              </p>
+              <div className="mt-5">
+                <RazorpayCheckout
+                  jobId={job.jobId}
+                  userName={user.name ?? undefined}
+                  userEmail={user.email ?? undefined}
+                />
+              </div>
+              <p className="mt-3 text-xs text-[#9A95A5]">
+                One-time payment • Instant access
+              </p>
             </div>
           </div>
         ) : null}

@@ -35,35 +35,51 @@ enum ReportStatus {
   FAILED
 }
 
+enum OrderStatus {
+  CREATED
+  ATTEMPTED
+  PAID
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
 // Auth & User models
 model User {
-  id                  String    @id
+  id                  String             @id
   name                String
   email               String
-  emailVerified       Boolean   @default(false)
+  emailVerified       Boolean            @default(false)
   image               String?
-  phoneNumber         String?   @unique
-  phoneNumberVerified Boolean   @default(false)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  phoneNumber         String?            @unique
+  phoneNumberVerified Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
   sessions            Session[]
   accounts            Account[]
   resume              Resume?
   progress            UserProgress?
   interviewSessions   InterviewSession[]
   diagnostics         Diagnostic[]
+  orders              Order[]
 
   @@map("user")
 }
 
 model UserProgress {
-  id                        String   @id @default(cuid())
-  userId                    String   @unique
-  stage                     UserStage @default(ONBOARDING)
-  onboardingCompletedAt     DateTime?
-  diagnosticsCompletedAt    DateTime?
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
+  stage                  UserStage @default(ONBOARDING)
+  onboardingCompletedAt  DateTime?
+  diagnosticsCompletedAt DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -71,22 +87,22 @@ model UserProgress {
 }
 
 model Resume {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name            String   @default("")
-  role            String   @default("")
-  experienceYears Float?
-  education       Json     @default("[]")
-  skills          String[] @default([])
-  experience      Json     @default("[]")
-  projects        Json     @default("[]")
-  skillGlosses        Json @default("{}")
-  projectKeywords     Json @default("[]")
-  projectCapabilities Json @default("[]")
-  workInitiatives     Json @default("[]")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String   @default("")
+  role                String   @default("")
+  experienceYears     Float?
+  education           Json     @default("[]")
+  skills              String[] @default([])
+  experience          Json     @default("[]")
+  projects            Json     @default("[]")
+  skillGlosses        Json     @default("{}")
+  projectKeywords     Json     @default("[]")
+  projectCapabilities Json     @default("[]")
+  workInitiatives     Json     @default("[]")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([userId])
   @@map("resume")
@@ -143,20 +159,20 @@ model Verification {
 
 // Unified interview session table
 model InterviewSession {
-  id            String                @id @default(cuid())
+  id            String                 @id @default(cuid())
   userId        String
   type          InterviewSessionType
-  roomName      String                @unique
+  roomName      String                 @unique
   status        InterviewSessionStatus @default(STARTED)
   transcript    Json?
   audioUrl      String?
   videoUrl      String?
   transcriptUrl String?
-  metadata      Json?                 // { coach, interactionMode, deviceId, videoDeviceId }
+  metadata      Json? // { coach, interactionMode, deviceId, videoDeviceId }
   startedAt     DateTime?
   endedAt       DateTime?
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   diagnosticRound DiagnosticRound?
@@ -170,18 +186,21 @@ model InterviewSession {
 
 // Diagnostics wrapper (4 rounds)
 model Diagnostic {
-  id                 String           @id @default(cuid())
-  userId             String
-  status             DiagnosticStatus @default(IN_PROGRESS)
-  currentRound       Int              @default(1)
-  selectedBand       String?
-  selectedJob        Json?
-  finalReport        Json?
-  finalReportShareToken String?       @unique
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  id                    String           @id @default(cuid())
+  userId                String
+  status                DiagnosticStatus @default(IN_PROGRESS)
+  currentRound          Int              @default(1)
+  selectedBand          String?
+  selectedJob           Json?
+  finalReport           Json?
+  finalReportShareToken String?          @unique
+  orderId               String?          @unique
+  paidAt                DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
-  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order  Order?            @relation(fields: [orderId], references: [id], onDelete: SetNull)
   rounds DiagnosticRound[]
 
   @@index([userId])
@@ -190,15 +209,15 @@ model Diagnostic {
 
 // Individual diagnostic round
 model DiagnosticRound {
-  id           String               @id @default(cuid())
+  id           String                 @id @default(cuid())
   diagnosticId String
-  sessionId    String               @unique
+  sessionId    String                 @unique
   roundNumber  Int
   roundType    String
   status       InterviewSessionStatus @default(STARTED)
 
-  diagnostic Diagnostic        @relation(fields: [diagnosticId], references: [id], onDelete: Cascade)
-  session    InterviewSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  diagnostic Diagnostic       @relation(fields: [diagnosticId], references: [id], onDelete: Cascade)
+  session    InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([diagnosticId])
   @@map("diagnostic_round")
@@ -223,4 +242,67 @@ model Report {
 
   @@index([status])
   @@map("report")
+}
+
+// Payment models
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  amount      Int // in paise (e.g. 29900 = ₹299)
+  currency    String   @default("INR")
+  isActive    Boolean  @default(true)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("product")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  razorpayOrderId String      @unique
+  userId          String
+  productId       String
+  amount          Int
+  currency        String
+  receipt         String
+  status          OrderStatus @default(CREATED)
+  notes           Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id])
+  payments    Payment[]
+  diagnostics Diagnostic[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("order")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String
+  razorpayPaymentId String        @unique
+  razorpaySignature String?
+  status            PaymentStatus @default(PENDING)
+  amount            Int
+  currency          String
+  method            String?
+  capturedAt        DateTime?
+  failedAt          DateTime?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@map("payment")
 }

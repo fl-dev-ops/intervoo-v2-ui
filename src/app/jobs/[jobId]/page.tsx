@@ -7,6 +7,7 @@ import {
   isDiagnosticSessionComplete,
 } from "@/lib/diagnostics/rules";
 import { getJobDetail } from "@/lib/jd-client";
+import { isPracticeFreeForUser } from "@/lib/payments";
 import { requirePageStage } from "@/lib/stage-guards";
 
 type Props = { params: Promise<{ jobId: string }> };
@@ -61,6 +62,10 @@ export default async function JobDetailPage({ params }: Props) {
     ]),
   );
 
+  // Determine if this JD requires payment
+  const isFree = await isPracticeFreeForUser(user.id, jobId);
+  const isPaid = diagnostic?.paidAt !== null;
+
   return (
     <JobDetailClient
       job={result.data.job}
@@ -68,6 +73,8 @@ export default async function JobDetailPage({ params }: Props) {
       processingRoundIds={processingRoundIds}
       roundScores={roundScores}
       diagnosticId={diagnostic?.id ?? null}
+      requiresPayment={!isFree && !isPaid}
+      isPaid={isPaid}
       user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );
