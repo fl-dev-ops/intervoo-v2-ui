@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getInProgressDiagnosticForUser } from "@/lib/diagnostics/jd-progress";
+import { getLockedDiagnosticForUser } from "@/lib/diagnostics/jd-progress";
 import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { getUserStage } from "@/lib/progress";
 
@@ -21,7 +21,7 @@ export default async function Home() {
   }
 
   if (stage === "DIAGNOSTICS" || stage === "COMPLETED") {
-    const diagnostic = await getInProgressDiagnosticForUser(session.user.id);
+    const diagnostic = await getLockedDiagnosticForUser(session.user.id);
     const jobId = getSelectedJobId(diagnostic?.selectedJob);
 
     redirect(jobId ? `/jobs/${jobId}` : "/jobs");

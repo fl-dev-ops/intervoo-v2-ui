@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CustomPreJoin } from "@/components/prejoin/custom-prejoin";
 import {
-  getInProgressDiagnosticForUser,
+  getLockedDiagnosticForUser,
   getOrCreateDiagnosticForJob,
 } from "@/lib/diagnostics/jd-progress";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
@@ -29,7 +29,7 @@ export default async function JobPrejoinPage({ params, searchParams }: Props) {
     redirect("/jobs");
   }
 
-  const inProgressDiagnostic = await getInProgressDiagnosticForUser(user.id);
+  const inProgressDiagnostic = await getLockedDiagnosticForUser(user.id);
   const inProgressJobId = getSelectedJobId(inProgressDiagnostic?.selectedJob);
 
   if (inProgressDiagnostic && inProgressJobId && inProgressJobId !== jobId) {

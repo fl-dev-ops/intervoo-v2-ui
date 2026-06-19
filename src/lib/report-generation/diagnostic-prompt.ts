@@ -160,7 +160,7 @@ Scoring framework:
 
 CRITICAL — Every question must include ALL of the following:
 - question_text: copy the exact question text from the confirmed asked questions list above for this question_id
-- candidate_answer: a faithful 1-3 sentence summary of what the candidate actually said in response to this question, drawn directly from the transcript; do not paraphrase or evaluate — just represent what was said
+- candidate_answer: copy the candidate's exact words from the transcript for this question — verbatim, as they appear, with no paraphrasing, summarizing, or editing; concatenate their turns if they spoke in multiple parts
 - reframed_answer: identify the single weakest sub-dimension for this question — the one with the lowest score across all thinking and language dimensions (excluding confidence) — then rewrite the candidate's actual answer specifically targeting only that sub-dimension's weakness; keep it in first person, natural and conversational; do not add evaluative commentary, critique, or explanation — just the reframed answer itself; apply the reframing as follows based on which sub-dimension is weakest:
   - Relevance (thinking): make the answer directly address the specific question asked; remove any off-topic content; open with something that locks onto the exact question
   - Specificity (thinking): add concrete details — real names, numbers, timelines, tools, or situations; replace vague claims with verifiable particulars

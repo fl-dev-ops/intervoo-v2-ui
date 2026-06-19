@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/db";
-import { areAllDiagnosticRoundsComplete } from "@/lib/diagnostics/rules";
+import {
+  areAllDiagnosticRoundsComplete,
+  countProgressableDiagnosticRounds,
+} from "@/lib/diagnostics/rules";
 import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import type { JobDetail } from "@/lib/jd-client";
 
@@ -27,6 +30,16 @@ export function isDiagnosticPracticeInProgress(
   return rounds.length > 0 && !areAllDiagnosticRoundsComplete(rounds);
 }
 
+export function isDiagnosticPracticeLockedToJob(
+  diagnostic: Pick<DiagnosticWithRounds, "rounds"> | null | undefined,
+) {
+  const rounds = diagnostic?.rounds ?? [];
+  return (
+    countProgressableDiagnosticRounds(rounds) > 0 &&
+    !areAllDiagnosticRoundsComplete(rounds)
+  );
+}
+
 export async function getUserDiagnosticsWithRounds(userId: string) {
   return prisma.diagnostic.findMany({
     where: { userId },
@@ -40,6 +53,15 @@ export async function getInProgressDiagnosticForUser(userId: string) {
   return (
     diagnostics.find((diagnostic) =>
       isDiagnosticPracticeInProgress(diagnostic),
+    ) ?? null
+  );
+}
+
+export async function getLockedDiagnosticForUser(userId: string) {
+  const diagnostics = await getUserDiagnosticsWithRounds(userId);
+  return (
+    diagnostics.find((diagnostic) =>
+      isDiagnosticPracticeLockedToJob(diagnostic),
     ) ?? null
   );
 }
