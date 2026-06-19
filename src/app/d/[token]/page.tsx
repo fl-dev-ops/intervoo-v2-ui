@@ -169,6 +169,7 @@ export default async function PublicDiagnosticReportPage({
       bandConfig={bandConfig}
       backHref={jobId ? `/jobs/${jobId}` : "/jobs"}
       backLabel="Back to rounds"
+      completedRoundCount={readyRounds.length}
       focusedRoundNumber={focusedRoundNumber}
       isOwner={isOwner}
       jobId={jobId}
