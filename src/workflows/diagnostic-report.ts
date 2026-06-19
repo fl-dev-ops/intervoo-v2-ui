@@ -1,4 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
+import {
+  type GenerateContentResponseUsageMetadata,
+  GoogleGenAI,
+} from "@google/genai";
 import { FatalError, getStepMetadata, RetryableError } from "workflow";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -11,10 +14,12 @@ import {
   uploadedGeminiFileStatus,
   uploadGeminiFile,
 } from "@/lib/gemini-client";
+import { getPostHogClient } from "@/lib/posthog-server";
 import {
   buildDiagnosticReportResult,
   prepareDiagnosticReportGeneration,
 } from "@/lib/report-generation/diagnostic";
+import { buildReportAiGenerationProps } from "@/lib/report-generation/token-usage";
 import { createUniquePublicReportToken } from "@/lib/report-share";
 import {
   buildDiagnosticSheetRows,
@@ -25,7 +30,10 @@ import { sendWhatsAppReportLink } from "@/lib/twilio";
 
 type DiagnosticReportGenerationResult = ReturnType<
   typeof buildDiagnosticReportResult
->;
+> & {
+  usage: GenerateContentResponseUsageMetadata | undefined;
+  modelId: string;
+};
 type ReadyGeminiFile = UploadedGeminiFile & { uri: string };
 
 type WorkflowResult = {
@@ -54,6 +62,11 @@ export async function generateDiagnosticSessionReportWorkflow(
       uploadedFiles,
     );
     const persisted = await persistDiagnosticReportStep(sessionId, generated);
+    await captureDiagnosticReportUsageStep(
+      sessionId,
+      generated.usage,
+      generated.modelId,
+    );
     await syncDiagnosticReportToSheetStep(sessionId, baseUrl);
     await sendDiagnosticReportLinkStep(
       sessionId,
@@ -214,9 +227,13 @@ async function generateDiagnosticReportStep(
       throw new Error("Gemini returned an empty response");
     }
 
-    return buildDiagnosticReportResult(
-      generation.schema.parse(JSON.parse(result.text)),
-    );
+    return {
+      ...buildDiagnosticReportResult(
+        generation.schema.parse(JSON.parse(result.text)),
+      ),
+      usage: result.usageMetadata,
+      modelId: generation.modelId,
+    };
   } catch (error) {
     const status = getErrorStatus(error);
     const message = getErrorMessage(error);
@@ -369,6 +386,48 @@ async function persistDiagnosticReportStep(
   });
 
   return { sessionId, shareToken, status: "READY" };
+}
+
+async function captureDiagnosticReportUsageStep(
+  sessionId: string,
+  usage: GenerateContentResponseUsageMetadata | undefined,
+  modelId: string,
+) {
+  "use step";
+
+  // Non-fatal: monitoring must never fail or retry report delivery, and
+  // swallowing keeps a transient error from re-emitting the event.
+  try {
+    const session = await prisma.interviewSession.findUnique({
+      where: { id: sessionId },
+      select: { userId: true },
+    });
+
+    const properties = buildReportAiGenerationProps({
+      usage,
+      modelId,
+      traceId: sessionId,
+    });
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: session?.userId ?? sessionId,
+      event: "$ai_generation",
+      properties,
+    });
+    await posthog.flush();
+
+    console.info("[diagnostics] diagnostic report usage captured", {
+      sessionId,
+      totalTokens: properties.ai_total_tokens,
+      totalCostUsd: properties.$ai_total_cost_usd,
+    });
+  } catch (error) {
+    console.error("[diagnostics] non-fatal report usage capture failure", {
+      error: error instanceof Error ? error.message : String(error),
+      sessionId,
+    });
+  }
 }
 
 async function syncDiagnosticReportToSheetStep(
