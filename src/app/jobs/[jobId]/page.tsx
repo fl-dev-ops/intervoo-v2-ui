@@ -6,7 +6,7 @@ import {
   isDiagnosticRoundReadyForProgression,
   isDiagnosticSessionComplete,
 } from "@/lib/diagnostics/rules";
-import { getJobDetail } from "@/lib/jd-client";
+import { getJobDetail, type JobDetail } from "@/lib/jd-client";
 import { requirePageStage } from "@/lib/stage-guards";
 
 type Props = { params: Promise<{ jobId: string }> };
@@ -23,13 +23,15 @@ export default async function JobDetailPage({ params }: Props) {
     redirect("/onboarding");
   }
 
+  const diagnostic = await getLatestDiagnosticForJob(user.id, jobId);
   const result = await getJobDetail(jobId);
+  const storedJob = getStoredJobDetail(diagnostic?.selectedJob, jobId);
+  const job = result.data?.job ?? storedJob;
 
-  if (result.error || !result.data) {
+  if (!job) {
     redirect("/jobs");
   }
 
-  const diagnostic = await getLatestDiagnosticForJob(user.id, jobId);
   const roundsForJob = diagnostic?.rounds ?? [];
 
   const readyRoundIds = roundsForJob
@@ -63,7 +65,7 @@ export default async function JobDetailPage({ params }: Props) {
 
   return (
     <JobDetailClient
-      job={result.data.job}
+      job={job}
       readyRoundIds={readyRoundIds}
       processingRoundIds={processingRoundIds}
       roundScores={roundScores}
@@ -71,6 +73,32 @@ export default async function JobDetailPage({ params }: Props) {
       user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );
+}
+
+function getStoredJobDetail(
+  selectedJob: unknown,
+  jobId: string,
+): JobDetail | null {
+  if (
+    !selectedJob ||
+    typeof selectedJob !== "object" ||
+    Array.isArray(selectedJob)
+  ) {
+    return null;
+  }
+
+  const job = selectedJob as Partial<JobDetail>;
+
+  if (
+    job.jobId !== jobId ||
+    typeof job.jobTitle !== "string" ||
+    typeof job.companyName !== "string" ||
+    !Array.isArray(job.rounds)
+  ) {
+    return null;
+  }
+
+  return job as JobDetail;
 }
 
 function getRoundScore(reportJson: unknown): number | null {
