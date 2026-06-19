@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
-import Script from "next/script";
 import "@livekit/components-styles";
 import "./globals.css";
 import { PostHogPageView, PostHogProvider } from "@posthog/next";
@@ -68,10 +67,6 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex h-dvh max-h-full flex-col overflow-hidden bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
-        <Script
-          src="https://checkout.razorpay.com/v1/checkout.js"
-          strategy="lazyOnload"
-        />
         <PostHogProvider clientOptions={{ api_host: "/ingest" }}>
           <PostHogPageView />
           <PostHogIdentify />

@@ -1,7 +1,8 @@
 import { createHmac } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
-import { serverEnv } from "@/lib/env";
 import { fulfillOrder, getOrderByRazorpayId } from "@/lib/payments";
+
+const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,11 +16,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!WEBHOOK_SECRET) {
+      console.warn(
+        "RAZORPAY_WEBHOOK_SECRET not configured, skipping webhook verification",
+      );
+      return NextResponse.json(
+        { error: "Webhook not configured" },
+        { status: 500 },
+      );
+    }
+
     // Verify webhook signature
-    const expectedSignature = createHmac(
-      "sha256",
-      serverEnv.RAZORPAY_WEBHOOK_SECRET,
-    )
+    const expectedSignature = createHmac("sha256", WEBHOOK_SECRET)
       .update(body)
       .digest("hex");
 

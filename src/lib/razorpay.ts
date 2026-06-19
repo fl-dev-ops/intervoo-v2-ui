@@ -1,13 +1,24 @@
 import "server-only";
 
 import Razorpay from "razorpay";
-import { serverEnv } from "@/lib/env";
+
+const keyId = process.env.RAZORPAY_KEY_ID;
+const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+if (!keyId || !keySecret) {
+  throw new Error(
+    "Missing RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET environment variables",
+  );
+}
 
 export const razorpay = new Razorpay({
-  key_id: serverEnv.RAZORPAY_KEY_ID,
-  key_secret: serverEnv.RAZORPAY_KEY_SECRET,
+  key_id: keyId,
+  key_secret: keySecret,
 });
 
 export function getRazorpayKeyId(): string {
-  return serverEnv.RAZORPAY_KEY_ID;
+  if (!keyId) {
+    throw new Error("Missing RAZORPAY_KEY_ID environment variable");
+  }
+  return keyId;
 }
