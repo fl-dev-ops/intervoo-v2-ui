@@ -153,17 +153,6 @@ async function prepareDiagnosticGeminiFilesStep(
         requestId: `diagnostic-${sessionId}`,
       }),
     );
-    uploadedFiles.push(
-      await uploadGeminiFile({
-        file: {
-          kind: "url",
-          presignedUrl: session.transcriptUrl,
-          mimeType: "text/plain",
-          displayName: `diagnostic-${sessionId}-transcript`,
-        },
-        requestId: `diagnostic-${sessionId}`,
-      }),
-    );
   } catch (error) {
     await deleteGeminiFiles(uploadedFiles);
     throw error;
