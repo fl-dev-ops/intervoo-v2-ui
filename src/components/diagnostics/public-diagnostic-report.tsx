@@ -79,6 +79,7 @@ export type PublicDiagnosticReportProps = {
     email: string | null;
     name: string | null;
   };
+  userDisplayOnly?: boolean;
 };
 
 export function PublicDiagnosticReport({
@@ -95,6 +96,7 @@ export function PublicDiagnosticReport({
   resume,
   rounds,
   user,
+  userDisplayOnly = false,
 }: PublicDiagnosticReportProps) {
   const [activeRoundNumber, setActiveRoundNumber] =
     useState(focusedRoundNumber);
@@ -120,7 +122,7 @@ export function PublicDiagnosticReport({
 
   return (
     <>
-      <AppHeader user={user} />
+      <AppHeader displayOnly={userDisplayOnly} user={user} />
       <main className="min-h-dvh bg-lavender md:pb-10">
         <div className="mx-auto w-full max-w-225 space-y-6 px-4 md:py-8">
           {/* User details secondary header */}

@@ -175,14 +175,23 @@ export default async function PublicDiagnosticReportPage({
       overallScore={overallScore}
       preferredName={preferredName}
       rounds={rounds}
-      user={
-        session?.user
-          ? {
-              email: session.user.email ?? null,
-              name: session.user.name ?? null,
-            }
-          : undefined
-      }
+      user={{
+        email: diagnostic.user.email ?? null,
+        name: diagnostic.user.resume?.name ?? diagnostic.user.name ?? null,
+      }}
+      userDisplayOnly={!isOwner}
+      resume={{
+        name: diagnostic.user.resume?.name ?? null,
+        email: diagnostic.user.email ?? null,
+        phoneNumber: diagnostic.user.phoneNumber ?? null,
+        education: (diagnostic.user.resume?.education ?? []) as Array<{
+          degree: string;
+          stream: string;
+          institution: string;
+          graduationYear: string;
+          score: string;
+        }>,
+      }}
     />
   );
 }

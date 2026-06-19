@@ -1,8 +1,8 @@
 "use client";
 
+import { LogOut, User } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { LogOut, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 
 type AppHeaderProps = {
+  displayOnly?: boolean;
   user?: { email: string | null; name: string | null } | null;
   onLogout?: () => void;
 };
@@ -21,7 +22,11 @@ function getInitial(user: { email: string | null; name: string | null }) {
   return source.charAt(0).toUpperCase();
 }
 
-export function AppHeader({ user, onLogout }: AppHeaderProps) {
+export function AppHeader({
+  displayOnly = false,
+  user,
+  onLogout,
+}: AppHeaderProps) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -55,7 +60,11 @@ export function AppHeader({ user, onLogout }: AppHeaderProps) {
             <p className="mt-1 text-xs text-black/80">by Foreverlearning.in</p>
           </div>
         </div>
-        {user ? (
+        {user && displayOnly ? (
+          <div className="flex size-9 items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white">
+            {getInitial(user)}
+          </div>
+        ) : user ? (
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
