@@ -8,7 +8,6 @@ import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import { canStartDiagnosticRound } from "@/lib/diagnostics/rules";
 import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { getJobDetail } from "@/lib/jd-client";
-import { isPracticeFreeForUser } from "@/lib/payments";
 import { requirePageStage } from "@/lib/stage-guards";
 
 type Props = {
@@ -41,14 +40,6 @@ export default async function JobPrejoinPage({ params, searchParams }: Props) {
     user.id,
     result.data.job,
   );
-
-  // Payment guard: if this JD requires payment and hasn't been paid, redirect back
-  const isFree = await isPracticeFreeForUser(user.id, jobId);
-  const isPaid = diagnostic.paidAt !== null;
-
-  if (!isFree && !isPaid) {
-    redirect(`/jobs/${jobId}`);
-  }
 
   const existingRound = diagnostic.rounds.find(
     (round) => round.roundType === roundId,
