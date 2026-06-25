@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { SearchInput } from "@/lib/jd-client";
+import type { JobAnalysisInput, SearchInput } from "@/lib/jd-client";
 
 // Source fields read off a `Resume` row. JSON columns arrive as `unknown`
 // (Prisma JsonValue) and are coerced defensively here.
@@ -8,6 +8,7 @@ export type ResumeSearchSource = {
   role: string;
   experienceYears: number | null;
   skills: string[];
+  experience: unknown;
   projects: unknown;
   skillGlosses: unknown;
   projectKeywords: unknown;
@@ -90,4 +91,44 @@ export function buildResumeSearchInput(
     projectTexts: [...projectTexts, ...initiativeTexts],
     sort: "default",
   };
+}
+
+export function buildResumeAnalysisInput(
+  resume: ResumeSearchSource,
+): JobAnalysisInput {
+  const experienceYears =
+    typeof resume.experienceYears === "number" ? resume.experienceYears : null;
+  const projectTexts = buildProjectTexts(
+    asArray(resume.projects),
+    asStringMatrix(resume.projectKeywords),
+    asStringMatrix(resume.projectCapabilities),
+  );
+  const initiativeTexts = asStringMatrix(resume.workInitiatives)
+    .flat()
+    .filter(Boolean);
+
+  return {
+    candidateSkills: resume.skills,
+    candidateExperience: formatResumeExperience(resume.experience),
+    candidateProjects: projectTexts,
+    candidateInitiatives: initiativeTexts,
+    experienceMinYears: experienceYears ?? undefined,
+    experienceMaxYears: experienceYears ?? undefined,
+  };
+}
+
+function formatResumeExperience(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return "";
+      const e = entry as Record<string, unknown>;
+      const title = typeof e.title === "string" ? e.title : "";
+      const company = typeof e.company === "string" ? e.company : "";
+      const description =
+        typeof e.description === "string" ? e.description : "";
+      const header = [title, company].filter(Boolean).join(" · ");
+      return [header, description].filter(Boolean).join(": ");
+    })
+    .filter(Boolean);
 }

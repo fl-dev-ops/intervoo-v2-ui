@@ -7,7 +7,7 @@ import {
   IconUsersGroup,
 } from "@tabler/icons-react";
 import { ArrowLeft, CheckIcon, LoaderCircle, Play } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/app-header";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
@@ -19,12 +19,15 @@ import {
 import type { JobDetail } from "@/lib/jd-client";
 import { cn } from "@/lib/utils";
 
+type DetailStep = "match-details" | "round-list";
+
 type JobDetailClientProps = {
   job: JobDetail;
   readyRoundIds?: string[];
   processingRoundIds?: string[];
   roundScores?: Record<string, number | null>;
   diagnosticId?: string | null;
+  overallScore?: number | null;
   user: { email: string | null; name: string | null };
 };
 
@@ -34,9 +37,12 @@ export function JobDetailClient({
   processingRoundIds = [],
   roundScores = {},
   diagnosticId,
+  overallScore,
   user,
 }: JobDetailClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const step = getDetailStep(searchParams.get("step"));
   const [startingRoundId, setStartingRoundId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localReadyRoundIds, setLocalReadyRoundIds] = useState(readyRoundIds);
@@ -68,6 +74,15 @@ export function JobDetailClient({
     setLocalProcessingRoundIds(processingRoundIds);
     setLocalRoundScores(roundScores);
   }, [processingRoundIds, readyRoundIds, roundScores]);
+
+  useEffect(() => {
+    if (searchParams.get("step")) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("step", "match-details");
+    router.replace(`/jobs/${job.jobId}?${params.toString()}`, {
+      scroll: false,
+    });
+  }, [job.jobId, router, searchParams]);
 
   // While a round's report is still generating, refresh so the CTA flips to
   // "View Report" once it is ready.
@@ -117,14 +132,24 @@ export function JobDetailClient({
     }
   }
 
+  function setStep(nextStep: DetailStep) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("step", nextStep);
+    router.push(`/jobs/${job.jobId}?${params.toString()}`);
+  }
+
   return (
     <main className="min-h-dvh bg-[#F6F3F8] font-sans text-black">
       <AppHeader user={user} />
       <section className="mx-auto w-full max-w-225 px-4 pb-14 pt-6">
-        {!hasCompletedRound && (
+        {(!hasCompletedRound || step === "round-list") && (
           <button
             type="button"
-            onClick={() => router.push("/jobs")}
+            onClick={() =>
+              step === "round-list"
+                ? setStep("match-details")
+                : router.push("/jobs")
+            }
             className="inline-flex items-center gap-2 text-base font-semibold text-black"
           >
             <ArrowLeft className="size-5" />
@@ -140,10 +165,18 @@ export function JobDetailClient({
               job.experienceMinYears,
               job.experienceMaxYears,
             )}
-            overallScore={null}
+            jobId={step === "match-details" ? job.jobId : undefined}
+            location={job.location}
+            onStartInterview={
+              step === "match-details" ? () => setStep("round-list") : undefined
+            }
+            overallScore={overallScore}
             roundCount={rounds.length}
+            showFitDetails={step === "match-details"}
             sourceUrl={job.sourceUrl}
+            skills={step === "match-details" ? job.requiredSkills : undefined}
             jobTitle={job.jobTitle}
+            workMode={job.workMode}
           />
         </div>
 
@@ -179,33 +212,35 @@ export function JobDetailClient({
           </div>
         ) : null}
 
-        <div className="mt-7 w-full rounded-t-3xl bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] p-5 md:rounded-b-3xl md:p-8">
-          <div className="space-y-3">
-            {rounds.map((round, index) => {
-              const roundNumber = index + 1;
-              const isActive = index === activeRoundIndex;
-              const isDone = round.isReportReady;
-              const isProcessing = round.isReportProcessing;
-              return (
-                <RoundTimelineItem
-                  key={round.id}
-                  config={round}
-                  diagnosticId={diagnosticId}
-                  isCurrent={isActive}
-                  isDone={isDone}
-                  isLast={isLast(index, rounds.length)}
-                  isProcessing={isProcessing}
-                  questions={round.questions}
-                  roundNumber={roundNumber}
-                  score={round.score}
-                  startingRoundId={startingRoundId}
-                  onStart={() => handleStart(round.id)}
-                  onViewReport={() => router.push(`/report/${diagnosticId}`)}
-                />
-              );
-            })}
+        {step === "round-list" ? (
+          <div className="mt-7 w-full rounded-t-3xl bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)] p-5 md:rounded-b-3xl md:p-8">
+            <div className="space-y-3">
+              {rounds.map((round, index) => {
+                const roundNumber = index + 1;
+                const isActive = index === activeRoundIndex;
+                const isDone = round.isReportReady;
+                const isProcessing = round.isReportProcessing;
+                return (
+                  <RoundTimelineItem
+                    key={round.id}
+                    config={round}
+                    diagnosticId={diagnosticId}
+                    isCurrent={isActive}
+                    isDone={isDone}
+                    isLast={isLast(index, rounds.length)}
+                    isProcessing={isProcessing}
+                    questions={round.questions}
+                    roundNumber={roundNumber}
+                    score={round.score}
+                    startingRoundId={startingRoundId}
+                    onStart={() => handleStart(round.id)}
+                    onViewReport={() => router.push(`/report/${diagnosticId}`)}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {error ? (
           <div className="mt-4 w-full rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-600">
@@ -215,6 +250,11 @@ export function JobDetailClient({
       </section>
     </main>
   );
+}
+
+function getDetailStep(step: string | null): DetailStep {
+  if (step === "round-list" || step === "2") return "round-list";
+  return "match-details";
 }
 
 function RoundTimelineItem({

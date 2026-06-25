@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { JobDetailClient } from "@/components/jobs/job-detail-client";
 import { prisma } from "@/lib/db";
+import { deriveFinalDiagnosticReport } from "@/lib/diagnostics/final-report";
 import { getLatestDiagnosticForJob } from "@/lib/diagnostics/jd-progress";
 import {
   isDiagnosticRoundReadyForProgression,
@@ -62,6 +63,9 @@ export default async function JobDetailPage({ params }: Props) {
       getRoundScore(round.session?.report?.reportJson),
     ]),
   );
+  const finalReadinessScore = diagnostic
+    ? (deriveFinalDiagnosticReport(diagnostic.rounds)?.overall_score ?? null)
+    : null;
 
   return (
     <JobDetailClient
@@ -70,6 +74,7 @@ export default async function JobDetailPage({ params }: Props) {
       processingRoundIds={processingRoundIds}
       roundScores={roundScores}
       diagnosticId={diagnostic?.id ?? null}
+      overallScore={finalReadinessScore}
       user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );

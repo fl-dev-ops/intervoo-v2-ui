@@ -27,6 +27,7 @@ export default async function JobsPage() {
     role: resume.role,
     experienceYears: resume.experienceYears,
     skills: resume.skills,
+    experience: resume.experience,
     projects: resume.projects,
     skillGlosses: resume.skillGlosses,
     projectKeywords: resume.projectKeywords,

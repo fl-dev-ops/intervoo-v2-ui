@@ -68,6 +68,47 @@ export type SearchResponse = {
   cards: JobCard[];
 };
 
+export type JobMatch = {
+  score: number | null;
+  skillsPct: number | null;
+  projectsPct: number | null;
+};
+
+export type FitStatus = "found" | "missing";
+
+export type FitItem = {
+  text: string;
+  status: FitStatus;
+};
+
+export type FitSection = {
+  items: FitItem[];
+};
+
+export type SkillChip = {
+  skill: string;
+  matched: boolean;
+};
+
+export type JobFitAnalysis = {
+  skills: SkillChip[];
+  requirements: FitSection;
+  responsibilities: FitSection;
+  niceToHaves: FitSection;
+};
+
+export type JobAnalysisInput = {
+  candidateSkills?: string[];
+  candidateExperience?: string[];
+  candidateProjects?: string[];
+  candidateInitiatives?: string[];
+  experienceMinYears?: number;
+  experienceMaxYears?: number;
+  overallPct?: number | null;
+  skillsPct?: number | null;
+  projectsPct?: number | null;
+};
+
 export async function getOptions(): Promise<
   Result<{ companies: CompanyOption[]; skills: SkillOption[] }>
 > {
@@ -87,10 +128,12 @@ export async function getOptions(): Promise<
 export async function searchJobs(
   input: SearchInput,
 ): Promise<Result<SearchResponse>> {
+  const { experienceYears: _experienceYears, ...body } = input;
+
   const response = await fetch(`${BASE_URL}/api/search`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify(body),
   });
 
   const json = await response.json();
@@ -110,6 +153,66 @@ export async function getJobDetail(
 ): Promise<Result<{ job: JobDetail }>> {
   const response = await fetch(
     `${BASE_URL}/api/jobs/${encodeURIComponent(jobId)}`,
+  );
+  const json = await response.json();
+
+  if (!response.ok || json.error) {
+    return {
+      error: json.error || `Request failed with status ${response.status}`,
+      data: null,
+    };
+  }
+
+  return { error: null, data: json };
+}
+
+export async function getJobMatch(
+  jobId: string,
+  input: Pick<SearchInput, "skills" | "skillNames" | "projectTexts">,
+): Promise<Result<{ match: JobMatch }>> {
+  const body: Pick<SearchInput, "skills" | "skillNames" | "projectTexts"> = {
+    skills: input.skills,
+    skillNames: input.skillNames,
+    projectTexts: input.projectTexts,
+  };
+
+  const response = await fetch(
+    `${BASE_URL}/api/jobs/${encodeURIComponent(jobId)}/match`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  const json = await response.json();
+
+  if (!response.ok || json.error) {
+    return {
+      error: json.error || `Request failed with status ${response.status}`,
+      data: null,
+    };
+  }
+
+  return { error: null, data: json };
+}
+
+export async function analyzeJobFit(
+  jobId: string,
+  input: JobAnalysisInput,
+): Promise<Result<{ analysis: JobFitAnalysis }>> {
+  const {
+    experienceMinYears: _experienceMinYears,
+    experienceMaxYears: _experienceMaxYears,
+    ...body
+  } = input;
+
+  const response = await fetch(
+    `${BASE_URL}/api/jobs/${encodeURIComponent(jobId)}/analysis`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
   );
   const json = await response.json();
 

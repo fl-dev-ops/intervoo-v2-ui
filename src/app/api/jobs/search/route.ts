@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { searchJobs, type SearchInput } from "@/lib/jd-client";
+import { type SearchInput, searchJobs } from "@/lib/jd-client";
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Figtree, Geist, Geist_Mono } from "next/font/google";
 import "@livekit/components-styles";
 import "./globals.css";
+import { PostHogPageView, PostHogProvider } from "@posthog/next";
 import { ThemeProvider } from "next-themes";
+import { PostHogIdentify } from "@/components/posthog-identify";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { PostHogProvider, PostHogPageView } from "@posthog/next";
-import { PostHogIdentify } from "@/components/posthog-identify";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,7 +61,7 @@ export default function RootLayout({
         geistSans.variable,
         geistMono.variable,
         "font-sans",
-        inter.variable,
+        figtree.variable,
       )}
       suppressHydrationWarning
     >
