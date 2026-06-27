@@ -16,6 +16,7 @@ type PermissionState = "checking" | "prompt" | "granted" | "denied";
 
 interface CustomPreJoinProps {
   diagnosticId?: string;
+  jobId?: string;
   roundId?: string;
   coach?: CoachOption;
   hideCoachSelection?: boolean;
@@ -26,6 +27,7 @@ export function CustomPreJoin({
   coach,
   diagnosticId,
   hideCoachSelection = false,
+  jobId,
   roundId,
   userName,
 }: CustomPreJoinProps) {
@@ -334,12 +336,15 @@ export function CustomPreJoin({
         sessionId: data.session_id,
       });
       const params = new URLSearchParams({
-        token: data.participant_token,
-        server_url: data.server_url,
-        room_name: data.room_name,
         session_id: data.session_id,
         round_id: roundId || "",
       });
+      if (data.room_name) {
+        params.set("room_name", data.room_name);
+      }
+      if (jobId) {
+        params.set("job_id", jobId);
+      }
       if (data.selected_job) {
         params.set("job_title", data.selected_job.title);
         params.set("companies", data.selected_job.companies.join(","));
@@ -364,6 +369,7 @@ export function CustomPreJoin({
     activeVideoDeviceId,
     canJoin,
     diagnosticId,
+    jobId,
     joinDisabledReason,
     roundId,
     router,

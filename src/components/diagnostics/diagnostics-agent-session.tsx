@@ -84,6 +84,7 @@ interface DiagnosticsAgentSessionProps {
   companies?: string[];
   coach?: string;
   userName?: string | null;
+  onBeforeEndSession?: () => Promise<void>;
 }
 
 export function DiagnosticsAgentSession({
@@ -94,6 +95,7 @@ export function DiagnosticsAgentSession({
   jobTitle,
   coach,
   userName,
+  onBeforeEndSession,
 }: DiagnosticsAgentSessionProps) {
   const tokenSource = useMemo(
     () =>
@@ -136,6 +138,7 @@ export function DiagnosticsAgentSession({
         roundId={roundId}
         sessionId={sessionId}
         userName={userName}
+        onBeforeEndSession={onBeforeEndSession}
       />
     </SessionProvider>
   );
@@ -147,12 +150,14 @@ function SessionLayout({
   jobTitle,
   coach,
   userName,
+  onBeforeEndSession,
 }: {
   roundId?: string;
   sessionId: string;
   jobTitle?: string;
   coach?: string;
   userName?: string | null;
+  onBeforeEndSession?: () => Promise<void>;
 }) {
   const router = useRouter();
   const session = useSessionContext();
@@ -199,7 +204,9 @@ function SessionLayout({
           sessionId,
         },
       );
-      router.push(`/sessions/completed?session_id=${sessionId}`);
+      void onBeforeEndSession?.().finally(() => {
+        router.push(`/sessions/completed?session_id=${sessionId}`);
+      });
     };
 
     session.room.on(RoomEvent.ParticipantDisconnected, handleAgentDisconnected);
@@ -210,7 +217,7 @@ function SessionLayout({
         handleAgentDisconnected,
       );
     };
-  }, [session.room, sessionId, router]);
+  }, [session.room, sessionId, router, onBeforeEndSession]);
 
   // The diagnostic agent publishes a `diagnostic_question_started` data event
   // right before it asks each question (mark_question_started tool). Persist
@@ -327,6 +334,8 @@ function SessionLayout({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, userTurnCount }),
     }).catch(() => {});
+
+    await onBeforeEndSession?.().catch(() => {});
 
     router.push(`/sessions/completed?session_id=${sessionId}`);
   };
