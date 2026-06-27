@@ -15,7 +15,10 @@ import {
   uploadGeminiFile,
 } from "@/lib/gemini-client";
 import { getPostHogClient } from "@/lib/posthog-server";
-import { fetchAutoProctorAttemptReport } from "@/lib/proctor/api";
+import {
+  fetchAutoProctorAttemptReport,
+  fetchAutoProctorEvidenceRecords,
+} from "@/lib/proctor/api";
 import {
   getAutoProctorClientId,
   hashAutoProctorTestAttemptId,
@@ -170,12 +173,16 @@ async function fetchAutoProctorReportStep(
   const report = await fetchAutoProctorAttemptReport({
     clientId: getAutoProctorClientId(),
     hashedTestAttemptId,
+    testAttemptId: session.id,
   });
 
+  const testAttempt = getAutoProctorTestAttempt(report);
   const evidenceStatus =
+    getStringField(testAttempt, "evidence_status") ??
     getStringField(report, "evidenceStatus") ??
     getStringField(report, "evidence_status");
   const testAttemptStatus =
+    getStringField(testAttempt, "test_attempt_status") ??
     getStringField(report, "testAttemptStatus") ??
     getStringField(report, "test_attempt_status");
   const trustScore = getAutoProctorTrustScore(report);
@@ -192,6 +199,21 @@ async function fetchAutoProctorReportStep(
     return { status: "pending", evidenceStatus, testAttemptStatus, trustScore };
   }
 
+  const evidence = await fetchAutoProctorEvidenceRecords({
+    clientId: getAutoProctorClientId(),
+    hashedTestAttemptId,
+    testAttemptId: session.id,
+  }).catch((error) => {
+    console.error(
+      "[diagnostics] non-fatal AutoProctor evidence fetch failure",
+      {
+        error: error instanceof Error ? error.message : String(error),
+        sessionId,
+      },
+    );
+    return null;
+  });
+
   await prisma.report.update({
     where: { sessionId },
     data: {
@@ -203,6 +225,7 @@ async function fetchAutoProctorReportStep(
         testAttemptStatus,
         trustScore,
         report,
+        evidence,
       } as object,
     },
   });
@@ -283,19 +306,22 @@ function getStringField(record: Record<string, unknown>, key: string) {
   return typeof value === "string" ? value : null;
 }
 
-function getAutoProctorTrustScore(report: Record<string, unknown>) {
-  const attemptDetails = report.attemptDetails ?? report.attempt_details;
+function getAutoProctorTestAttempt(report: Record<string, unknown>) {
+  const testAttempt = report.test_attempt ?? report.attemptDetails;
   if (
-    !attemptDetails ||
-    typeof attemptDetails !== "object" ||
-    Array.isArray(attemptDetails)
+    !testAttempt ||
+    typeof testAttempt !== "object" ||
+    Array.isArray(testAttempt)
   ) {
-    return null;
+    return {};
   }
 
-  const trustScore =
-    (attemptDetails as Record<string, unknown>).trustScore ??
-    (attemptDetails as Record<string, unknown>).trust_score;
+  return testAttempt as Record<string, unknown>;
+}
+
+function getAutoProctorTrustScore(report: Record<string, unknown>) {
+  const attemptDetails = getAutoProctorTestAttempt(report);
+  const trustScore = attemptDetails.trustScore ?? attemptDetails.trust_score;
   return typeof trustScore === "number" ? trustScore : null;
 }
 
