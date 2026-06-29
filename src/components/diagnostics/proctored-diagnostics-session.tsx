@@ -205,9 +205,24 @@ export function ProctoredDiagnosticsSession({
       });
     };
 
+    const handleEvidence = (event: Event) => {
+      const detail = getEventDetail(event);
+      const code = detail?.evidenceCode;
+      if (code === 5001) {
+        console.log(
+          `[Proctor] No face detected (count: ${detail.violationCount})`,
+        );
+      } else if (code === 5002) {
+        console.log(
+          `[Proctor] Multiple faces detected (count: ${detail.violationCount})`,
+        );
+      }
+    };
+
     window.addEventListener("apMonitoringStarted", handleMonitoringStarted);
     window.addEventListener("apMonitoringStopped", handleMonitoringStopped);
     window.addEventListener("apErrorEvent", handleError);
+    window.addEventListener("apEvidenceEvent", handleEvidence);
 
     startProctoring().catch((startError) => {
       const message = getErrorMessage(startError);
@@ -229,6 +244,7 @@ export function ProctoredDiagnosticsSession({
         handleMonitoringStopped,
       );
       window.removeEventListener("apErrorEvent", handleError);
+      window.removeEventListener("apEvidenceEvent", handleEvidence);
     };
   }, [config, jobId, router, sdkReady, sessionId]);
 
