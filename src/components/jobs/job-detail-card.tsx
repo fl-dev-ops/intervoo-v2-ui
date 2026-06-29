@@ -20,6 +20,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { getLogoText } from "@/lib/company";
 import type {
   FitSection,
   JobFitAnalysis,
@@ -37,6 +39,7 @@ export type JobDetailCardProps = {
   onStartInterview?: () => void;
   overallScore?: number | null;
   roundCount: number;
+  salary?: string | null;
   showFitDetails?: boolean;
   skills?: string | null;
   sourceUrl?: string | null;
@@ -53,12 +56,14 @@ export function JobDetailCard({
   onStartInterview,
   overallScore,
   roundCount,
+  salary,
   showFitDetails = true,
   skills,
   sourceUrl,
   jobTitle,
   workMode,
 }: JobDetailCardProps) {
+  const isMobile = useIsMobile();
   const [match, setMatch] = useState<JobMatch | null>(null);
   const [analysis, setAnalysis] = useState<JobFitAnalysis | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
@@ -170,18 +175,23 @@ export function JobDetailCard({
         <Card className="rounded-2xl border-0 bg-white shadow-none">
           <CardContent className="px-5">
             <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-[#6D6873]">
-                  {companyName}
-                </p>
-                <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-black">
-                  {jobTitle}
-                </h1>
-                {meta.length > 0 ? (
-                  <p className="mt-2 text-xs font-medium text-[#6D6873]">
-                    {meta.join(" · ")}
+              <div className="flex min-w-0 items-start gap-3 md:gap-4">
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-[#DDD8DF] bg-white p-2 text-center text-xs font-extrabold leading-tight text-[#5436B8] md:size-16 md:text-sm">
+                  {getLogoText(companyName)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-base font-medium text-[#6D6873] md:text-sm">
+                    {companyName}
                   </p>
-                ) : null}
+                  <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-black">
+                    {jobTitle}
+                  </h1>
+                  {meta.length > 0 ? (
+                    <p className="mt-2 text-sm font-medium text-[#6D6873] md:text-xs">
+                      {meta.join(" · ")}
+                    </p>
+                  ) : null}
+                </div>
               </div>
               {showStartInterview ? (
                 <div className="flex shrink-0 items-center gap-5">
@@ -190,7 +200,7 @@ export function JobDetailCard({
                     score={match?.score ?? null}
                   />
                   <button
-                    className="inline-flex h-14 items-center justify-center rounded-full bg-[linear-gradient(90deg,#5B37C8_0%,#6D47F4_100%)] px-8 text-sm font-bold text-white hover:opacity-95"
+                    className="hidden h-14 items-center justify-center rounded-full bg-[linear-gradient(90deg,#5B37C8_0%,#6D47F4_100%)] px-8 text-sm font-bold text-white hover:opacity-95 md:inline-flex"
                     type="button"
                     onClick={onStartInterview}
                   >
@@ -199,7 +209,34 @@ export function JobDetailCard({
                 </div>
               ) : null}
             </div>
+
+            {showStartInterview && sourceUrl ? (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#F7F3FF] px-3 py-2 text-sm font-semibold text-[#5E41CF] md:text-xs"
+              >
+                <SourceIcon sourceUrl={sourceUrl} />
+                View original posting
+              </a>
+            ) : null}
+
+            {description ? (
+              <p className="mt-5 max-w-4xl text-base leading-6 text-[#6D6873] md:text-sm">
+                {description}
+              </p>
+            ) : null}
+
             <div className="mt-5 flex flex-wrap gap-3">
+              {salary ? (
+                <Badge
+                  className="h-auto rounded-lg bg-[#F3F3F4] px-3 py-2 text-base font-semibold text-black md:text-sm"
+                  variant="secondary"
+                >
+                  {salary}
+                </Badge>
+              ) : null}
               {isMatchLoading ? (
                 <ScoreSkeletons />
               ) : (
@@ -209,17 +246,24 @@ export function JobDetailCard({
                 </>
               )}
               <Badge
-                className="h-auto rounded-lg bg-[#F3F0F4] px-3 py-2 text-sm font-semibold text-black"
+                className={cn(
+                  "h-auto rounded-lg bg-[#F3F0F4] px-3 py-2 text-base font-semibold text-black md:text-sm",
+                  showStartInterview && "hidden md:inline-flex",
+                )}
                 variant="secondary"
               >
                 {roundCount} Rounds
               </Badge>
             </div>
 
-            {description ? (
-              <p className="mt-5 max-w-4xl text-[13px] leading-6 text-[#6D6873]">
-                {description}
-              </p>
+            {showStartInterview ? (
+              <button
+                className="mt-5 inline-flex h-14 w-full items-center justify-center rounded-full bg-[linear-gradient(90deg,#5B37C8_0%,#6D47F4_100%)] px-8 text-base font-bold text-white hover:opacity-95 md:hidden"
+                type="button"
+                onClick={onStartInterview}
+              >
+                Start Interview
+              </button>
             ) : null}
           </CardContent>
         </Card>
@@ -227,7 +271,10 @@ export function JobDetailCard({
         {!showStartInterview ? (
           <Card className="rounded-2xl border-0 bg-white shadow-none">
             <CardContent className="px-4">
-              <InterviewReadinessScore score={overallScore ?? null} />
+              <InterviewReadinessScore
+                className="border-0 p-0"
+                score={overallScore ?? null}
+              />
             </CardContent>
           </Card>
         ) : null}
@@ -275,12 +322,13 @@ export function JobDetailCard({
 
           {analysis ? (
             <Accordion
+              key={isMobile ? "mobile" : "desktop"}
               className="gap-5"
-              defaultValue={[
-                "responsibilities",
-                "requirements",
-                "nice-to-have",
-              ]}
+              defaultValue={
+                isMobile
+                  ? []
+                  : ["responsibilities", "requirements", "nice-to-have"]
+              }
             >
               <FitAccordionItem
                 title="Responsibilities"
@@ -328,11 +376,14 @@ function SectionCard({
     <Card className="rounded-2xl border-0 bg-white shadow-none">
       <CardContent className="px-5">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <h2 className="text-sm font-extrabold uppercase tracking-wide text-[#6D6873]">
+          <h2 className="text-base font-extrabold uppercase tracking-wide text-[#6D6873] md:text-sm">
             {title}
           </h2>
           {action ? (
-            <button className="text-sm font-bold text-[#6D6873]" type="button">
+            <button
+              className="text-base font-bold text-[#6D6873] md:text-sm"
+              type="button"
+            >
               {action}
             </button>
           ) : null}
@@ -351,11 +402,13 @@ function MatchScoreRing({
   score?: number | null;
 }) {
   if (loading) {
-    return <Skeleton className="size-16 rounded-full bg-[#F3F0F4]" />;
+    return (
+      <Skeleton className="size-18 rounded-full bg-[#F3F0F4] md:size-16" />
+    );
   }
 
   return (
-    <div className="flex size-16 items-center justify-center rounded-full border-2 border-[#00B87A] text-base font-extrabold text-black">
+    <div className="flex size-18 items-center justify-center rounded-full border-2 border-[#00B87A] text-lg font-extrabold text-black md:size-16 md:text-base">
       {typeof score === "number" ? `${Math.round(score)}%` : "—"}
     </div>
   );
@@ -414,7 +467,7 @@ function FitAccordionItem({
       className="rounded-2xl border-0 bg-white px-5 py-2 shadow-none"
       value={value}
     >
-      <AccordionTrigger className="py-4 text-sm font-extrabold uppercase tracking-wide text-[#6D6873] hover:no-underline">
+      <AccordionTrigger className="py-4 text-base font-extrabold uppercase tracking-wide text-[#6D6873] hover:no-underline md:text-sm">
         {title}
       </AccordionTrigger>
       <AccordionContent className="pb-5">
@@ -493,7 +546,7 @@ function ScorePill({ label, value }: { label: string; value?: number | null }) {
 
   return (
     <Badge
-      className="h-auto rounded-lg bg-[#F3F3F4] px-3 py-2 text-sm font-semibold text-black"
+      className="h-auto rounded-lg bg-[#F3F3F4] px-3 py-2 text-base font-semibold text-black md:text-sm"
       variant="secondary"
     >
       {Math.round(value)}% {label}

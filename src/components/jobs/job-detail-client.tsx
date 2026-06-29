@@ -172,6 +172,10 @@ export function JobDetailClient({
             }
             overallScore={overallScore}
             roundCount={rounds.length}
+            salary={formatSalaryRange(
+              job.salaryInrMinPerYear,
+              job.salaryInrMaxPerYear,
+            )}
             showFitDetails={step === "match-details"}
             sourceUrl={job.sourceUrl}
             skills={step === "match-details" ? job.requiredSkills : undefined}
@@ -546,6 +550,24 @@ function formatExperienceLabel(min: number | null, max: number | null) {
   if (min != null && max != null) return `${min}-${max} years`;
   if (min != null) return `${min}+ years`;
   return `Up to ${max} years`;
+}
+
+function formatSalaryRange(min: number | null, max: number | null) {
+  const minLpa = min == null ? null : min / 100_000;
+  const maxLpa = max == null ? null : max / 100_000;
+
+  if (minLpa == null && maxLpa == null) return null;
+  if (minLpa != null && maxLpa != null) {
+    if (minLpa === maxLpa) return `₹${formatLpa(minLpa)} LPA`;
+    return `₹${formatLpa(minLpa)}–${formatLpa(maxLpa)} LPA`;
+  }
+  if (minLpa != null) return `₹${formatLpa(minLpa)} LPA+`;
+  if (maxLpa != null) return `Up to ₹${formatLpa(maxLpa)} LPA`;
+  return null;
+}
+
+function formatLpa(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function isLast(index: number, length: number) {

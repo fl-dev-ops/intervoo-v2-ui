@@ -1,12 +1,13 @@
 "use client";
 
-import { LogOut, User } from "lucide-react";
+import { BadgeHelp, BriefcaseBusiness, LogOut } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
@@ -76,13 +77,44 @@ export function AppHeader({
             >
               {getInitial(user)}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => router.push("/profile")}>
-                <User className="mr-2 size-4" />
-                Profile
+            <DropdownMenuContent
+              align="end"
+              sideOffset={10}
+              className="w-56 rounded-2xl p-3 border border-[#E5E2E7] bg-white shadow-[0_18px_45px_rgba(31,27,36,0.14)]"
+            >
+              <div className="px-1 pb-2">
+                <p className="truncate text-base font-medium text-[#2F2B35]">
+                  {user.name?.trim() || "User"}
+                </p>
+                {user.email ? (
+                  <p className="mt-1 truncate text-sm text-[#8A858E]">
+                    {user.email}
+                  </p>
+                ) : null}
+              </div>
+
+              <DropdownMenuSeparator className="mx-0 mb-3" />
+
+              <DropdownMenuItem
+                className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7]"
+                onClick={() => router.push("/profile")}
+              >
+                <BriefcaseBusiness className="mr-2 size-5 text-[#56515A]" />
+                Profile edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 size-4" />
+
+              <DropdownMenuItem className="mt-1 rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7]">
+                <BadgeHelp className="mr-2 size-5 text-[#56515A]" />
+                Having issue?
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="mx-0 my-3" />
+
+              <DropdownMenuItem
+                className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7]"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 size-5 text-[#56515A]" />
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>

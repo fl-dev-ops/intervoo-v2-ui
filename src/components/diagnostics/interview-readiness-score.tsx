@@ -26,7 +26,7 @@ type Segment = {
   emoji: string;
 };
 
-const EMPTY_COLOR = "#d1d5db";
+const EMPTY_COLOR = "#E4E4E4";
 // Gauge operates on 0-100 with four equal visual segments of 25 each.
 const GAUGE_MAX = 100;
 const SEGMENT_SIZE = 25;
@@ -122,17 +122,17 @@ export function InterviewReadinessScore({
     <div
       className={cn(
         "flex max-w-full flex-col items-center",
-        "border p-4 rounded-xl bg-white md:bg-[#f5f3f7]",
+        "rounded-xl border bg-white p-3 md:p-4",
         className,
       )}
       style={style}
       {...props}
     >
-      <p className="text-base font-bold text-foreground mb-8">
+      <p className="mb-4 text-center text-base font-bold text-foreground">
         Interview Readiness Score
       </p>
 
-      <div className="relative mt-3 w-[65%] mx-auto">
+      <div className="relative mx-auto mt-2 w-[72%]">
         <GaugeComponent
           type="semicircle"
           minValue={0}
@@ -159,9 +159,9 @@ export function InterviewReadinessScore({
               formatTextValue: () =>
                 hasScore ? `${clampedScore}/${maxScore}` : `--/${maxScore}`,
               style: {
-                fontSize: "40px",
+                fontSize: "24px",
                 fill: "#111",
-                fontWeight: "800",
+                fontWeight: "500",
                 textShadow: "none",
               },
             },
@@ -204,7 +204,7 @@ export function InterviewReadinessScore({
         })}
       </div>
 
-      <div className="mt-6 flex w-full justify-center">
+      <div className="mt-5 flex w-full justify-center">
         {hasScore && segment ? (
           <div
             className="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-white"
@@ -214,10 +214,10 @@ export function InterviewReadinessScore({
             <span>{segment.label}</span>
           </div>
         ) : (
-          <div className="text-[14px] flex w-full items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-amber-900">
+          <div className="flex w-full items-center gap-3 rounded-xl border border-[#E8D995] bg-[#FFFDF0] px-3 py-2.5 text-sm text-[#55505B]">
             <span
               aria-hidden
-              className="flex size-4 shrink-0 items-center justify-center rounded-sm bg-amber-500 font-bold text-white"
+              className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#C7AE3F] font-bold text-white"
             >
               !
             </span>

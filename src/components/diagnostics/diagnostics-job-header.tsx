@@ -2,6 +2,7 @@
 
 import { IconFileDescription } from "@tabler/icons-react";
 import { InterviewReadinessScore } from "@/components/diagnostics/interview-readiness-score";
+import { getLogoText } from "@/lib/company";
 import type { DiagnosticBandConfig } from "@/lib/diagnostics/bands-config";
 import type { JobDetail } from "@/lib/jd-client";
 
@@ -17,10 +18,14 @@ export function DiagnosticsJobHeader({
   overallScore,
 }: DiagnosticsJobHeaderProps) {
   const companyName = apiJob?.companyName ?? bandConfig?.companies?.[0] ?? "";
-  const jobTitle = apiJob?.jobTitle ?? bandConfig?.title ?? "SDE at Product companies";
+  const jobTitle =
+    apiJob?.jobTitle ?? bandConfig?.title ?? "SDE at Product companies";
   const salary = apiJob
-    ? formatExperienceLabel(apiJob.experienceMinYears, apiJob.experienceMaxYears)
-    : bandConfig?.salary ?? "₹8–15 LPA";
+    ? formatExperienceLabel(
+        apiJob.experienceMinYears,
+        apiJob.experienceMaxYears,
+      )
+    : (bandConfig?.salary ?? "₹8–15 LPA");
   const roundCount = apiJob?.rounds?.length ?? 4;
   const description =
     apiJob?.roleSummary ??
@@ -86,11 +91,4 @@ function formatExperienceLabel(min: number | null, max: number | null) {
   if (min != null && max != null) return `${min}-${max} years exp`;
   if (min != null) return `${min}+ years exp`;
   return `Up to ${max} years exp`;
-}
-
-function getLogoText(companyName: string) {
-  const words = companyName.split(/\s+/).filter(Boolean);
-  if (!words.length) return "JOB";
-  if (words.length === 1) return words[0].slice(0, 6);
-  return words.slice(0, 2).map((word) => word[0]).join("");
 }

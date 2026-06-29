@@ -9,6 +9,7 @@ import {
   JobPreferencesDialog,
   type JobProfileFilters,
 } from "@/components/jobs/job-preferences-dialog";
+import { getLogoText } from "@/lib/company";
 import type { JobCard, SearchInput } from "@/lib/jd-client";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,8 @@ type JobOptions = {
   companies: Option[];
   skills: Option[];
 };
+
+type JobSort = NonNullable<SearchInput["sort"]>;
 
 export function JobsClient({
   initialCards,
@@ -51,6 +54,7 @@ export function JobsClient({
   const [error, setError] = useState(initialError);
   const [hasLoadedFilters, setHasLoadedFilters] = useState(false);
   const [hasSavedFilters, setHasSavedFilters] = useState(false);
+  const [sort, setSort] = useState<JobSort>("default");
 
   const roleOptions = useMemo(() => {
     const names = new Set(cards.map((card) => card.jobTitle).filter(Boolean));
@@ -108,7 +112,7 @@ export function JobsClient({
 
   async function searchWithFilters(
     nextFilters: JobProfileFilters,
-    { closeDialog }: { closeDialog: boolean },
+    { closeDialog, sortBy = sort }: { closeDialog: boolean; sortBy?: JobSort },
   ) {
     const nextSearch: SearchInput = {
       companyText: nextFilters.companies.join(", "),
@@ -117,7 +121,7 @@ export function JobsClient({
       skillNames: nextFilters.skills,
       experienceYears: null,
       projectTexts: [],
-      sort: "default",
+      sort: sortBy,
     };
 
     setIsSearching(true);
@@ -154,6 +158,15 @@ export function JobsClient({
     await searchWithFilters(filters, { closeDialog: true });
   }
 
+  async function changeSort(nextSort: JobSort) {
+    if (nextSort === sort) return;
+    setSort(nextSort);
+    await searchWithFilters(filters, {
+      closeDialog: false,
+      sortBy: nextSort,
+    });
+  }
+
   return (
     <main className="min-h-screen bg-[#F5F3F7] font-sans text-black">
       <AppHeader user={user} />
@@ -169,6 +182,29 @@ export function JobsClient({
             <IconEdit className="size-4" />
           </button>
         </h1>
+
+        <div className="mt-4 flex justify-end">
+          <fieldset
+            aria-label="Sort jobs"
+            className="inline-grid grid-cols-2 rounded-xl bg-[#ECE8F1] p-1"
+          >
+            {(["default", "score"] as const).map((value) => (
+              <button
+                key={value}
+                aria-pressed={sort === value}
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-semibold text-[#2F2B35] transition",
+                  sort === value && "bg-white shadow-sm",
+                )}
+                disabled={isSearching}
+                type="button"
+                onClick={() => void changeSort(value)}
+              >
+                {value === "default" ? "Relevance" : "Skill match"}
+              </button>
+            ))}
+          </fieldset>
+        </div>
 
         {error && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
@@ -317,12 +353,6 @@ function formatExperience(min: number | null, max: number | null) {
   if (min != null && max != null) return `${min}-${max} years`;
   if (min != null) return `${min}+ years`;
   return `Up to ${max} years`;
-}
-
-function getLogoText(companyName: string) {
-  const words = companyName.split(/\s+/).filter(Boolean);
-  if (!words.length) return "J";
-  return words[0][0].toUpperCase();
 }
 
 function readStoredFilters(): JobProfileFilters | null {

@@ -18,8 +18,8 @@ export default function JobDetailLoading() {
                 <div className="h-3 w-48 animate-pulse rounded-md bg-[#E4E0E7]" />
               </div>
               <div className="flex shrink-0 items-center gap-5">
-                <div className="size-16 animate-pulse rounded-full bg-[#E4E0E7]" />
-                <div className="h-14 w-36 animate-pulse rounded-full bg-[#E4E0E7]" />
+                <div className="size-18 animate-pulse rounded-full bg-[#E4E0E7] md:size-16" />
+                <div className="hidden h-14 w-36 animate-pulse rounded-full bg-[#E4E0E7] md:block" />
               </div>
             </div>
             <div className="mt-5 h-8 w-28 animate-pulse rounded-lg bg-[#E4E0E7]" />
@@ -32,6 +32,7 @@ export default function JobDetailLoading() {
               <div className="h-9 w-24 animate-pulse rounded-lg bg-[#E4E0E7]" />
               <div className="h-9 w-28 animate-pulse rounded-lg bg-[#E4E0E7]" />
             </div>
+            <div className="mt-5 h-14 w-full animate-pulse rounded-full bg-[#E4E0E7] md:hidden" />
           </div>
 
           <div className="rounded-2xl bg-white px-5 py-6">
