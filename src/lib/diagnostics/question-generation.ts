@@ -51,7 +51,7 @@ export type DiagnosticQuestionGenerationResult = {
   };
 };
 
-const MODEL = process.env.DIAGNOSTIC_QUESTION_MODEL_ID ?? "openai/gpt-4o-mini";
+const MODEL = process.env.DIAGNOSTIC_QUESTION_MODEL_ID ?? "openai/gpt-5.4-nano";
 const QUESTION_COUNT = 10;
 
 // NOTE: no min/max/length constraints — OpenAI strict structured-output mode
