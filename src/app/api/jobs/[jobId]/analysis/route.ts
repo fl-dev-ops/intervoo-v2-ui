@@ -1,9 +1,14 @@
+import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { buildResumeAnalysisInput } from "@/lib/diagnostics/search-input";
-import { analyzeJobFit, type JobMatch } from "@/lib/jd-client";
+import {
+  analyzeJobFit,
+  buildJobAnalysisRequest,
+  type JobMatch,
+} from "@/lib/jd-client";
 
 export async function POST(
   request: Request,
@@ -29,7 +34,7 @@ export async function POST(
     };
     const { jobId } = await params;
     const match = body.match ?? null;
-    const result = await analyzeJobFit(jobId, {
+    const analysisInput = {
       ...buildResumeAnalysisInput({
         role: resume.role,
         experienceYears: resume.experienceYears,
@@ -44,10 +49,52 @@ export async function POST(
       overallPct: match?.score ?? null,
       skillsPct: match?.skillsPct ?? null,
       projectsPct: match?.projectsPct ?? null,
-    });
+    };
+    const analysisRequest = buildJobAnalysisRequest(analysisInput);
+    const inputHash = createHash("sha256")
+      .update(JSON.stringify(analysisRequest))
+      .digest("hex");
+    const cacheKey = {
+      resumeId: resume.id,
+      jobId,
+      inputHash,
+    };
 
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 502 });
+    try {
+      const cached = await prisma.resumeJobAnalysis.findUnique({
+        where: { resumeId_jobId_inputHash: cacheKey },
+        select: { analysis: true },
+      });
+
+      if (cached) {
+        return NextResponse.json({ analysis: cached.analysis });
+      }
+    } catch (cacheError) {
+      console.error("Job analysis cache read error:", cacheError);
+    }
+
+    const result = await analyzeJobFit(jobId, analysisRequest);
+
+    if (result.error || !result.data) {
+      return NextResponse.json(
+        { error: result.error || "Failed to load job fit analysis" },
+        { status: 502 },
+      );
+    }
+
+    try {
+      await prisma.resumeJobAnalysis.upsert({
+        where: { resumeId_jobId_inputHash: cacheKey },
+        create: {
+          ...cacheKey,
+          analysis: result.data.analysis as object,
+        },
+        update: {
+          analysis: result.data.analysis as object,
+        },
+      });
+    } catch (cacheError) {
+      console.error("Job analysis cache write error:", cacheError);
     }
 
     return NextResponse.json(result.data);

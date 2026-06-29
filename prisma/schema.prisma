@@ -87,9 +87,25 @@ model Resume {
   workInitiatives     Json @default("[]")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  jobAnalyses     ResumeJobAnalysis[]
 
   @@index([userId])
   @@map("resume")
+}
+
+model ResumeJobAnalysis {
+  id        String   @id @default(cuid())
+  resumeId  String
+  jobId     String
+  inputHash String
+  analysis  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@unique([resumeId, jobId, inputHash])
+  @@map("resume_job_analysis")
 }
 
 // BetterAuth session (keep existing)
