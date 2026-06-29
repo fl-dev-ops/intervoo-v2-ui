@@ -109,6 +109,11 @@ export type JobAnalysisInput = {
   projectsPct?: number | null;
 };
 
+export type JobAnalysisRequest = Omit<
+  JobAnalysisInput,
+  "experienceMinYears" | "experienceMaxYears"
+>;
+
 export async function getOptions(): Promise<
   Result<{ companies: CompanyOption[]; skills: SkillOption[] }>
 > {
@@ -200,11 +205,7 @@ export async function analyzeJobFit(
   jobId: string,
   input: JobAnalysisInput,
 ): Promise<Result<{ analysis: JobFitAnalysis }>> {
-  const {
-    experienceMinYears: _experienceMinYears,
-    experienceMaxYears: _experienceMaxYears,
-    ...body
-  } = input;
+  const body = buildJobAnalysisRequest(input);
 
   const response = await fetch(
     `${BASE_URL}/api/jobs/${encodeURIComponent(jobId)}/analysis`,
@@ -224,4 +225,16 @@ export async function analyzeJobFit(
   }
 
   return { error: null, data: json };
+}
+
+export function buildJobAnalysisRequest(
+  input: JobAnalysisInput,
+): JobAnalysisRequest {
+  const {
+    experienceMinYears: _experienceMinYears,
+    experienceMaxYears: _experienceMaxYears,
+    ...body
+  } = input;
+
+  return body;
 }

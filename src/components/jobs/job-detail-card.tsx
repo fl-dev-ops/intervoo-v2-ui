@@ -64,8 +64,8 @@ export function JobDetailCard({
   const [matchError, setMatchError] = useState<string | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isMatchLoading, setIsMatchLoading] = useState(Boolean(jobId));
-  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
-  const skillChips = getSkillChips(analysis?.skills, skills);
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(Boolean(jobId));
+  const skillChips = getSkillChips(analysis?.skills);
   const shouldShowFitDetails = showFitDetails && Boolean(jobId || skills);
   const showStartInterview = Boolean(jobId && onStartInterview);
   const meta = [experience, location, workMode].filter(Boolean);
@@ -83,7 +83,7 @@ export function JobDetailCard({
     async function loadFitData() {
       let didLoadMatch = false;
       setIsMatchLoading(true);
-      setIsAnalysisLoading(false);
+      setIsAnalysisLoading(true);
       setMatchError(null);
       setAnalysisError(null);
       setMatch(null);
@@ -199,31 +199,6 @@ export function JobDetailCard({
                 </div>
               ) : null}
             </div>
-
-            {sourceUrl ? (
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#F7F3FF] px-3 py-2 text-xs font-semibold text-[#5E41CF]"
-              >
-                <SourceIcon sourceUrl={sourceUrl} />
-                View posting
-              </a>
-            ) : null}
-
-            {description ? (
-              <p className="mt-5 max-w-4xl text-[13px] leading-6 text-[#6D6873]">
-                {description}
-              </p>
-            ) : null}
-
-            {isMatchLoading ? (
-              <div className="mt-5">
-                <LoadingHint label="Loading match scores..." />
-              </div>
-            ) : null}
-
             <div className="mt-5 flex flex-wrap gap-3">
               {isMatchLoading ? (
                 <ScoreSkeletons />
@@ -240,6 +215,12 @@ export function JobDetailCard({
                 {roundCount} Rounds
               </Badge>
             </div>
+
+            {description ? (
+              <p className="mt-5 max-w-4xl text-[13px] leading-6 text-[#6D6873]">
+                {description}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -255,34 +236,39 @@ export function JobDetailCard({
       {shouldShowFitDetails ? (
         <>
           <SectionCard action="+ Add Skills" title="Skills">
-            {isAnalysisLoading ? (
-              <LoadingHint label="Checking matched and missing skills..." />
-            ) : null}
-            {skillChips.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {skillChips.map((skill) => (
-                  <Badge
-                    key={skill.skill}
-                    className={cn(
-                      "h-auto rounded-lg px-3 py-2 text-sm font-semibold",
-                      skill.matched
-                        ? "bg-[#FFF8E8] text-[#D96A00]"
-                        : "bg-[#F3F3F4] text-black",
-                    )}
-                    variant="secondary"
-                  >
-                    {skill.matched ? (
-                      <span className="flex size-4 items-center justify-center rounded bg-[#11BF2A] text-[11px] text-white">
-                        ✓
-                      </span>
-                    ) : null}
-                    {skill.skill}
-                  </Badge>
-                ))}
-              </div>
+            {analysis ? (
+              skillChips.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {skillChips.map((skill) => (
+                    <Badge
+                      key={skill.skill}
+                      className={cn(
+                        "h-auto rounded-lg px-3 py-2 text-sm font-semibold",
+                        skill.matched
+                          ? "bg-[#FFF8E8] text-[#D96A00]"
+                          : "bg-[#F3F3F4] text-black",
+                      )}
+                      variant="secondary"
+                    >
+                      {skill.matched ? (
+                        <span className="flex size-4 items-center justify-center rounded bg-[#11BF2A] text-[11px] text-white">
+                          ✓
+                        </span>
+                      ) : null}
+                      {skill.skill}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[13px] text-[#6D6873]">
+                  No skills were available for this job.
+                </p>
+              )
+            ) : isAnalysisLoading ? (
+              <SkillSkeletons />
             ) : (
               <p className="text-[13px] text-[#6D6873]">
-                No skills were available for this job.
+                Skills could not be loaded from the rounds API.
               </p>
             )}
           </SectionCard>
@@ -375,22 +361,22 @@ function MatchScoreRing({
   );
 }
 
-function LoadingHint({ label }: { label: string }) {
-  return (
-    <div className="mb-4 flex items-center gap-2 text-xs font-medium text-[#6D6873]">
-      <span className="size-2 rounded-full bg-[#D96A00] motion-safe:animate-pulse" />
-      {label}
-    </div>
-  );
-}
-
 function ScoreSkeletons() {
   return (
     <>
       <Skeleton className="h-9 w-36 rounded-lg bg-[#F3F0F4]" />
       <Skeleton className="h-9 w-24 rounded-lg bg-[#F3F0F4]" />
-      <Skeleton className="h-9 w-28 rounded-lg bg-[#F3F0F4]" />
     </>
+  );
+}
+
+function SkillSkeletons() {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Skeleton className="h-9 w-28 rounded-lg bg-[#F3F0F4]" />
+      <Skeleton className="h-9 w-24 rounded-lg bg-[#F3F0F4]" />
+      <Skeleton className="h-9 w-32 rounded-lg bg-[#F3F0F4]" />
+    </div>
   );
 }
 
@@ -399,9 +385,6 @@ function SectionSkeletons() {
     <div className="space-y-5">
       {["Responsibilities", "Requirements", "Nice to have"].map((title) => (
         <SectionCard key={title} title={title}>
-          <LoadingHint
-            label={`Loading ${title.toLowerCase()} fit analysis...`}
-          />
           <div className="space-y-3">
             <Skeleton className="h-4 w-36 bg-[#F3F0F4]" />
             <Skeleton className="h-4 w-full bg-[#F3F0F4]" />
@@ -420,10 +403,12 @@ function FitAccordionItem({
   title,
   value,
 }: {
-  section: FitSection;
+  section?: FitSection;
   title: string;
   value: string;
 }) {
+  if (!section?.items.length) return null;
+
   return (
     <AccordionItem
       className="rounded-2xl border-0 bg-white px-5 py-2 shadow-none"
@@ -540,23 +525,12 @@ function SourceIcon({ sourceUrl }: { sourceUrl: string }) {
   return <FileText className="size-4 text-black" />;
 }
 
-function getSkillChips(
-  analysisSkills: SkillChip[] | undefined,
-  rawSkills?: string | null,
-): SkillChip[] {
+function getSkillChips(analysisSkills: SkillChip[] | undefined): SkillChip[] {
   if (analysisSkills?.length) {
     return [...analysisSkills].sort(
       (a, b) => Number(b.matched) - Number(a.matched),
     );
   }
 
-  return parseSkills(rawSkills).map((skill) => ({ skill, matched: false }));
-}
-
-function parseSkills(rawSkills?: string | null) {
-  if (!rawSkills) return [];
-  return rawSkills
-    .split(/[,;\n]/)
-    .map((skill) => skill.trim())
-    .filter(Boolean);
+  return [];
 }
