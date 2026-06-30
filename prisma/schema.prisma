@@ -226,6 +226,7 @@ model Report {
   sessionId    String       @unique
   reportJson   Json?
   metadata     Json?
+  proctoring   Json?
   status       ReportStatus @default(PENDING)
   errorMessage String?
   shareToken   String?      @unique

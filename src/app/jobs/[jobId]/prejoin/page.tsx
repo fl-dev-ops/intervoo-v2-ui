@@ -62,6 +62,7 @@ export default async function JobPrejoinPage({ params, searchParams }: Props) {
     <CustomPreJoin
       diagnosticId={diagnostic.id}
       hideCoachSelection
+      jobId={jobId}
       roundId={roundId}
       userName={user.name ?? user.email ?? null}
     />

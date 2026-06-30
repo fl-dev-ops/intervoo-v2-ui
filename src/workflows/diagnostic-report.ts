@@ -2,7 +2,7 @@ import {
   type GenerateContentResponseUsageMetadata,
   GoogleGenAI,
 } from "@google/genai";
-import { FatalError, getStepMetadata, RetryableError } from "workflow";
+import { FatalError, getStepMetadata, RetryableError, sleep } from "workflow";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import {
@@ -15,6 +15,14 @@ import {
   uploadGeminiFile,
 } from "@/lib/gemini-client";
 import { getPostHogClient } from "@/lib/posthog-server";
+import {
+  fetchAutoProctorAttemptReport,
+  fetchAutoProctorEvidenceRecords,
+} from "@/lib/proctor/api";
+import {
+  getAutoProctorClientId,
+  hashAutoProctorTestAttemptId,
+} from "@/lib/proctor/server";
 import {
   buildDiagnosticReportResult,
   prepareDiagnosticReportGeneration,
@@ -45,6 +53,7 @@ type WorkflowResult = {
 const TRANSIENT_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const FILE_ACTIVE_POLL_INTERVAL_MS = 1500;
 const FILE_ACTIVE_POLL_TIMEOUT_MS = 120_000;
+const AUTOPROCTOR_REPORT_MAX_ATTEMPTS = 20;
 
 export async function generateDiagnosticSessionReportWorkflow(
   sessionId: string,
@@ -74,12 +83,246 @@ export async function generateDiagnosticSessionReportWorkflow(
       persisted.shareToken,
     );
     await cleanupDiagnosticGeminiFilesStep(uploadedFiles);
+    await fetchAutoProctorReportWithPolling(sessionId);
     return persisted;
   } catch (error) {
     await cleanupDiagnosticGeminiFilesStep(uploadedFiles);
     await markDiagnosticReportFailedStep(sessionId, getErrorMessage(error));
     throw error;
   }
+}
+
+async function fetchAutoProctorReportWithPolling(sessionId: string) {
+  let lastResult: AutoProctorFetchStepResult | null = null;
+
+  try {
+    for (
+      let attempt = 1;
+      attempt <= AUTOPROCTOR_REPORT_MAX_ATTEMPTS;
+      attempt++
+    ) {
+      lastResult = await fetchAutoProctorReportStep(sessionId, attempt);
+
+      if (lastResult.status === "ready" || lastResult.status === "skipped") {
+        return;
+      }
+
+      await sleep(getAutoProctorPollDelay(attempt));
+    }
+
+    await persistAutoProctorTimeoutStep(sessionId, lastResult);
+  } catch (error) {
+    // Non-fatal: the diagnostic report should remain READY even if AP is late.
+    console.error("[diagnostics] non-fatal AutoProctor fetch failure", {
+      error: error instanceof Error ? error.message : String(error),
+      sessionId,
+    });
+  }
+}
+
+type AutoProctorFetchStepResult = {
+  status: "pending" | "ready" | "skipped";
+  evidenceStatus?: string | null;
+  testAttemptStatus?: string | null;
+  trustScore?: number | null;
+};
+
+async function fetchAutoProctorReportStep(
+  sessionId: string,
+  attempt: number,
+): Promise<AutoProctorFetchStepResult> {
+  "use step";
+
+  const session = await prisma.interviewSession.findUnique({
+    where: { id: sessionId },
+    include: { report: true },
+  });
+
+  if (!session?.report) {
+    console.info("[diagnostics] AutoProctor fetch skipped; report missing", {
+      sessionId,
+    });
+    return { status: "skipped" };
+  }
+
+  if (session.report.proctoring) {
+    console.info("[diagnostics] AutoProctor fetch skipped; already stored", {
+      sessionId,
+    });
+    return { status: "skipped" };
+  }
+
+  const proctoringMetadata = getSessionProctoringMetadata(session.metadata);
+  if (proctoringMetadata?.status === "failed") {
+    await prisma.report.update({
+      where: { sessionId },
+      data: {
+        proctoring: {
+          fetchedAt: new Date().toISOString(),
+          source: "autoproctor",
+          status: "failed",
+          errorCode: proctoringMetadata.errorCode ?? null,
+          errorDetail: proctoringMetadata.errorDetail ?? null,
+        },
+      },
+    });
+    return { status: "skipped" };
+  }
+
+  const hashedTestAttemptId = hashAutoProctorTestAttemptId(session.id);
+  const report = await fetchAutoProctorAttemptReport({
+    clientId: getAutoProctorClientId(),
+    hashedTestAttemptId,
+    testAttemptId: session.id,
+  });
+
+  const testAttempt = getAutoProctorTestAttempt(report);
+  const evidenceStatus =
+    getStringField(testAttempt, "evidence_status") ??
+    getStringField(report, "evidenceStatus") ??
+    getStringField(report, "evidence_status");
+  const testAttemptStatus =
+    getStringField(testAttempt, "test_attempt_status") ??
+    getStringField(report, "testAttemptStatus") ??
+    getStringField(report, "test_attempt_status");
+  const trustScore = getAutoProctorTrustScore(report);
+
+  console.info("[diagnostics] AutoProctor report polled", {
+    attempt,
+    evidenceStatus,
+    sessionId,
+    testAttemptStatus,
+    trustScore,
+  });
+
+  if (evidenceStatus !== "processed") {
+    return { status: "pending", evidenceStatus, testAttemptStatus, trustScore };
+  }
+
+  const evidence = await fetchAutoProctorEvidenceRecords({
+    clientId: getAutoProctorClientId(),
+    hashedTestAttemptId,
+    testAttemptId: session.id,
+  }).catch((error) => {
+    console.error(
+      "[diagnostics] non-fatal AutoProctor evidence fetch failure",
+      {
+        error: error instanceof Error ? error.message : String(error),
+        sessionId,
+      },
+    );
+    return null;
+  });
+
+  await prisma.report.update({
+    where: { sessionId },
+    data: {
+      proctoring: {
+        fetchedAt: new Date().toISOString(),
+        source: "autoproctor",
+        hashedTestAttemptId,
+        evidenceStatus,
+        testAttemptStatus,
+        trustScore,
+        report,
+        evidence,
+      } as object,
+    },
+  });
+
+  console.info("[diagnostics] AutoProctor report stored", {
+    evidenceStatus,
+    sessionId,
+    testAttemptStatus,
+    trustScore,
+  });
+
+  return { status: "ready", evidenceStatus, testAttemptStatus, trustScore };
+}
+
+async function persistAutoProctorTimeoutStep(
+  sessionId: string,
+  lastResult: AutoProctorFetchStepResult | null,
+) {
+  "use step";
+
+  const report = await prisma.report.findUnique({
+    where: { sessionId },
+    select: { proctoring: true },
+  });
+
+  if (!report || report.proctoring) return;
+
+  await prisma.report.update({
+    where: { sessionId },
+    data: {
+      proctoring: {
+        fetchedAt: new Date().toISOString(),
+        source: "autoproctor",
+        status: "timeout",
+        evidenceStatus: lastResult?.evidenceStatus ?? null,
+        testAttemptStatus: lastResult?.testAttemptStatus ?? null,
+        trustScore: lastResult?.trustScore ?? null,
+      },
+    },
+  });
+
+  console.warn("[diagnostics] AutoProctor report polling timed out", {
+    sessionId,
+    evidenceStatus: lastResult?.evidenceStatus ?? null,
+    testAttemptStatus: lastResult?.testAttemptStatus ?? null,
+  });
+}
+
+function getAutoProctorPollDelay(attempt: number) {
+  if (attempt <= 4) return "30 seconds";
+  if (attempt <= 10) return "1 minute";
+  return "2 minutes";
+}
+
+function getSessionProctoringMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const proctoring = (metadata as Record<string, unknown>).proctoring;
+  if (
+    !proctoring ||
+    typeof proctoring !== "object" ||
+    Array.isArray(proctoring)
+  ) {
+    return null;
+  }
+
+  return proctoring as {
+    status?: string;
+    errorCode?: number | null;
+    errorDetail?: string | null;
+  };
+}
+
+function getStringField(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return typeof value === "string" ? value : null;
+}
+
+function getAutoProctorTestAttempt(report: Record<string, unknown>) {
+  const testAttempt = report.test_attempt ?? report.attemptDetails;
+  if (
+    !testAttempt ||
+    typeof testAttempt !== "object" ||
+    Array.isArray(testAttempt)
+  ) {
+    return {};
+  }
+
+  return testAttempt as Record<string, unknown>;
+}
+
+function getAutoProctorTrustScore(report: Record<string, unknown>) {
+  const attemptDetails = getAutoProctorTestAttempt(report);
+  const trustScore = attemptDetails.trustScore ?? attemptDetails.trust_score;
+  return typeof trustScore === "number" ? trustScore : null;
 }
 
 async function prepareDiagnosticReportStep(sessionId: string) {

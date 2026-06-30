@@ -18,6 +18,7 @@ import {
   createRoomServiceClient,
   getLiveKitCredentials,
 } from "@/lib/livekit";
+import { buildInitialProctorMetadata } from "@/lib/proctor/server";
 import { getUserStage } from "@/lib/progress";
 
 const LIVEKIT_AGENT_NAME = "intervoo-agent-hs";
@@ -72,7 +73,9 @@ type PreparedDiagnosticSession = {
   selectedJob: SelectedDiagnosticJob;
   speakingSpeed: number;
   user: {
+    email: string | null;
     id: string;
+    name: string | null;
     resume: {
       education: unknown;
       experienceYears: number | null;
@@ -233,7 +236,9 @@ async function prepareDiagnosticSessionStep(
     selectedJob,
     speakingSpeed,
     user: {
+      email: user.email ?? null,
       id: user.id,
+      name: user.name ?? null,
       resume: user.resume
         ? {
             education: user.resume.education,
@@ -365,6 +370,10 @@ async function persistDiagnosticSessionMetadataStep(
         prepared.selectedJob.raw.rounds ?? [],
       ),
     },
+    proctoring: buildInitialProctorMetadata({
+      email: prepared.user.email,
+      name: prepared.user.resume?.name || prepared.user.name,
+    }),
   };
 
   await prisma.interviewSession.update({

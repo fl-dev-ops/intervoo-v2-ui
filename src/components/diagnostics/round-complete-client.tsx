@@ -51,7 +51,7 @@ export function RoundCompleteClient({
         : nextRound
           ? "Go to job rounds"
           : "Go to interview rounds";
-  const jobHref = jobId ? `/jobs/${jobId}` : "/jobs";
+  const jobHref = jobId ? `/jobs/${jobId}?step=round-list` : "/jobs";
   const primaryHref = hasFailedReport
     ? jobId
       ? `/jobs/${jobId}/prejoin?round=${completedRoundId}`
