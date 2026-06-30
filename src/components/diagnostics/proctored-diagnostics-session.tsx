@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { DiagnosticsAgentSession } from "@/components/diagnostics/diagnostics-agent-session";
 import { PROCTOR_TEST_CONTAINER_ID } from "@/lib/proctor/default-config";
 import type { ProctorConfig } from "@/lib/proctor/types";
@@ -209,13 +210,13 @@ export function ProctoredDiagnosticsSession({
       const detail = getEventDetail(event);
       const code = detail?.evidenceCode;
       if (code === 5001) {
-        console.log(
-          `[Proctor] No face detected (count: ${detail.violationCount})`,
-        );
+        toast.warning("No face detected", {
+          description: "Please ensure your face is visible on camera.",
+        });
       } else if (code === 5002) {
-        console.log(
-          `[Proctor] Multiple faces detected (count: ${detail.violationCount})`,
-        );
+        toast.warning("Multiple faces detected", {
+          description: "Only one person should be visible on camera.",
+        });
       }
     };
 

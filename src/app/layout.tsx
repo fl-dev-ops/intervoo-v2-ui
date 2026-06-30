@@ -6,6 +6,7 @@ import { PostHogPageView, PostHogProvider } from "@posthog/next";
 import { ThemeProvider } from "next-themes";
 import { PostHogIdentify } from "@/components/posthog-identify";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +77,7 @@ export default function RootLayout({
           >
             <TooltipProvider>
               <ScrollArea className="min-h-0 flex-1">{children}</ScrollArea>
+              <Toaster />
             </TooltipProvider>
           </ThemeProvider>
         </PostHogProvider>
