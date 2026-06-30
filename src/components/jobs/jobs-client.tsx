@@ -114,13 +114,22 @@ export function JobsClient({
     nextFilters: JobProfileFilters,
     { closeDialog, sortBy = sort }: { closeDialog: boolean; sortBy?: JobSort },
   ) {
+    const resumeSkillsByName = new Map(
+      (initialSearch.skills ?? []).map((skill) => [
+        skill.name.trim().toLowerCase(),
+        skill,
+      ]),
+    );
     const nextSearch: SearchInput = {
       companyText: nextFilters.companies.join(", "),
       roleText: nextFilters.roles.join(", "),
-      skills: nextFilters.skills.map((name) => ({ name, gloss: null })),
+      skills: nextFilters.skills.map((name) => ({
+        name,
+        gloss: resumeSkillsByName.get(name.trim().toLowerCase())?.gloss ?? null,
+      })),
       skillNames: nextFilters.skills,
       experienceYears: null,
-      projectTexts: [],
+      projectTexts: initialSearch.projectTexts ?? [],
       sort: sortBy,
     };
 
@@ -171,7 +180,7 @@ export function JobsClient({
     <main className="min-h-screen bg-[#F5F3F7] font-sans text-black">
       <AppHeader user={user} />
       <section className="mx-auto w-full max-w-225 px-4 pb-12 pt-6">
-        <h1 className="text-lg font-extrabold tracking-tight text-[#353238]">
+        <h1 className="text-2xl font-extrabold font-serif tracking-tight text-[#353238]">
           Jobs matching your{" "}
           <button
             type="button"
@@ -200,7 +209,7 @@ export function JobsClient({
                 type="button"
                 onClick={() => void changeSort(value)}
               >
-                {value === "default" ? "Relevance" : "Skill match"}
+                {value === "default" ? "Role match" : "Skill match"}
               </button>
             ))}
           </fieldset>
@@ -335,8 +344,7 @@ function ScoreRing({ score }: { score: number }) {
 
 function normalizeScore(score: number | null) {
   if (score == null || Number.isNaN(score)) return 0;
-  const normalized = score <= 1 ? score * 100 : score;
-  return Math.max(0, Math.min(100, Math.round(normalized)));
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 function formatJobMeta(card: JobCard) {

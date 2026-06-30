@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { IconX } from "@tabler/icons-react";
 import { CheckIcon, Loader2, SearchIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { cn } from "@/lib/utils";
 
 export type JobProfileFilters = {
@@ -39,7 +40,7 @@ export function JobPreferencesDialog({
   skillOptions,
 }: JobPreferencesDialogProps) {
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F7F1FF] px-4 py-6">
+    <div className="fixed inset-x-0 bottom-0 top-16 z-50 overflow-y-auto bg-[#F7F1FF] px-4 py-6 md:top-[72px]">
       <div className="mx-auto flex min-h-full w-full max-w-[600px] flex-col">
         <div className="flex items-start justify-between">
           <div>
@@ -67,21 +68,23 @@ export function JobPreferencesDialog({
             Job Preference
           </p>
           <div className="mt-6 space-y-4">
-            <MultiSelectField
+            <MultiCombobox
               label="Role"
-              onChange={(roles) => setFilters((prev) => ({ ...prev, roles }))}
+              onValueChange={(roles) =>
+                setFilters((prev) => ({ ...prev, roles }))
+              }
               options={roleOptions}
-              placeholder="Select roles"
-              selected={filters.roles}
+              placeholder="Search role..."
+              value={filters.roles}
             />
-            <MultiSelectField
+            <MultiCombobox
               label="Company"
-              onChange={(companies) =>
+              onValueChange={(companies) =>
                 setFilters((prev) => ({ ...prev, companies }))
               }
               options={companyOptions}
-              placeholder="Select companies"
-              selected={filters.companies}
+              placeholder="Search company..."
+              value={filters.companies}
             />
             <SalarySection
               salary={filters.salary}

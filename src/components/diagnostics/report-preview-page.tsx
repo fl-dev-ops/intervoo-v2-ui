@@ -82,7 +82,11 @@ function FinalDiagnosticReportPreview({
   return (
     <main className="min-h-dvh bg-background">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 md:py-10">
-        <HeaderActions jobId={jobId} publicUrl={publicUrl} showActions={showActions} />
+        <HeaderActions
+          jobId={jobId}
+          publicUrl={publicUrl}
+          showActions={showActions}
+        />
 
         <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-lg">
           <div className="bg-linear-to-br from-primary/15 via-transparent to-emerald-500/10 p-5 md:p-8">
@@ -92,7 +96,7 @@ function FinalDiagnosticReportPreview({
             <div className="mt-4 grid gap-6 md:grid-cols-[1fr_16rem] md:items-center">
               <div>
                 <h1 className="text-2xl font-semibold tracking-[-0.02em] text-foreground md:text-4xl">
-                  Hi {displayName}, here is your full interview readiness report
+                  Hi {displayName}, here is your hireability report
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
                   A holistic synthesis across all four diagnostic rounds,

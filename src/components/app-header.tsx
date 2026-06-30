@@ -29,6 +29,7 @@ export function AppHeader({
   onLogout,
 }: AppHeaderProps) {
   const router = useRouter();
+  const hasProfileMenu = Boolean(user) && !displayOnly;
 
   async function handleLogout() {
     if (onLogout) {
@@ -61,67 +62,75 @@ export function AppHeader({
             <p className="mt-1 text-xs text-black/80">by Foreverlearning.in</p>
           </div>
         </div>
-        {user && displayOnly ? (
-          <div className="flex size-9 items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white">
-            {getInitial(user)}
-          </div>
-        ) : user ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  type="button"
-                  className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white transition hover:ring-2 hover:ring-[#6C47FF]/30"
-                />
-              }
-            >
+        <div className="flex items-center gap-3">
+          <button
+            className={`${hasProfileMenu ? "hidden md:inline-flex" : "inline-flex"} h-10 items-center gap-2 rounded-full border border-[#E5E2E7] bg-white px-4 text-sm font-semibold text-[#6846E8] shadow-sm transition hover:bg-[#F7F3FF]`}
+            type="button"
+          >
+            <BadgeHelp className="size-4" />
+            Having issues?
+          </button>
+
+          {user && displayOnly ? (
+            <div className="flex size-9 items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white">
               {getInitial(user)}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              sideOffset={10}
-              className="w-56 rounded-2xl p-3 border border-[#E5E2E7] bg-white shadow-[0_18px_45px_rgba(31,27,36,0.14)]"
-            >
-              <div className="px-1 pb-2">
-                <p className="truncate text-base font-medium text-[#2F2B35]">
-                  {user.name?.trim() || "User"}
-                </p>
-                {user.email ? (
-                  <p className="mt-1 truncate text-sm text-[#8A858E]">
-                    {user.email}
+            </div>
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <button
+                    type="button"
+                    className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white transition hover:ring-2 hover:ring-[#6C47FF]/30"
+                  />
+                }
+              >
+                {getInitial(user)}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                sideOffset={10}
+                className="w-56 rounded-2xl border border-[#E5E2E7] bg-white p-3 shadow-[0_18px_45px_rgba(31,27,36,0.14)]"
+              >
+                <div className="px-1 pb-2">
+                  <p className="truncate text-sm font-medium text-[#2F2B35]">
+                    {user.name?.trim() || "User"}
                   </p>
-                ) : null}
-              </div>
+                  {user.email ? (
+                    <p className="mt-1 truncate text-xs text-[#8A858E]">
+                      {user.email}
+                    </p>
+                  ) : null}
+                </div>
 
-              <DropdownMenuSeparator className="mx-0 mb-3" />
+                <DropdownMenuSeparator className="mx-0 mb-3" />
 
-              <DropdownMenuItem
-                className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7]"
-                onClick={() => router.push("/profile")}
-              >
-                <BriefcaseBusiness className="mr-2 size-5 text-[#56515A]" />
-                Profile edit
-              </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7]"
+                  onClick={() => router.push("/profile")}
+                >
+                  <BriefcaseBusiness className="mr-2 size-5 text-[#56515A]" />
+                  Profile edit
+                </DropdownMenuItem>
 
-              <DropdownMenuItem className="mt-1 rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7]">
-                <BadgeHelp className="mr-2 size-5 text-[#56515A]" />
-                Having issue?
-              </DropdownMenuItem>
+                <DropdownMenuItem className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7] md:hidden">
+                  <BadgeHelp className="mr-2 size-5 text-[#56515A]" />
+                  Having issues?
+                </DropdownMenuItem>
 
-              <DropdownMenuSeparator className="mx-0 my-3" />
+                <DropdownMenuSeparator className="mx-0 my-3 md:hidden" />
 
-              <DropdownMenuItem
-                className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7]"
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-2 size-5 text-[#56515A]" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : user === undefined ? (
-          <div className="size-9 animate-pulse rounded-full bg-[#E4E0E7]" />
-        ) : null}
+                <DropdownMenuItem
+                  className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7]"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 size-5 text-[#56515A]" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+        </div>
       </div>
     </header>
   );

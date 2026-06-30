@@ -129,7 +129,7 @@ export function InterviewReadinessScore({
       {...props}
     >
       <p className="mb-4 text-center text-base font-bold text-foreground">
-        Interview Readiness Score
+        Hireability Score
       </p>
 
       <div className="relative mx-auto mt-2 w-[72%]">

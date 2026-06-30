@@ -136,7 +136,7 @@ export function ReportView(props: ReportViewProps) {
     <>
       <section className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
         <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-          Interview readiness score
+          Hireability score
         </h2>
 
         <div className="mt-5 rounded-xl border border-border bg-input/30 p-4">
@@ -160,9 +160,7 @@ export function ReportView(props: ReportViewProps) {
               </div>
             </div>
             <div className="text-left md:text-right">
-              <p className="text-sm text-muted-foreground">
-                Interview Readiness Score
-              </p>
+              <p className="text-sm text-muted-foreground">Hireability Score</p>
               <p className="mt-2 text-4xl font-semibold text-foreground">
                 {score}%
               </p>

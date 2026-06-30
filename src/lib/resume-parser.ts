@@ -40,77 +40,108 @@ export type OnboardingProfile = {
   resumeText: string;
 };
 
-const ResumeSchema = z.object({
+const BasicFieldsSchema = z.object({
   name: z.string().nullable().default(null),
   email: z.string().nullable().default(null),
   phone_number: z.string().nullable().default(null),
-  education: z
-    .array(
-      z.object({
-        institution: z.string().nullable().default(null),
-        degree: z.string().nullable().default(null),
-        major: z.string().nullable().default(null),
-        graduation_year: z.number().nullable().default(null),
-        cgpa: z.union([z.string(), z.number()]).nullable().default(null),
-        is_current: z.boolean().nullable().default(null),
-      }),
-    )
-    .default([]),
-  // Accept both the {name, gloss} shape and a bare string (model-drift safety).
-  skills: z
-    .array(
-      z.union([
-        z.object({
-          name: z.string(),
-          gloss: z.string().nullable().default(null),
-        }),
-        z.string().transform((name) => ({ name, gloss: null })),
-      ]),
-    )
-    .default([]),
-  projects: z
-    .array(
-      z.object({
-        name: z.string().nullable().default(null),
-        description: z.string().nullable().default(null),
-        keywords: z.array(z.string()).default([]),
-        capabilities: z.array(z.string()).default([]),
-      }),
-    )
-    .default([]),
-  work_experience: z
-    .array(
-      z.object({
-        company: z.string().nullable().default(null),
-        role: z.string().nullable().default(null),
-        start_date: z.string().nullable().default(null),
-        end_date: z.string().nullable().default(null),
-        initiatives: z.array(z.string()).default([]),
-      }),
-    )
-    .default([]),
   experience_years: z.number().nullable().default(null),
   strongest_domain: z.string().nullable().default(null),
 });
 
+const EducationSchema = z
+  .array(
+    z.object({
+      institution: z.string().nullable().default(null),
+      degree: z.string().nullable().default(null),
+      major: z.string().nullable().default(null),
+      graduation_year: z.number().nullable().default(null),
+      cgpa: z.union([z.string(), z.number()]).nullable().default(null),
+      is_current: z.boolean().nullable().default(null),
+    }),
+  )
+  .default([]);
+
+const SkillsSchema = z
+  .array(
+    z.union([
+      z.object({
+        name: z.string(),
+        gloss: z.string().nullable().default(null),
+      }),
+      z.string().transform((name) => ({ name, gloss: null })),
+    ]),
+  )
+  .default([]);
+
+const ProjectsSchema = z
+  .array(
+    z.object({
+      name: z.string().nullable().default(null),
+      description: z.string().nullable().default(null),
+      keywords: z.array(z.string()).default([]),
+      capabilities: z.array(z.string()).default([]),
+    }),
+  )
+  .default([]);
+
+const WorkExperienceSchema = z
+  .array(
+    z.object({
+      company: z.string().nullable().default(null),
+      role: z.string().nullable().default(null),
+      start_date: z.string().nullable().default(null),
+      end_date: z.string().nullable().default(null),
+      initiatives: z.array(z.string()).default([]),
+    }),
+  )
+  .default([]);
+
+const ResumeSchema = BasicFieldsSchema.extend({
+  education: EducationSchema,
+  // Accept both the {name, gloss} shape and a bare string (model-drift safety).
+  skills: SkillsSchema,
+  projects: ProjectsSchema,
+  work_experience: WorkExperienceSchema,
+});
+
 type ParsedResume = z.infer<typeof ResumeSchema>;
 
+const ResumeStreamLineSchema = z.discriminatedUnion("section", [
+  z.object({ section: z.literal("basic"), data: BasicFieldsSchema }),
+  z.object({
+    section: z.literal("education"),
+    data: z.object({ education: EducationSchema }),
+  }),
+  z.object({
+    section: z.literal("skills"),
+    data: z.object({ skills: SkillsSchema }),
+  }),
+  z.object({
+    section: z.literal("experience"),
+    data: z.object({ work_experience: WorkExperienceSchema }),
+  }),
+  z.object({
+    section: z.literal("projects"),
+    data: z.object({ projects: ProjectsSchema }),
+  }),
+]);
+
+type ResumeStreamLine = z.infer<typeof ResumeStreamLineSchema>;
+type SectionEvent<T> = T extends ResumeStreamLine
+  ? T & { type: "section" }
+  : never;
+
+export type ResumeParseStreamEvent =
+  | SectionEvent<ResumeStreamLine>
+  | { type: "complete"; profile: OnboardingProfile };
+
 const SYSTEM_PROMPT = `You extract structured data from a candidate's resume for a job-matching product.
-Return ONLY a single JSON object, no prose, matching exactly this shape:
-{
-  "name": string | null,
-  "email": string | null,
-  "phone_number": string | null,
-  "education": [
-    { "institution": string, "degree": string, "major": string | null,
-      "graduation_year": number | null, "cgpa": string | null, "is_current": boolean }
-  ],
-  "skills": [ { "name": string, "gloss": string } ],
-  "projects": [ { "name": string, "description": string | null, "keywords": string[], "capabilities": string[] } ],
-  "work_experience": [ { "company": string, "role": string, "start_date": string | null, "end_date": string | null, "initiatives": string[] } ],
-  "experience_years": number,
-  "strongest_domain": string | null
-}
+Return EXACTLY five newline-delimited JSON objects (NDJSON), in this order, with one complete object per line and no markdown or prose:
+{"section":"basic","data":{"name":string|null,"email":string|null,"phone_number":string|null,"experience_years":number,"strongest_domain":string|null}}
+{"section":"education","data":{"education":[{"institution":string,"degree":string,"major":string|null,"graduation_year":number|null,"cgpa":string|null,"is_current":boolean}]}}
+{"section":"skills","data":{"skills":[{"name":string,"gloss":string}]}}
+{"section":"experience","data":{"work_experience":[{"company":string,"role":string,"start_date":string|null,"end_date":string|null,"initiatives":string[]}]}}
+{"section":"projects","data":{"projects":[{"name":string,"description":string|null,"keywords":string[],"capabilities":string[]}]}}
 IMPORTANT: ALL fields must be present in the response. Never omit any field.
 Rules:
 - Use [] for missing lists and null for missing scalars; never invent data.
@@ -128,7 +159,7 @@ Rules:
 - "project keywords" must be domain skills or tech concepts only (e.g. "real-time systems", "WebSocket", "distributed caching"). Exclude soft skills, team size, awards, and process words.
 - "project capabilities" = 3-5 short, verb-led statements describing what the candidate built or did, phrased like job-description responsibilities (start with a verb, 4-9 words, no metrics, no soft skills, no tool-only fragments), e.g. "Design retrieval-augmented generation architectures", "Write clean, maintainable code following OOP principles". Derive from the project's own description; never copy examples verbatim. If a project describes no action, use [].
 - "cgpa" is ONLY a numeric grade. Accept formats like "8.44", "3.7", "9.2/10", "72%", or grade classes like "First Class". Reject and set to null anything that describes how the degree was taken or its honours level — for example "Dist." / "Distance" / "Distance Education", "Regular", "Part-time" / "Full-time", "Online" / "Correspondence", "Hons." / "Honours". If the resume shows e.g. "B.E. (Dist.)" with no numeric grade, set cgpa to null and leave the "(Dist.)" out of every field (it is not a score, not a major, not a degree suffix worth keeping).
-- Return only the JSON object.`;
+- Return only the five NDJSON objects, one object per line.`;
 
 function getApiKey(): string {
   const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
@@ -182,7 +213,9 @@ async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
       start_date: w.start_date || "",
       end_date: w.end_date || "",
     }));
-  const work = workExperience.map((w) => [w.role, w.company].filter(Boolean).join(" · "));
+  const work = workExperience.map((w) =>
+    [w.role, w.company].filter(Boolean).join(" · "),
+  );
 
   const skillNames = dedupe(
     parsed.skills.map((s) => s.name.trim()).filter(Boolean),
@@ -252,7 +285,9 @@ function dedupe(items: string[]): string[] {
   });
 }
 
-export async function parseResume(file: File): Promise<OnboardingProfile> {
+export async function* parseResumeStream(
+  file: File,
+): AsyncGenerator<ResumeParseStreamEvent> {
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
   let tempFilePath: string | null = null;
 
@@ -287,14 +322,16 @@ export async function parseResume(file: File): Promise<OnboardingProfile> {
       fileName: uploaded.name,
     });
 
-    const response = await ai.models.generateContent({
+    const response = await ai.models.generateContentStream({
       model: MODEL,
       contents: [
         {
           role: "user",
           parts: [
             { fileData: { fileUri: uploaded.uri ?? "", mimeType } },
-            { text: "Extract ALL structured data from this resume. Return a complete JSON object with ALL fields: name, email, phone_number, education, skills, projects, work_experience (with start_date and end_date), experience_years, and strongest_domain. Do not omit any field." },
+            {
+              text: "Extract all structured data from this resume. Return exactly the five NDJSON section objects specified by the system instruction, in the required order.",
+            },
           ],
         },
       ],
@@ -305,21 +342,42 @@ export async function parseResume(file: File): Promise<OnboardingProfile> {
       },
     });
 
-    const text = response.text;
-    if (!text) {
-      throw new Error("Gemini returned empty response");
+    console.info(LOG_PREFIX, "Streaming Gemini response");
+
+    let pendingText = "";
+    const parsedFields: Record<string, unknown> = {};
+    const receivedSections = new Set<ResumeStreamLine["section"]>();
+
+    for await (const chunk of response) {
+      pendingText += chunk.text ?? "";
+      const lines = pendingText.split(/\r?\n/);
+      pendingText = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const streamLine = parseNdjsonLine(line);
+        if (!streamLine || receivedSections.has(streamLine.section)) continue;
+
+        receivedSections.add(streamLine.section);
+        Object.assign(parsedFields, streamLine.data);
+        yield { type: "section", ...streamLine };
+      }
     }
 
-    console.info(LOG_PREFIX, "Parsing Gemini response");
+    const finalLine = parseNdjsonLine(pendingText);
+    if (finalLine && !receivedSections.has(finalLine.section)) {
+      receivedSections.add(finalLine.section);
+      Object.assign(parsedFields, finalLine.data);
+      yield { type: "section", ...finalLine };
+    }
 
-    const json = text
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
-    const raw = JSON.parse(json);
-    const parsed = ResumeSchema.parse(raw);
+    if (receivedSections.size !== ResumeStreamLineSchema.options.length) {
+      throw new Error(
+        `Gemini returned ${receivedSections.size} of ${ResumeStreamLineSchema.options.length} resume sections`,
+      );
+    }
 
-    return mapToProfile(parsed);
+    const parsed = ResumeSchema.parse(parsedFields);
+    yield { type: "complete", profile: await mapToProfile(parsed) };
   } finally {
     if (tempFilePath) {
       try {
@@ -329,4 +387,15 @@ export async function parseResume(file: File): Promise<OnboardingProfile> {
       }
     }
   }
+}
+
+function parseNdjsonLine(line: string): ResumeStreamLine | null {
+  const json = line
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  if (!json) return null;
+  return ResumeStreamLineSchema.parse(JSON.parse(json));
 }

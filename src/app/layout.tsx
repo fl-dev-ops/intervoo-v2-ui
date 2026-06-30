@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Figtree, Geist, Geist_Mono } from "next/font/google";
+import { Figtree, Geist, Geist_Mono, Noto_Serif } from "next/font/google";
 import "@livekit/components-styles";
 import "./globals.css";
 import { PostHogPageView, PostHogProvider } from "@posthog/next";
@@ -11,6 +11,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
+
+const notoSerif = Noto_Serif({
+  subsets: ["latin"],
+  variable: "--font-noto-serif",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -63,6 +68,7 @@ export default function RootLayout({
         geistMono.variable,
         "font-sans",
         figtree.variable,
+        notoSerif.variable,
       )}
       suppressHydrationWarning
     >

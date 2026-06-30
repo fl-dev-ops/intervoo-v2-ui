@@ -2,46 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Spinner } from "@/components/ui/spinner";
-import {
-  ResumeUploadStep,
-  ResumeReviewStep,
-} from "@/components/onboarding";
 import { AppHeader } from "@/components/app-header";
-import { authClient } from "@/lib/auth-client";
-
-type ResumeData = {
-  name: string;
-  email: string;
-  phoneNumber: string;
-  role: string;
-  experienceYears: number | null;
-  education: {
-    degree: string;
-    stream: string;
-    institution: string;
-    graduationYear: string;
-    score: string;
-  }[];
-  skills: string[];
-  experience: {
-    title: string;
-    company: string;
-    startDate: string;
-    endDate: string;
-    description: string;
-  }[];
-  projects: {
-    title: string;
-    description: string;
-  }[];
-  // Rich matching fields — parsed once, carried through untouched (not edited
-  // in the review UI), index-aligned with skills/projects/experience.
-  skillGlosses?: Record<string, string>;
-  projectKeywords?: string[][];
-  projectCapabilities?: string[][];
-  workInitiatives?: string[][];
-};
+import {
+  ResumeParsingSkeleton,
+  ResumeReviewStep,
+  ResumeUploadStep,
+} from "@/components/onboarding";
+import { Spinner } from "@/components/ui/spinner";
+import { readNdjsonStream } from "@/lib/ndjson-stream";
+import type {
+  OnboardingResumeStreamEvent,
+  ResumeData,
+  ResumeSection,
+} from "@/lib/resume-client";
 
 type UserDefaults = {
   name: string;
@@ -53,6 +26,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<"upload" | "review">("upload");
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
+  const [loadedSections, setLoadedSections] = useState<ResumeSection[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -78,7 +52,7 @@ export default function OnboardingPage() {
         }
         setUserDefaults({
           name: data.name || "",
-          email: data.email || "",
+          email: getUserFacingEmail(data.email || ""),
           phoneNumber: data.phoneNumber || "",
         });
       } catch {
@@ -91,36 +65,73 @@ export default function OnboardingPage() {
     checkStage();
   }, [router]);
 
-  const handleParseResume = useCallback(async (file: File) => {
-    setIsParsing(true);
-    setParseError(null);
+  const handleParseResume = useCallback(
+    async (file: File) => {
+      setIsParsing(true);
+      setParseError(null);
+      setLoadedSections([]);
+      setResumeData(createEmptyResume(userDefaults));
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
 
-      const response = await fetch("/api/onboarding/parse-resume", {
-        method: "POST",
-        body: formData,
-      });
+        const response = await fetch("/api/onboarding/parse-resume", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to parse resume");
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to parse resume");
+        }
+        if (!response.body) {
+          throw new Error("Resume parser returned no response stream");
+        }
+
+        let completed = false;
+
+        const processEvent = async (event: OnboardingResumeStreamEvent) => {
+          if (event.type === "error") throw new Error(event.error);
+
+          if (event.type === "section") {
+            setResumeData((current) => ({
+              ...(current ?? createEmptyResume(userDefaults)),
+              ...event.data,
+            }));
+            setLoadedSections((current) =>
+              current.includes(event.section)
+                ? current
+                : [...current, event.section],
+            );
+            await waitForPaint();
+            return;
+          }
+
+          completed = true;
+          setResumeData(mergeWithUserDefaults(event.resume, userDefaults));
+        };
+
+        for await (const event of readNdjsonStream<OnboardingResumeStreamEvent>(
+          response.body,
+        )) {
+          await processEvent(event);
+        }
+
+        if (!completed) throw new Error("Resume parsing did not complete");
+
+        await waitForFinalSection();
+        setIsParsing(false);
+        setStep("review");
+      } catch (err) {
+        setParseError(
+          err instanceof Error ? err.message : "Failed to parse resume",
+        );
+        setIsParsing(false);
       }
-
-      const data = await response.json();
-      const merged = mergeWithUserDefaults(data.resume, userDefaults);
-      setResumeData(merged);
-      setStep("review");
-    } catch (err) {
-      setParseError(
-        err instanceof Error ? err.message : "Failed to parse resume",
-      );
-    } finally {
-      setIsParsing(false);
-    }
-  }, [userDefaults]);
+    },
+    [userDefaults],
+  );
 
   const handleSkip = useCallback(() => {
     setResumeData({
@@ -172,14 +183,6 @@ export default function OnboardingPage() {
     [resumeData, router],
   );
 
-  const handleLogout = useCallback(async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => router.push("/login"),
-      },
-    });
-  }, [router]);
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -190,8 +193,16 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F1FF] font-sans">
-      <AppHeader onLogout={handleLogout} />
-      {step === "upload" ? (
+      <AppHeader />
+      {isParsing ? (
+        <ResumeParsingSkeleton
+          email={userDefaults.email}
+          loadedSections={loadedSections}
+          name={userDefaults.name}
+          phoneNumber={userDefaults.phoneNumber}
+          resumeData={resumeData}
+        />
+      ) : step === "upload" ? (
         <ResumeUploadStep
           onParse={handleParseResume}
           onSkip={handleSkip}
@@ -222,4 +233,31 @@ function mergeWithUserDefaults(
     email: resume.email || defaults.email || "",
     phoneNumber: resume.phoneNumber || defaults.phoneNumber,
   };
+}
+
+function createEmptyResume(defaults: UserDefaults): ResumeData {
+  return {
+    name: defaults.name,
+    email: defaults.email,
+    phoneNumber: defaults.phoneNumber,
+    role: "",
+    experienceYears: null,
+    education: [],
+    skills: [],
+    experience: [],
+    projects: [],
+  };
+}
+
+function waitForPaint() {
+  return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+function waitForFinalSection() {
+  return new Promise<void>((resolve) => setTimeout(resolve, 500));
+}
+
+function getUserFacingEmail(email: string) {
+  const value = email.trim();
+  return value.toLowerCase().endsWith("@otp.foreverlearning.in") ? "" : value;
 }
