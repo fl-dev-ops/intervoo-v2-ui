@@ -17,6 +17,7 @@ import {
 const CREATE_PREFIX = "__create_option__:";
 
 type MultiComboboxProps = {
+  closeOnValueChange?: boolean;
   label: string;
   onValueChange: (value: string[]) => void;
   options: string[];
@@ -25,6 +26,7 @@ type MultiComboboxProps = {
 };
 
 export function MultiCombobox({
+  closeOnValueChange = false,
   label,
   onValueChange,
   options,
@@ -33,6 +35,7 @@ export function MultiCombobox({
 }: MultiComboboxProps) {
   const id = useId();
   const anchor = useComboboxAnchor();
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const selected = useMemo(() => uniqueValues(value), [value]);
   const selectedKeys = useMemo(
@@ -74,11 +77,13 @@ export function MultiCombobox({
       );
       onValueChange(uniqueValues([...withoutCreateItem, customValue]));
       setQuery("");
+      if (closeOnValueChange) setOpen(false);
       return;
     }
 
     onValueChange(uniqueValues(nextValue));
     setQuery("");
+    if (closeOnValueChange) setOpen(false);
   }
 
   return (
@@ -93,10 +98,12 @@ export function MultiCombobox({
         items={items}
         multiple
         onInputValueChange={setQuery}
-        onOpenChange={(open) => {
-          if (!open) setQuery("");
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) setQuery("");
         }}
         onValueChange={handleValueChange}
+        open={open}
         value={selected}
       >
         <ComboboxChips

@@ -1,7 +1,7 @@
 "use client";
 
 import { IconEdit } from "@tabler/icons-react";
-import { Search } from "lucide-react";
+import { BriefcaseBusiness, Search, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/app-header";
@@ -9,6 +9,13 @@ import {
   JobPreferencesDialog,
   type JobProfileFilters,
 } from "@/components/jobs/job-preferences-dialog";
+import { ProfileEditDialog } from "@/components/profile/profile-edit-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getLogoText } from "@/lib/company";
 import type { JobCard, SearchInput } from "@/lib/jd-client";
 import { cn } from "@/lib/utils";
@@ -26,7 +33,6 @@ type JobsClientProps = {
 
 type JobOptions = {
   companies: Option[];
-  skills: Option[];
 };
 
 type JobSort = NonNullable<SearchInput["sort"]>;
@@ -40,15 +46,12 @@ export function JobsClient({
   const [cards, setCards] = useState(initialCards);
   const [options, setOptions] = useState<JobOptions>({
     companies: [],
-    skills: [],
   });
-  const [filters, setFilters] = useState<JobProfileFilters>(() => ({
-    companies: [],
-    roles: initialSearch.roleText ? [initialSearch.roleText] : [],
-    salary: "",
-    skills: initialSearch.skillNames,
-  }));
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [filters, setFilters] = useState<JobProfileFilters>(() =>
+    getDefaultFilters(initialSearch),
+  );
+  const [isJobPrefDialogOpen, setJobPrefDialogOpen] = useState(false);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(initialError);
@@ -68,21 +71,22 @@ export function JobsClient({
       // No saved preferences — search with profile defaults and open dialog
       setHasLoadedFilters(true);
       setHasSavedFilters(false);
-      void searchWithFilters(filters, { closeDialog: false });
-      void openProfileDialog();
+      void searchWithFilters(filters);
+      void openJobPreferences();
       return;
     }
 
     setFilters(savedFilters);
     setHasLoadedFilters(true);
     setHasSavedFilters(true);
-    void searchWithFilters(savedFilters, { closeDialog: false });
+    void searchWithFilters(savedFilters);
   }, []);
 
-  async function openProfileDialog() {
-    setIsDialogOpen(true);
+  async function openJobPreferences() {
+    setFilters(readStoredFilters() ?? getDefaultFilters(initialSearch));
+    setJobPrefDialogOpen(true);
 
-    if (options.companies.length || options.skills.length || isLoadingOptions) {
+    if (options.companies.length || isLoadingOptions) {
       return;
     }
 
@@ -97,7 +101,6 @@ export function JobsClient({
         throw new Error(payload.error ?? "Failed to load options");
       setOptions({
         companies: payload.companies ?? [],
-        skills: payload.skills ?? [],
       });
     } catch (optionsError) {
       setError(
@@ -112,22 +115,13 @@ export function JobsClient({
 
   async function searchWithFilters(
     nextFilters: JobProfileFilters,
-    { closeDialog, sortBy = sort }: { closeDialog: boolean; sortBy?: JobSort },
+    { sortBy = sort }: { sortBy?: JobSort } = {},
   ) {
-    const resumeSkillsByName = new Map(
-      (initialSearch.skills ?? []).map((skill) => [
-        skill.name.trim().toLowerCase(),
-        skill,
-      ]),
-    );
     const nextSearch: SearchInput = {
       companyText: nextFilters.companies.join(", "),
       roleText: nextFilters.roles.join(", "),
-      skills: nextFilters.skills.map((name) => ({
-        name,
-        gloss: resumeSkillsByName.get(name.trim().toLowerCase())?.gloss ?? null,
-      })),
-      skillNames: nextFilters.skills,
+      skills: initialSearch.skills,
+      skillNames: initialSearch.skillNames,
       experienceYears: null,
       projectTexts: initialSearch.projectTexts ?? [],
       sort: sortBy,
@@ -150,7 +144,6 @@ export function JobsClient({
       if (!response.ok)
         throw new Error(payload.error ?? "Failed to search jobs");
       setCards(payload.cards ?? []);
-      if (closeDialog) setIsDialogOpen(false);
     } catch (searchError) {
       setError(
         searchError instanceof Error
@@ -162,16 +155,17 @@ export function JobsClient({
     }
   }
 
-  async function applyProfile() {
+  async function applyJobPreferences() {
     writeStoredFilters(filters);
-    await searchWithFilters(filters, { closeDialog: true });
+    setHasSavedFilters(true);
+    setJobPrefDialogOpen(false);
+    await searchWithFilters(filters);
   }
 
   async function changeSort(nextSort: JobSort) {
     if (nextSort === sort) return;
     setSort(nextSort);
     await searchWithFilters(filters, {
-      closeDialog: false,
       sortBy: nextSort,
     });
   }
@@ -182,14 +176,39 @@ export function JobsClient({
       <section className="mx-auto w-full max-w-225 px-4 pb-12 pt-6">
         <h1 className="text-2xl font-extrabold font-serif tracking-tight text-[#353238]">
           Jobs matching your{" "}
-          <button
-            type="button"
-            onClick={openProfileDialog}
-            className="inline-flex items-center gap-1 underline underline-offset-2"
-          >
-            preference
-            <IconEdit className="size-4" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 underline underline-offset-2"
+                />
+              }
+            >
+              preference
+              <IconEdit className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              sideOffset={8}
+              className="w-48 rounded-xl border border-[#E5E2E7] bg-white p-2 shadow-[0_18px_45px_rgba(31,27,36,0.14)]"
+            >
+              <DropdownMenuItem
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#2F2B35]"
+                onClick={() => void openJobPreferences()}
+              >
+                <UserRound className="size-4 text-[#56515A]" />
+                Job preferences
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#2F2B35]"
+                onClick={() => setIsProfileDialogOpen(true)}
+              >
+                <BriefcaseBusiness className="size-4 text-[#56515A]" />
+                Profile edit
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </h1>
 
         <div className="mt-4 flex justify-end">
@@ -261,19 +280,24 @@ export function JobsClient({
         </div>
       </section>
 
-      {isDialogOpen && (
-        <ProfileDialog
+      {isJobPrefDialogOpen && (
+        <JobPreferencesDialog
           canClose={hasSavedFilters}
           companyOptions={options.companies.map((company) => company.name)}
           isApplying={isSearching}
-          onApply={applyProfile}
-          onClose={() => setIsDialogOpen(false)}
+          onApply={applyJobPreferences}
+          onClose={() => setJobPrefDialogOpen(false)}
           roleOptions={roleOptions}
           filters={filters}
           setFilters={setFilters}
-          skillOptions={options.skills.map((skill) => skill.name)}
         />
       )}
+
+      <ProfileEditDialog
+        onOpenChange={setIsProfileDialogOpen}
+        onSaved={() => window.location.reload()}
+        open={isProfileDialogOpen}
+      />
     </main>
   );
 }
@@ -309,22 +333,6 @@ function JobListCard({ card }: { card: JobCard }) {
       <ScoreRing score={score} />
     </button>
   );
-}
-
-function ProfileDialog(props: {
-  canClose?: boolean;
-  companyOptions: string[];
-  filters: JobProfileFilters;
-  isApplying?: boolean;
-  onApply: () => void;
-  onClose: () => void;
-  roleOptions: string[];
-  setFilters: (
-    value: JobProfileFilters | ((prev: JobProfileFilters) => JobProfileFilters),
-  ) => void;
-  skillOptions: string[];
-}) {
-  return <JobPreferencesDialog {...props} />;
 }
 
 function ScoreRing({ score }: { score: number }) {
@@ -372,12 +380,17 @@ function readStoredFilters(): JobProfileFilters | null {
     return {
       companies: Array.isArray(parsed.companies) ? parsed.companies : [],
       roles: Array.isArray(parsed.roles) ? parsed.roles : [],
-      salary: typeof parsed.salary === "string" ? parsed.salary : "",
-      skills: Array.isArray(parsed.skills) ? parsed.skills : [],
     };
   } catch {
     return null;
   }
+}
+
+function getDefaultFilters(initialSearch: SearchInput): JobProfileFilters {
+  return {
+    companies: [],
+    roles: initialSearch.roleText ? [initialSearch.roleText] : [],
+  };
 }
 
 function writeStoredFilters(filters: JobProfileFilters) {

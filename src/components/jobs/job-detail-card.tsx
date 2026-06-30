@@ -237,14 +237,14 @@ export function JobDetailCard({
                   {salary}
                 </Badge>
               ) : null}
-              {isMatchLoading ? (
+              {/* {isMatchLoading ? (
                 <ScoreSkeletons />
               ) : (
                 <>
                   <ScorePill label="Skills" value={match?.skillsPct} />
                   <ScorePill label="Projects" value={match?.projectsPct} />
                 </>
-              )}
+              )} */}
               <Badge
                 className={cn(
                   "h-auto rounded-lg bg-[#F3F0F4] px-3 py-2 text-base font-semibold text-black md:text-sm",
