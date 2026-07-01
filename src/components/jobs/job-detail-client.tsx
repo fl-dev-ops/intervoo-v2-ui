@@ -9,6 +9,7 @@ import {
 import { ArrowLeft, CheckIcon, LoaderCircle, Play } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AddSkillsDialog } from "@/components/jobs/add-skills-dialog";
 import { AppHeader } from "@/components/app-header";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,9 @@ export function JobDetailClient({
   const [localProcessingRoundIds, setLocalProcessingRoundIds] =
     useState(processingRoundIds);
   const [localRoundScores, setLocalRoundScores] = useState(roundScores);
+  const [isAddSkillsOpen, setIsAddSkillsOpen] = useState(false);
+  const [dialogJobSkills, setDialogJobSkills] = useState<string[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const rounds = DIAGNOSTIC_ROUNDS.map((round, index) => ({
     ...round,
@@ -167,10 +171,15 @@ export function JobDetailClient({
             )}
             jobId={step === "match-details" ? job.jobId : undefined}
             location={job.location}
+            onAddSkills={(jobSkills) => {
+              setDialogJobSkills(jobSkills);
+              setIsAddSkillsOpen(true);
+            }}
             onStartInterview={
               step === "match-details" ? () => setStep("round-list") : undefined
             }
             overallScore={overallScore}
+            refreshKey={refreshKey}
             roundCount={rounds.length}
             salary={formatSalaryRange(
               job.salaryInrMinPerYear,
@@ -183,6 +192,16 @@ export function JobDetailClient({
             workMode={job.workMode}
           />
         </div>
+
+        <AddSkillsDialog
+          jobSkills={dialogJobSkills}
+          onOpenChange={setIsAddSkillsOpen}
+          onSaved={() => {
+            setRefreshKey((k) => k + 1);
+            router.refresh();
+          }}
+          open={isAddSkillsOpen}
+        />
 
         {isPracticeComplete && diagnosticId ? (
           <div className="mt-4 rounded-2xl bg-white px-5 py-4 shadow-sm">

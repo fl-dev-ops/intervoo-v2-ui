@@ -3,7 +3,10 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { buildResumeAnalysisInput } from "@/lib/diagnostics/search-input";
+import {
+  buildResumeAnalysisInput,
+  hasCandidateAnalysisEvidence,
+} from "@/lib/diagnostics/search-input";
 import {
   analyzeJobFit,
   buildJobAnalysisRequest,
@@ -50,6 +53,14 @@ export async function POST(
       skillsPct: match?.skillsPct ?? null,
       projectsPct: match?.projectsPct ?? null,
     };
+
+    if (!hasCandidateAnalysisEvidence(analysisInput)) {
+      return NextResponse.json(
+        { error: "Resume evidence is required for fit analysis." },
+        { status: 422 },
+      );
+    }
+
     const analysisRequest = buildJobAnalysisRequest(analysisInput);
     const inputHash = createHash("sha256")
       .update(JSON.stringify(analysisRequest))

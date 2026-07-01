@@ -65,6 +65,14 @@ export default function OnboardingPage() {
     checkStage();
   }, [router]);
 
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const urlStep = step === "review" ? "resume-details" : "resume-upload";
+    if (url.searchParams.get("step") === urlStep) return;
+    url.searchParams.set("step", urlStep);
+    router.replace(`${url.pathname}${url.search}`, { scroll: false });
+  }, [router, step]);
+
   const handleParseResume = useCallback(
     async (file: File) => {
       setIsParsing(true);

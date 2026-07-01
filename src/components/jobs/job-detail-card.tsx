@@ -36,7 +36,9 @@ export type JobDetailCardProps = {
   experience?: string;
   jobId?: string;
   location?: string | null;
+  onAddSkills?: (jobSkills: string[]) => void;
   onStartInterview?: () => void;
+  refreshKey?: number;
   overallScore?: number | null;
   roundCount: number;
   salary?: string | null;
@@ -47,14 +49,18 @@ export type JobDetailCardProps = {
   workMode?: string | null;
 };
 
+type PostingStatus = "available" | "unavailable" | "unknown";
+
 export function JobDetailCard({
   companyName,
   description,
   experience,
   jobId,
   location,
+  onAddSkills,
   onStartInterview,
   overallScore,
+  refreshKey = 0,
   roundCount,
   salary,
   showFitDetails = true,
@@ -66,16 +72,29 @@ export function JobDetailCard({
   const isMobile = useIsMobile();
   const [match, setMatch] = useState<JobMatch | null>(null);
   const [analysis, setAnalysis] = useState<JobFitAnalysis | null>(null);
+  const [hasAnalysisEvidence, setHasAnalysisEvidence] = useState<
+    boolean | null
+  >(null);
   const [matchError, setMatchError] = useState<string | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isMatchLoading, setIsMatchLoading] = useState(Boolean(jobId));
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(Boolean(jobId));
-  const skillChips = getSkillChips(analysis?.skills);
+  const [postingAvailability, setPostingAvailability] = useState<{
+    sourceUrl: string;
+    status: "checking" | PostingStatus;
+  } | null>(sourceUrl ? { sourceUrl, status: "checking" } : null);
+  const skillChips = analysis
+    ? getSkillChips(analysis.skills)
+    : hasAnalysisEvidence === false
+      ? getNeutralSkillChips(skills)
+      : [];
   const shouldShowFitDetails = showFitDetails && Boolean(jobId || skills);
   const showStartInterview = Boolean(jobId && onStartInterview);
   const meta = [experience, location, workMode].filter(Boolean);
 
   useEffect(() => {
+    void refreshKey;
+
     if (!jobId) {
       setIsMatchLoading(false);
       setIsAnalysisLoading(false);
@@ -93,6 +112,7 @@ export function JobDetailCard({
       setAnalysisError(null);
       setMatch(null);
       setAnalysis(null);
+      setHasAnalysisEvidence(null);
 
       try {
         const matchResponse = await fetch(
@@ -102,6 +122,7 @@ export function JobDetailCard({
         const matchJson = (await matchResponse.json()) as {
           error?: string;
           match?: JobMatch;
+          hasAnalysisEvidence?: boolean;
         };
 
         if (!matchResponse.ok || matchJson.error || !matchJson.match) {
@@ -112,6 +133,13 @@ export function JobDetailCard({
         setMatch(matchJson.match);
         didLoadMatch = true;
         setIsMatchLoading(false);
+        setHasAnalysisEvidence(matchJson.hasAnalysisEvidence === true);
+
+        if (matchJson.hasAnalysisEvidence !== true) {
+          setIsAnalysisLoading(false);
+          return;
+        }
+
         setIsAnalysisLoading(true);
 
         const analysisResponse = await fetch(
@@ -162,7 +190,69 @@ export function JobDetailCard({
     return () => {
       cancelled = true;
     };
-  }, [jobId]);
+  }, [jobId, refreshKey]);
+
+  useEffect(() => {
+    if (!sourceUrl) {
+      setPostingAvailability(null);
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+    const activeSourceUrl = sourceUrl;
+    setPostingAvailability({ sourceUrl: activeSourceUrl, status: "checking" });
+
+    async function checkSourceUrl() {
+      try {
+        const res = await fetch(
+          `/api/jobs/check-url?url=${encodeURIComponent(activeSourceUrl)}`,
+          { signal: controller.signal },
+        );
+        if (!res.ok) {
+          if (!cancelled) {
+            setPostingAvailability({
+              sourceUrl: activeSourceUrl,
+              status: "unknown",
+            });
+          }
+          return;
+        }
+
+        const data: unknown = await res.json();
+        if (!cancelled) {
+          setPostingAvailability({
+            sourceUrl: activeSourceUrl,
+            status: getPostingStatus(data),
+          });
+        }
+      } catch (error) {
+        if (
+          !cancelled &&
+          !(error instanceof DOMException && error.name === "AbortError")
+        ) {
+          setPostingAvailability({
+            sourceUrl: activeSourceUrl,
+            status: "unknown",
+          });
+        }
+      }
+    }
+
+    void checkSourceUrl();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [sourceUrl]);
+
+  const currentPostingStatus =
+    postingAvailability && postingAvailability.sourceUrl === sourceUrl
+      ? postingAvailability.status
+      : null;
+  const shouldShowPosting =
+    currentPostingStatus === "available" || currentPostingStatus === "unknown";
 
   return (
     <div className="space-y-5">
@@ -210,7 +300,7 @@ export function JobDetailCard({
               ) : null}
             </div>
 
-            {showStartInterview && sourceUrl ? (
+            {showStartInterview && sourceUrl && shouldShowPosting ? (
               <a
                 href={sourceUrl}
                 target="_blank"
@@ -282,8 +372,12 @@ export function JobDetailCard({
 
       {shouldShowFitDetails ? (
         <>
-          <SectionCard action="+ Add Skills" title="Skills">
-            {analysis ? (
+          <SectionCard
+            action="+ Add Skills"
+            onAction={() => onAddSkills?.(skillChips.map((s) => s.skill))}
+            title="Skills"
+          >
+            {analysis || hasAnalysisEvidence === false ? (
               skillChips.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {skillChips.map((skill) => (
@@ -320,7 +414,7 @@ export function JobDetailCard({
             )}
           </SectionCard>
 
-          {analysis ? (
+          {hasAnalysisEvidence === false ? null : analysis ? (
             <Accordion
               key={isMobile ? "mobile" : "desktop"}
               className="gap-5"
@@ -366,10 +460,12 @@ export function JobDetailCard({
 function SectionCard({
   action,
   children,
+  onAction,
   title,
 }: {
   action?: string;
   children: ReactNode;
+  onAction?: () => void;
   title: string;
 }) {
   return (
@@ -383,6 +479,7 @@ function SectionCard({
             <button
               className="text-base font-bold text-[#6D6873] md:text-sm"
               type="button"
+              onClick={onAction}
             >
               {action}
             </button>
@@ -554,6 +651,19 @@ function ScorePill({ label, value }: { label: string; value?: number | null }) {
   );
 }
 
+function getPostingStatus(data: unknown): PostingStatus {
+  if (!data || typeof data !== "object" || !("status" in data)) {
+    return "unknown";
+  }
+
+  const { status } = data;
+  return status === "available" ||
+    status === "unavailable" ||
+    status === "unknown"
+    ? status
+    : "unknown";
+}
+
 function SourceIcon({ sourceUrl }: { sourceUrl: string }) {
   if (/linkedin\.com/i.test(sourceUrl)) {
     return (
@@ -586,4 +696,12 @@ function getSkillChips(analysisSkills: SkillChip[] | undefined): SkillChip[] {
   }
 
   return [];
+}
+
+function getNeutralSkillChips(skills: string | null | undefined): SkillChip[] {
+  return (skills ?? "")
+    .split(/[,;|]/)
+    .map((skill) => skill.trim())
+    .filter(Boolean)
+    .map((skill) => ({ skill, matched: false }));
 }

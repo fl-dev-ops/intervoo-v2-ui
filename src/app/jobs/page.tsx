@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
 import { JobsClient } from "@/components/jobs/jobs-client";
 import { prisma } from "@/lib/db";
-import { getLockedDiagnosticForUser } from "@/lib/diagnostics/jd-progress";
 import { buildResumeSearchInput } from "@/lib/diagnostics/search-input";
-import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import { requirePageStage } from "@/lib/stage-guards";
 
 export default async function JobsPage() {
@@ -14,13 +12,6 @@ export default async function JobsPage() {
 
   if (!resume) {
     redirect("/onboarding");
-  }
-
-  const diagnostic = await getLockedDiagnosticForUser(user.id);
-  const selectedJobId = getSelectedJobId(diagnostic?.selectedJob);
-
-  if (selectedJobId) {
-    redirect(`/jobs/${selectedJobId}`);
   }
 
   const initialSearch = buildResumeSearchInput({

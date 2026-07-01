@@ -2,7 +2,11 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { buildResumeSearchInput } from "@/lib/diagnostics/search-input";
+import {
+  buildResumeAnalysisInput,
+  buildResumeSearchInput,
+  hasCandidateAnalysisEvidence,
+} from "@/lib/diagnostics/search-input";
 import { getJobMatch } from "@/lib/jd-client";
 
 export async function GET(
@@ -24,8 +28,7 @@ export async function GET(
       return NextResponse.json({ error: "Resume not found" }, { status: 404 });
     }
 
-    const { jobId } = await params;
-    const searchInput = buildResumeSearchInput({
+    const resumeSource = {
       role: resume.role,
       experienceYears: resume.experienceYears,
       skills: resume.skills,
@@ -35,7 +38,24 @@ export async function GET(
       projectKeywords: resume.projectKeywords,
       projectCapabilities: resume.projectCapabilities,
       workInitiatives: resume.workInitiatives,
-    });
+    };
+    const searchInput = buildResumeSearchInput(resumeSource);
+    const hasAnalysisEvidence = hasCandidateAnalysisEvidence(
+      buildResumeAnalysisInput(resumeSource),
+    );
+    const hasMatchEvidence =
+      searchInput.skills?.some((skill) => skill.name.trim().length > 0) ||
+      searchInput.projectTexts?.some((text) => text.trim().length > 0) ||
+      false;
+
+    if (!hasMatchEvidence) {
+      return NextResponse.json({
+        match: { score: null, skillsPct: null, projectsPct: null },
+        hasAnalysisEvidence,
+      });
+    }
+
+    const { jobId } = await params;
     const result = await getJobMatch(jobId, {
       skills: searchInput.skills,
       skillNames: searchInput.skillNames,
@@ -46,7 +66,7 @@ export async function GET(
       return NextResponse.json({ error: result.error }, { status: 502 });
     }
 
-    return NextResponse.json(result.data);
+    return NextResponse.json({ ...result.data, hasAnalysisEvidence });
   } catch (error) {
     console.error("Job match error:", error);
     return NextResponse.json(
