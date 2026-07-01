@@ -325,7 +325,7 @@ function JobListCard({ card }: { card: JobCard }) {
         <p className="truncate text-xs font-medium text-black">
           {card.companyName}
         </p>
-        <h2 className="mt-1 truncate text-base font-extrabold tracking-tight text-black">
+        <h2 className="mt-1 truncate text-base font-bold tracking-tight text-black">
           {card.jobTitle}
         </h2>
         <p className="mt-1 text-sm text-[#6D6873]">{formatJobMeta(card)}</p>

@@ -4,6 +4,7 @@ import { useId, useMemo, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Combobox,
+  ComboboxChip,
   ComboboxChips,
   ComboboxChipsInput,
   ComboboxContent,
@@ -108,12 +109,20 @@ export function MultiCombobox({
       >
         <ComboboxChips
           ref={anchor}
-          className="h-12 w-full flex-nowrap gap-2 rounded-lg border-[#D8D5DD] bg-white px-3 py-0 shadow-none focus-within:border-[#6846E8] focus-within:ring-2 focus-within:ring-[#6846E8]/15"
+          className="min-h-12 w-full gap-2 rounded-lg border-[#D8D5DD] bg-white px-3 py-2 shadow-none focus-within:border-[#6846E8] focus-within:ring-2 focus-within:ring-[#6846E8]/15"
         >
+          {selected.map((item) => (
+            <ComboboxChip
+              className="h-7 rounded-md bg-[#F2EEFB] pl-2 text-sm font-medium text-[#3A3340]"
+              key={item}
+            >
+              {item}
+            </ComboboxChip>
+          ))}
           <ComboboxChipsInput
             id={id}
-            className="h-full min-w-0 p-0 text-base placeholder:text-muted-foreground"
-            placeholder={selected.length ? selected.join(", ") : placeholder}
+            className="h-7 min-w-24 p-0 text-base placeholder:text-muted-foreground"
+            placeholder={selected.length ? "" : placeholder}
           />
           <ComboboxTrigger
             aria-label={`Open ${label.toLowerCase()} options`}

@@ -3,6 +3,9 @@
 import { BadgeHelp, BriefcaseBusiness, LogOut } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { HavingIssuesDialog } from "@/components/having-issues-dialog";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getHavingIssuesContext } from "@/constants/having-issues";
 import { authClient } from "@/lib/auth-client";
 
 type AppHeaderProps = {
@@ -30,6 +34,18 @@ export function AppHeader({
 }: AppHeaderProps) {
   const router = useRouter();
   const hasProfileMenu = Boolean(user) && !displayOnly;
+  const [issuesContext, setIssuesContext] = useState<ReturnType<
+    typeof getHavingIssuesContext
+  > | null>(null);
+
+  function openIssuesDialog() {
+    setIssuesContext(
+      getHavingIssuesContext(
+        window.location.pathname,
+        new URLSearchParams(window.location.search),
+      ),
+    );
+  }
 
   async function handleLogout() {
     if (onLogout) {
@@ -63,13 +79,15 @@ export function AppHeader({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            className={`${hasProfileMenu ? "hidden md:inline-flex" : "inline-flex"} h-10 items-center gap-2 rounded-full border border-[#E5E2E7] bg-white px-4 text-sm font-semibold text-[#6846E8] shadow-sm transition hover:bg-[#F7F3FF]`}
+          {/* <Button
+            className={hasProfileMenu ? "hidden md:inline-flex" : "inline-flex"}
+            onClick={openIssuesDialog}
+            variant="secondary"
             type="button"
           >
             <BadgeHelp className="size-4" />
             Having issues?
-          </button>
+          </Button> */}
 
           {user && displayOnly ? (
             <div className="flex size-9 items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white">
@@ -113,7 +131,10 @@ export function AppHeader({
                   Profile edit
                 </DropdownMenuItem>
 
-                <DropdownMenuItem className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7] md:hidden">
+                <DropdownMenuItem
+                  className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7] md:hidden"
+                  onClick={openIssuesDialog}
+                >
                   <BadgeHelp className="mr-2 size-5 text-[#56515A]" />
                   Having issues?
                 </DropdownMenuItem>
@@ -132,6 +153,15 @@ export function AppHeader({
           ) : null}
         </div>
       </div>
+      {issuesContext ? (
+        <HavingIssuesDialog
+          context={issuesContext}
+          onOpenChange={(open) => {
+            if (!open) setIssuesContext(null);
+          }}
+          open
+        />
+      ) : null}
     </header>
   );
 }
