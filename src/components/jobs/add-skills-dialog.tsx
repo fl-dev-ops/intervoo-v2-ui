@@ -180,9 +180,10 @@ export function AddSkillsDialog({
                       <button
                         type="button"
                         onClick={() => removeSkill(skill)}
-                        className="text-[#6D6873] hover:text-black"
+                        aria-label={`Remove ${skill}`}
+                        className="inline-flex size-3.5 items-center justify-center rounded-full bg-[#6D6D6D] text-white hover:bg-[#555555] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#5C3BD8]"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="size-2" strokeWidth={3} />
                       </button>
                     </span>
                   ))}
