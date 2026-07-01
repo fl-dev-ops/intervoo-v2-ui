@@ -1,7 +1,16 @@
 "use client";
 
 import { IconEdit } from "@tabler/icons-react";
-import { BriefcaseBusiness, Search, UserRound } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  Check,
+  Circle,
+  CircleAlert,
+  CircleDashed,
+  LoaderCircle,
+  Search,
+  UserRound,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/app-header";
@@ -16,6 +25,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { getLogoText } from "@/lib/company";
 import type { JobCard, SearchInput } from "@/lib/jd-client";
 import { cn } from "@/lib/utils";
@@ -24,10 +38,28 @@ const JOB_PROFILE_FILTERS_KEY = "intervoo:job-profile-filters";
 
 type Option = { id?: string; name: string };
 
+type JobListCardBase = Pick<
+  JobCard,
+  | "companyName"
+  | "experienceMaxYears"
+  | "experienceMinYears"
+  | "jobId"
+  | "jobTitle"
+>;
+
+export type StartedJobCard = JobListCardBase & {
+  roundProgress: {
+    id: string;
+    state: "completed" | "failed" | "generating" | "not-started" | "started";
+    title: string;
+  }[];
+};
+
 type JobsClientProps = {
   initialCards: JobCard[];
   initialError: string | null;
   initialSearch: SearchInput;
+  startedJobs: StartedJobCard[];
   user: { email: string | null; name: string | null };
 };
 
@@ -41,6 +73,7 @@ export function JobsClient({
   initialCards,
   initialError,
   initialSearch,
+  startedJobs,
   user,
 }: JobsClientProps) {
   const [cards, setCards] = useState(initialCards);
@@ -177,7 +210,23 @@ export function JobsClient({
     <main className="min-h-screen bg-[#F5F3F7] font-sans text-black">
       <AppHeader user={user} />
       <section className="mx-auto w-full max-w-225 px-4 pb-12 pt-6">
-        <h1 className="text-2xl font-extrabold font-serif tracking-tight text-[#353238]">
+        {startedJobs.length > 0 && (
+          <section className="mb-10" aria-labelledby="started-jobs-heading">
+            <h2
+              id="started-jobs-heading"
+              className="text-xl font-bold font-serif tracking-tight text-[#353238]"
+            >
+              Continue with your interview
+            </h2>
+            <div className="mt-4 space-y-3">
+              {startedJobs.map((card) => (
+                <JobListCard key={card.jobId} card={card} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <h1 className="text-xl font-bold font-serif tracking-tight text-[#353238]">
           Jobs matching your{" "}
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -318,17 +367,21 @@ function setJobsStep(step: "jd-listing" | "job-preferences") {
   );
 }
 
-function JobListCard({ card }: { card: JobCard }) {
+function JobListCard({ card }: { card: JobCard | StartedJobCard }) {
   const router = useRouter();
-  const score = normalizeScore(card.score);
-  const strongMatch = score >= 80;
+  const score = "score" in card ? normalizeScore(card.score) : null;
+  const matchedSkills = "matchedSkills" in card ? card.matchedSkills : null;
+  const totalSkills = "totalSkills" in card ? card.totalSkills : null;
+  const hasScore = score !== null;
+  const strongMatch = hasScore && score >= 80;
 
   return (
     <button
       type="button"
       onClick={() => router.push(`/jobs/${card.jobId}`)}
       className={cn(
-        "grid w-full grid-cols-[72px_1fr_60px] items-center gap-4 rounded-xl border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+        "grid w-full items-center gap-4 rounded-xl border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+        hasScore ? "grid-cols-[72px_1fr_60px]" : "grid-cols-[72px_1fr]",
         strongMatch
           ? "border-[#CBEDE0] bg-[#EFFFF8]"
           : "border-[#E9E2D9] bg-[#FFF9EF]",
@@ -344,11 +397,74 @@ function JobListCard({ card }: { card: JobCard }) {
         <h2 className="mt-1 truncate text-base font-bold tracking-tight text-black">
           {card.jobTitle}
         </h2>
-        <p className="mt-1 text-sm text-[#6D6873]">{formatJobMeta(card)}</p>
+        <p className="mt-1 text-sm text-[#6D6873]">
+          {formatJobMeta(card, matchedSkills, totalSkills)}
+        </p>
+        {"roundProgress" in card && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {card.roundProgress.map((round) => (
+              <RoundProgressChip key={round.id} round={round} />
+            ))}
+          </div>
+        )}
       </div>
-      <ScoreRing score={score} />
+      {hasScore && <ScoreRing score={score} />}
     </button>
   );
+}
+
+function RoundProgressChip({
+  round,
+}: {
+  round: StartedJobCard["roundProgress"][number];
+}) {
+  const completed = round.state === "completed";
+  const failed = round.state === "failed";
+  const generating = round.state === "generating";
+  const started = round.state === "started";
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium",
+              completed && "border-[#DDF2E8] bg-[#EAF8F1] text-[#176B4A]",
+              failed && "border-red-200 bg-red-50 text-red-700",
+              !completed &&
+                !failed &&
+                "border-[#E4E0E7] bg-white text-[#353238]",
+            )}
+          />
+        }
+      >
+        {completed ? (
+          <Check className="size-3.5" strokeWidth={2.5} />
+        ) : failed ? (
+          <CircleAlert className="size-3.5" />
+        ) : generating ? (
+          <LoaderCircle className="size-3.5 animate-spin" />
+        ) : started ? (
+          <CircleDashed className="size-3.5" />
+        ) : (
+          <Circle className="size-3.5" />
+        )}
+        {round.title}
+      </TooltipTrigger>
+      <TooltipContent>{getRoundProgressTooltip(round.state)}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function getRoundProgressTooltip(
+  state: StartedJobCard["roundProgress"][number]["state"],
+) {
+  if (state === "completed") return "Report ready";
+  if (state === "failed") return "Report generation failed. Retake this round.";
+  if (state === "generating") return "Report is generating";
+  if (state === "started") return "Interview started";
+  return "Not started";
 }
 
 function ScoreRing({ score }: { score: number }) {
@@ -371,10 +487,14 @@ function normalizeScore(score: number | null) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function formatJobMeta(card: JobCard) {
+function formatJobMeta(
+  card: JobListCardBase,
+  matchedSkills: number | null,
+  totalSkills: number | null,
+) {
   const details = [
     formatExperience(card.experienceMinYears, card.experienceMaxYears),
-    `${card.matchedSkills ?? 0}/${card.totalSkills} skills`,
+    totalSkills == null ? "" : `${matchedSkills ?? 0}/${totalSkills} skills`,
   ].filter(Boolean);
 
   return details.join(" · ");

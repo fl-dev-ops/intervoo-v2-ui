@@ -66,7 +66,6 @@ export default function ProfilePage() {
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [submitError, setSubmitError] = useState("");
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -106,7 +105,6 @@ export default function ProfilePage() {
     setData((prev) => (prev ? { ...prev, [field]: value } : prev));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
     setSubmitError("");
-    setSubmitSuccess(false);
   };
 
   const handleSave = useCallback(async () => {
@@ -134,7 +132,6 @@ export default function ProfilePage() {
 
     setIsSaving(true);
     setSubmitError("");
-    setSubmitSuccess(false);
 
     try {
       const response = await fetch("/api/profile", {
@@ -148,14 +145,7 @@ export default function ProfilePage() {
         throw new Error(err.error || "Failed to save profile");
       }
 
-      setSubmitSuccess(true);
-      setEditingSections({
-        basic: false,
-        education: false,
-        skills: false,
-        experience: false,
-        projects: false,
-      });
+      router.replace("/jobs");
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Failed to save profile",
@@ -163,7 +153,7 @@ export default function ProfilePage() {
     } finally {
       setIsSaving(false);
     }
-  }, [data]);
+  }, [data, router]);
 
   const handleLogout = useCallback(async () => {
     await authClient.signOut({
@@ -246,12 +236,6 @@ export default function ProfilePage() {
         {submitError && (
           <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
             {submitError}
-          </p>
-        )}
-
-        {submitSuccess && (
-          <p className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-            Profile saved successfully.
           </p>
         )}
 
