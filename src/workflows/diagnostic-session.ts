@@ -18,6 +18,7 @@ import {
   createRoomServiceClient,
   getLiveKitCredentials,
 } from "@/lib/livekit";
+import { getDiagnosticPaymentEligibility } from "@/lib/payments";
 import { buildInitialProctorMetadata } from "@/lib/proctor/server";
 import { getUserStage } from "@/lib/progress";
 
@@ -173,6 +174,7 @@ async function prepareDiagnosticSessionStep(
   const existingRound = diagnostic.rounds.find(
     (round) => round.roundType === input.roundId,
   );
+  let isRecoveringExistingRound = false;
 
   if (existingRound) {
     const recoveryState = getDiagnosticRoundRecoveryState({
@@ -187,9 +189,23 @@ async function prepareDiagnosticSessionStep(
       throw new FatalError("Round already started");
     }
 
+    isRecoveringExistingRound = true;
+
     await prisma.interviewSession.delete({
       where: { id: existingRound.sessionId },
     });
+  }
+
+  if (!isRecoveringExistingRound) {
+    const eligibility = await getDiagnosticPaymentEligibility({
+      diagnosticId: diagnostic.id,
+      jobId: selectedJob.raw.jobId,
+      userId: input.userId,
+    });
+
+    if (eligibility.requiresPayment) {
+      throw new FatalError("Payment required to unlock this diagnostic");
+    }
   }
 
   const requestedRoundNumber = getRoundNumber(input.roundId);

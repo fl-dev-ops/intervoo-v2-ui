@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { AddSkillsDialog } from "@/components/jobs/add-skills-dialog";
 import { AppHeader } from "@/components/app-header";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
+import { RazorpayCheckout } from "@/components/payments/razorpay-checkout";
 import { Button } from "@/components/ui/button";
 import {
   DIAGNOSTIC_ROUNDS,
@@ -29,6 +30,8 @@ type JobDetailClientProps = {
   roundScores?: Record<string, number | null>;
   diagnosticId?: string | null;
   overallScore?: number | null;
+  paymentReason?: string;
+  requiresPayment?: boolean;
   user: { email: string | null; name: string | null };
 };
 
@@ -39,6 +42,8 @@ export function JobDetailClient({
   roundScores = {},
   diagnosticId,
   overallScore,
+  paymentReason,
+  requiresPayment = false,
   user,
 }: JobDetailClientProps) {
   const router = useRouter();
@@ -252,7 +257,10 @@ export function JobDetailClient({
                     isDone={isDone}
                     isLast={isLast(index, rounds.length)}
                     isProcessing={isProcessing}
+                    jobId={job.jobId}
+                    paymentReason={paymentReason}
                     questions={round.questions}
+                    requiresPayment={requiresPayment}
                     roundNumber={roundNumber}
                     score={round.score}
                     startingRoundId={startingRoundId}
@@ -287,9 +295,12 @@ function RoundTimelineItem({
   isDone,
   isLast,
   isProcessing,
+  jobId,
   onStart,
   onViewReport,
+  paymentReason,
   questions,
+  requiresPayment,
   roundNumber,
   score,
   startingRoundId,
@@ -300,9 +311,12 @@ function RoundTimelineItem({
   isDone: boolean;
   isLast: boolean;
   isProcessing: boolean;
+  jobId: string;
   onStart: () => void;
   onViewReport: () => void;
+  paymentReason?: string;
   questions: string[];
+  requiresPayment: boolean;
   roundNumber: number;
   score: number | null;
   startingRoundId: string | null;
@@ -464,7 +478,26 @@ function RoundTimelineItem({
                 </div>
               </div>
 
-              {!isProcessing ? (
+              {requiresPayment && diagnosticId ? (
+                <div className="col-span-2 space-y-2 md:col-span-1 md:ml-auto">
+                  <RazorpayCheckout
+                    className="w-full rounded-full border-0 bg-button px-10 py-6 shadow-none"
+                    diagnosticId={diagnosticId}
+                    jobId={jobId}
+                    roundId={config.id}
+                  />
+                  <p
+                    className={cn(
+                      "text-center text-xs font-medium",
+                      isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
+                    )}
+                  >
+                    {paymentReason === "PAYMENT_REQUIRED"
+                      ? "Unlock all rounds for this JD."
+                      : "Payment required to continue."}
+                  </p>
+                </div>
+              ) : !isProcessing ? (
                 <Button
                   className="col-span-2 w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:col-span-1 md:ml-auto"
                   disabled={Boolean(startingRoundId)}
