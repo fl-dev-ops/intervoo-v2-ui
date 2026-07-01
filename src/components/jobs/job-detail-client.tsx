@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { AddSkillsDialog } from "@/components/jobs/add-skills-dialog";
 import { AppHeader } from "@/components/app-header";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
-import { RazorpayCheckout } from "@/components/payments/razorpay-checkout";
+import { DiagnosticUnlockDialog } from "@/components/payments/diagnostic-unlock-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DIAGNOSTIC_ROUNDS,
@@ -258,9 +258,10 @@ export function JobDetailClient({
                     isLast={isLast(index, rounds.length)}
                     isProcessing={isProcessing}
                     jobId={job.jobId}
+                    completedRoundIds={localReadyRoundIds}
                     paymentReason={paymentReason}
                     questions={round.questions}
-                    requiresPayment={requiresPayment}
+                    requiresPayment={requiresPayment && isActive}
                     roundNumber={roundNumber}
                     score={round.score}
                     startingRoundId={startingRoundId}
@@ -296,6 +297,7 @@ function RoundTimelineItem({
   isLast,
   isProcessing,
   jobId,
+  completedRoundIds,
   onStart,
   onViewReport,
   paymentReason,
@@ -312,6 +314,7 @@ function RoundTimelineItem({
   isLast: boolean;
   isProcessing: boolean;
   jobId: string;
+  completedRoundIds: string[];
   onStart: () => void;
   onViewReport: () => void;
   paymentReason?: string;
@@ -480,11 +483,11 @@ function RoundTimelineItem({
 
               {requiresPayment && diagnosticId ? (
                 <div className="col-span-2 space-y-2 md:col-span-1 md:ml-auto">
-                  <RazorpayCheckout
+                  <DiagnosticUnlockDialog
                     className="w-full rounded-full border-0 bg-button px-10 py-6 shadow-none"
+                    completedRoundIds={completedRoundIds}
                     diagnosticId={diagnosticId}
                     jobId={jobId}
-                    roundId={config.id}
                   />
                   <p
                     className={cn(

@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { markDiagnosticPaid } from "@/lib/payments";
+import { markDiagnosticPaid, recordCouponRedemptionForOrder } from "@/lib/payments";
 import { verifyRazorpayPaymentSignature } from "@/lib/razorpay";
 
 export async function POST(request: Request) {
@@ -84,6 +84,12 @@ export async function POST(request: Request) {
     });
 
     await markDiagnosticPaid({ diagnosticId, orderId: order.id });
+    await recordCouponRedemptionForOrder({
+      couponCode: order.couponCode,
+      diagnosticId,
+      orderId: order.id,
+      userId: session.user.id,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

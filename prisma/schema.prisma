@@ -50,6 +50,11 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum CouponDiscountType {
+  FLAT
+  PERCENTAGE
+}
+
 // Auth & User models
 model User {
   id                  String             @id
@@ -68,6 +73,7 @@ model User {
   interviewSessions   InterviewSession[]
   diagnostics         Diagnostic[]
   orders              Order[]
+  couponRedemptions   CouponRedemption[]
 
   @@map("user")
 }
@@ -229,6 +235,9 @@ model Order {
   userId          String
   jobId           String
   amount          Int
+  originalAmount  Int?
+  discountAmount  Int         @default(0)
+  couponCode      String?
   currency        String      @default("INR")
   receipt         String
   status          OrderStatus @default(CREATED)
@@ -236,13 +245,47 @@ model Order {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  diagnostic Diagnostic?
-  payment    Payment?
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diagnostic        Diagnostic?
+  payment           Payment?
+  couponRedemptions CouponRedemption[]
 
   @@index([userId])
   @@index([jobId])
   @@map("order")
+}
+
+model Coupon {
+  id            String             @id @default(cuid())
+  code          String             @unique
+  discountType  CouponDiscountType
+  discountValue Int
+  isActive      Boolean            @default(true)
+  expiresAt     DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  redemptions CouponRedemption[]
+
+  @@map("coupon")
+}
+
+model CouponRedemption {
+  id           String   @id @default(cuid())
+  couponId     String
+  userId       String
+  diagnosticId String
+  orderId      String?
+  redeemedAt   DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order  Order? @relation(fields: [orderId], references: [id])
+
+  @@unique([couponId, userId])
+  @@index([diagnosticId])
+  @@index([userId])
+  @@map("coupon_redemption")
 }
 
 model Payment {

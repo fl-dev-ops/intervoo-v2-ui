@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
-import { getDiagnosticPaymentEligibility } from "@/lib/payments";
+import {
+  getDiagnosticPaymentEligibility,
+  normalizeCouponCode,
+  validateCouponForDiagnostic,
+} from "@/lib/payments";
 import {
   DIAGNOSTIC_UNLOCK_AMOUNT_PAISE,
   DIAGNOSTIC_UNLOCK_CURRENCY,
@@ -19,9 +23,14 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json().catch(() => ({}))) as {
+      couponCode?: unknown;
       diagnosticId?: unknown;
       jobId?: unknown;
     };
+    const couponCode =
+      typeof body.couponCode === "string"
+        ? normalizeCouponCode(body.couponCode)
+        : null;
     const diagnosticId =
       typeof body.diagnosticId === "string" ? body.diagnosticId : "";
     const jobId = typeof body.jobId === "string" ? body.jobId : "";
@@ -58,21 +67,48 @@ export async function POST(request: Request) {
       );
     }
 
+    const coupon = couponCode
+      ? await validateCouponForDiagnostic({
+          code: couponCode,
+          diagnosticId,
+          jobId,
+          userId: session.user.id,
+        })
+      : null;
+
+    if (coupon && !coupon.valid) {
+      return NextResponse.json(coupon, { status: 400 });
+    }
+
+    const amount = coupon?.valid
+      ? coupon.finalAmount
+      : DIAGNOSTIC_UNLOCK_AMOUNT_PAISE;
+
+    if (amount <= 0) {
+      return NextResponse.json(
+        { error: "Use coupon unlock for fully discounted coupons" },
+        { status: 400 },
+      );
+    }
+
     const razorpay = getRazorpayClient();
     const receipt = `diag_${diagnosticId.slice(-10)}_${Date.now().toString(36)}`;
     const razorpayOrder = await razorpay.orders.create({
-      amount: DIAGNOSTIC_UNLOCK_AMOUNT_PAISE,
+      amount,
       currency: DIAGNOSTIC_UNLOCK_CURRENCY,
-      notes: { diagnosticId, jobId, userId: session.user.id },
+      notes: { couponCode, diagnosticId, jobId, userId: session.user.id },
       receipt,
     });
 
     const order = await prisma.order.create({
       data: {
-        amount: DIAGNOSTIC_UNLOCK_AMOUNT_PAISE,
+        amount,
+        couponCode,
         currency: DIAGNOSTIC_UNLOCK_CURRENCY,
+        discountAmount: coupon?.valid ? coupon.discountAmount : 0,
         jobId,
-        notes: { diagnosticId, jobId },
+        notes: { couponCode, diagnosticId, jobId },
+        originalAmount: DIAGNOSTIC_UNLOCK_AMOUNT_PAISE,
         razorpayOrderId: razorpayOrder.id,
         receipt,
         userId: session.user.id,

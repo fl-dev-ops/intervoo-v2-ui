@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { markDiagnosticPaid } from "@/lib/payments";
+import { markDiagnosticPaid, recordCouponRedemptionForOrder } from "@/lib/payments";
 import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 
 export async function POST(request: Request) {
@@ -66,6 +66,12 @@ export async function POST(request: Request) {
     const diagnosticId = getDiagnosticId(order.notes);
     if (diagnosticId) {
       await markDiagnosticPaid({ diagnosticId, orderId: order.id });
+      await recordCouponRedemptionForOrder({
+        couponCode: order.couponCode,
+        diagnosticId,
+        orderId: order.id,
+        userId: order.userId,
+      });
     }
 
     return NextResponse.json({ received: true });
