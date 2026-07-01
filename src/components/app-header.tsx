@@ -131,13 +131,13 @@ export function AppHeader({
                   Profile edit
                 </DropdownMenuItem>
 
-                <DropdownMenuItem
+                {/* <DropdownMenuItem
                   className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7] md:hidden"
                   onClick={openIssuesDialog}
                 >
                   <BadgeHelp className="mr-2 size-5 text-[#56515A]" />
                   Having issues?
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
 
                 <DropdownMenuSeparator className="mx-0 my-3 md:hidden" />
 

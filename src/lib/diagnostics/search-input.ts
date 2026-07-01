@@ -117,6 +117,15 @@ export function buildResumeAnalysisInput(
   };
 }
 
+export function hasCandidateAnalysisEvidence(input: JobAnalysisInput): boolean {
+  return [
+    input.candidateSkills,
+    input.candidateExperience,
+    input.candidateProjects,
+    input.candidateInitiatives,
+  ].some((values) => values?.some((value) => value.trim().length > 0));
+}
+
 function formatResumeExperience(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value

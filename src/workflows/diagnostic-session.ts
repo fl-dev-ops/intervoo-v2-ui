@@ -270,12 +270,7 @@ async function generateDiagnosticQuestionsStep(
     competencies: prepared.roundCompetencies,
     job: prepared.selectedJob.raw,
     participant: {
-      name: prepared.participantName,
-      role: prepared.user.resume?.role ?? "",
       skills: prepared.user.resume?.skills ?? [],
-      experienceYears: prepared.user.resume?.experienceYears ?? null,
-      education: prepared.user.resume?.education ?? [],
-      experience: prepared.user.resume?.experience ?? [],
       projects: prepared.user.resume?.projects ?? [],
     },
     roundId: prepared.roundId,

@@ -79,12 +79,14 @@ export function JobsClient({
     setFilters(savedFilters);
     setHasLoadedFilters(true);
     setHasSavedFilters(true);
+    setJobsStep("jd-listing");
     void searchWithFilters(savedFilters);
   }, []);
 
   async function openJobPreferences() {
     setFilters(readStoredFilters() ?? getDefaultFilters(initialSearch));
     setJobPrefDialogOpen(true);
+    setJobsStep("job-preferences");
 
     if (options.companies.length || isLoadingOptions) {
       return;
@@ -159,6 +161,7 @@ export function JobsClient({
     writeStoredFilters(filters);
     setHasSavedFilters(true);
     setJobPrefDialogOpen(false);
+    setJobsStep("jd-listing");
     await searchWithFilters(filters);
   }
 
@@ -286,7 +289,10 @@ export function JobsClient({
           companyOptions={options.companies.map((company) => company.name)}
           isApplying={isSearching}
           onApply={applyJobPreferences}
-          onClose={() => setJobPrefDialogOpen(false)}
+          onClose={() => {
+            setJobPrefDialogOpen(false);
+            setJobsStep("jd-listing");
+          }}
           roleOptions={roleOptions}
           filters={filters}
           setFilters={setFilters}
@@ -299,6 +305,16 @@ export function JobsClient({
         open={isProfileDialogOpen}
       />
     </main>
+  );
+}
+
+function setJobsStep(step: "jd-listing" | "job-preferences") {
+  const url = new URL(window.location.href);
+  url.searchParams.set("step", step);
+  window.history.replaceState(
+    window.history.state,
+    "",
+    `${url.pathname}${url.search}`,
   );
 }
 
