@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",
+    "@aws-sdk/client-s3": "^3.1078.0",
+    "@aws-sdk/s3-request-presigner": "^3.1078.0",
     "@base-ui/react": "^1.4.1",
     "@google/genai": "^2.4.0",
     "@livekit/components-react": "^2.0.0",

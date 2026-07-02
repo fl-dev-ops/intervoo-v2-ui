@@ -92,7 +92,7 @@ export function EndSessionDialog({
           {/* Actions */}
           <div className="mt-8 flex w-full flex-col-reverse gap-3 md:flex-row md:justify-end">
             <Button
-              className="h-12 rounded-full bg-red-500 px-6 text-base font-bold text-white hover:bg-red-600 md:min-w-40"
+              className="md:min-w-40"
               onClick={onConfirmEnd}
               size="lg"
               type="button"
@@ -101,10 +101,11 @@ export function EndSessionDialog({
             </Button>
 
             <Button
-              className="h-12 rounded-full bg-violet-700 px-6 text-base font-bold text-white hover:bg-violet-800 md:min-w-36"
+              className="md:min-w-36"
               onClick={onContinue}
               size="lg"
               type="button"
+              variant="secondary"
             >
               Cancel
             </Button>

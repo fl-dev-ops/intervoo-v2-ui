@@ -3,6 +3,7 @@ import "server-only";
 import {
   type OnboardingProfile,
   parseResumeStream,
+  type ResumeFileInput,
   type ResumeParseStreamEvent,
 } from "./resume-parser";
 
@@ -48,15 +49,17 @@ export type OnboardingResumeStreamEvent =
       section: ResumeSection;
       data: Partial<ResumeData>;
     }
-  | { type: "complete"; resume: ResumeData }
+  | { type: "complete"; resume: ResumeData; resumeUrl?: string }
   | { type: "error"; error: string };
 
 export async function* streamOnboardingResume(
-  file: File,
+  file: ResumeFileInput,
+  resumeUrl?: string,
+  signal?: AbortSignal,
 ): AsyncGenerator<OnboardingResumeStreamEvent> {
-  for await (const event of parseResumeStream(file)) {
+  for await (const event of parseResumeStream(file, signal)) {
     yield event.type === "complete"
-      ? { type: "complete", resume: normalizeProfile(event.profile) }
+      ? { type: "complete", resume: normalizeProfile(event.profile), resumeUrl }
       : normalizeSection(event);
   }
 }

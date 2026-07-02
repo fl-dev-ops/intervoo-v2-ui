@@ -85,6 +85,7 @@ model Resume {
   projectKeywords     Json @default("[]")
   projectCapabilities Json @default("[]")
   workInitiatives     Json @default("[]")
+  resumeUrl       String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   jobAnalyses     ResumeJobAnalysis[]

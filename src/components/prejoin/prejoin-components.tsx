@@ -73,12 +73,17 @@ export function RoundInfoCard({ roundId }: { roundId: string }) {
 
 export function PreJoinChecklist() {
   return (
-    <div className="rounded-2xl bg-[#F4F4F4] px-5 py-4 space-y-3">
-      <p className="text-sm text-muted-foreground">Make sure you will have</p>
-      <div className="space-y-3">
+    <div className="space-y-3">
+      <p className="text-center text-sm text-muted-foreground">
+        Make sure you have
+      </p>
+      <div className="flex justify-self-center items-center justify-between gap-6 overflow-x-auto rounded-full bg-[#F4F4F4] px-5 py-4">
         {["Quiet space", "Good light", "Stable internet connectivity"].map(
           (item) => (
-            <div key={item} className="flex items-center gap-2 text-sm">
+            <div
+              key={item}
+              className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm"
+            >
               <CheckIcon className="size-5 bg-green-500 shrink-0 text-white rounded-full p-1" />
               {item}
             </div>

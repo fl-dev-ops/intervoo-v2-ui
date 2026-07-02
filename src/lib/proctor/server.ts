@@ -8,6 +8,10 @@ import type {
   SessionMetadataWithProctoring,
 } from "@/lib/proctor/types";
 
+export function isProctoringEnabled() {
+  return process.env.PROCTORING_ENABLED === "true";
+}
+
 export function getAutoProctorClientId() {
   const clientId = process.env.AUTOPROCTOR_CLIENT_ID;
   if (!clientId) {

@@ -26,6 +26,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<"upload" | "review">("upload");
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
+  const [resumeUrl, setResumeUrl] = useState<string | undefined>();
   const [loadedSections, setLoadedSections] = useState<ResumeSection[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -79,14 +80,43 @@ export default function OnboardingPage() {
       setParseError(null);
       setLoadedSections([]);
       setResumeData(createEmptyResume(userDefaults));
+      setResumeUrl(undefined);
 
       try {
-        const formData = new FormData();
-        formData.append("file", file);
+        const uploadUrlResponse = await fetch(
+          "/api/onboarding/resume-upload-url",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileSize: file.size,
+              fileType: file.type,
+            }),
+          },
+        );
+        if (!uploadUrlResponse.ok) {
+          const error = await uploadUrlResponse.json();
+          throw new Error(error.error || "Failed to prepare resume upload");
+        }
+
+        const upload = (await uploadUrlResponse.json()) as {
+          resumeUrl: string;
+          uploadUrl: string;
+        };
+        const uploadResponse = await fetch(upload.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!uploadResponse.ok) {
+          throw new Error("Failed to upload resume");
+        }
 
         const response = await fetch("/api/onboarding/parse-resume", {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resumeUrl: upload.resumeUrl }),
         });
 
         if (!response.ok) {
@@ -117,6 +147,7 @@ export default function OnboardingPage() {
           }
 
           completed = true;
+          setResumeUrl(event.resumeUrl ?? upload.resumeUrl);
           setResumeData(mergeWithUserDefaults(event.resume, userDefaults));
         };
 
@@ -142,6 +173,7 @@ export default function OnboardingPage() {
   );
 
   const handleSkip = useCallback(() => {
+    setResumeUrl(undefined);
     setResumeData({
       name: "",
       email: "",
@@ -167,6 +199,7 @@ export default function OnboardingPage() {
           projectKeywords: resumeData?.projectKeywords ?? [],
           projectCapabilities: resumeData?.projectCapabilities ?? [],
           workInitiatives: resumeData?.workInitiatives ?? [],
+          resumeUrl,
         };
         const response = await fetch("/api/onboarding/complete", {
           method: "POST",
@@ -188,7 +221,7 @@ export default function OnboardingPage() {
         setIsCompleting(false);
       }
     },
-    [resumeData, router],
+    [resumeData, resumeUrl, router],
   );
 
   if (isLoading) {

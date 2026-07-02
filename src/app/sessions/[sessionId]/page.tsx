@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ProctoredDiagnosticsSession } from "@/components/diagnostics/proctored-diagnostics-session";
 import { prisma } from "@/lib/db";
 import { DEFAULT_PROCTORING_CONFIG } from "@/lib/proctor/default-config";
+import { isProctoringEnabled } from "@/lib/proctor/server";
 import type { ProctorConfig } from "@/lib/proctor/types";
 import { requirePageStage } from "@/lib/stage-guards";
 
@@ -46,6 +47,7 @@ export default async function SessionPage({ params, searchParams }: Props) {
       coach={coach}
       companies={companies?.split(",") ?? []}
       config={proctorConfig}
+      proctoringEnabled={isProctoringEnabled()}
       jobId={jobId}
       jobTitle={jobTitle}
       roundId={roundId}

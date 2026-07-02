@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { getUserStage } from "@/lib/progress";
+import { isResumeKeyOwnedByUser } from "@/lib/s3";
 
 type EducationEntry = {
   degree: string;
@@ -41,6 +42,7 @@ type ResumePayload = {
   projectKeywords?: string[][];
   projectCapabilities?: string[][];
   workInitiatives?: string[][];
+  resumeUrl?: string;
 };
 
 function validateBody(body: unknown): body is ResumePayload {
@@ -57,6 +59,9 @@ function validateBody(body: unknown): body is ResumePayload {
   if (!Array.isArray(b.skills)) return false;
   if (!Array.isArray(b.experience)) return false;
   if (!Array.isArray(b.projects)) return false;
+  if (b.resumeUrl !== undefined && typeof b.resumeUrl !== "string") {
+    return false;
+  }
 
   return true;
 }
@@ -105,7 +110,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
-    const { name, email, phoneNumber, role, experienceYears, education, skills, experience, projects } = body;
+    const {
+      name,
+      email,
+      phoneNumber,
+      role,
+      experienceYears,
+      education,
+      skills,
+      experience,
+      projects,
+      resumeUrl,
+    } = body;
+    if (resumeUrl && !isResumeKeyOwnedByUser(resumeUrl, session.user.id)) {
+      return NextResponse.json(
+        { error: "Invalid resume file" },
+        { status: 400 },
+      );
+    }
     const skillGlosses = body.skillGlosses ?? {};
     const projectKeywords = body.projectKeywords ?? [];
     const projectCapabilities = body.projectCapabilities ?? [];
@@ -134,6 +156,7 @@ export async function POST(request: NextRequest) {
           projectKeywords,
           projectCapabilities,
           workInitiatives,
+          resumeUrl,
         },
         update: {
           name: name.trim(),
@@ -147,6 +170,7 @@ export async function POST(request: NextRequest) {
           projectKeywords,
           projectCapabilities,
           workInitiatives,
+          resumeUrl,
         },
       }),
       prisma.userProgress.upsert({

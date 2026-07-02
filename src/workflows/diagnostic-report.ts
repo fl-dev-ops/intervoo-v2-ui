@@ -22,6 +22,7 @@ import {
 import {
   getAutoProctorClientId,
   hashAutoProctorTestAttemptId,
+  isProctoringEnabled,
 } from "@/lib/proctor/server";
 import {
   buildDiagnosticReportResult,
@@ -93,6 +94,8 @@ export async function generateDiagnosticSessionReportWorkflow(
 }
 
 async function fetchAutoProctorReportWithPolling(sessionId: string) {
+  if (!isProctoringEnabled()) return;
+
   let lastResult: AutoProctorFetchStepResult | null = null;
 
   try {

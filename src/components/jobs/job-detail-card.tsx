@@ -384,18 +384,14 @@ export function JobDetailCard({
                     <Badge
                       key={skill.skill}
                       className={cn(
-                        "h-auto rounded-lg px-3 py-2 text-sm font-semibold",
+                        "h-auto rounded-lg gap-2 px-3 py-2 text-sm font-semibold",
                         skill.matched
-                          ? "bg-[#FFF8E8] text-[#D96A00]"
+                          ? "bg-[#E7FCE9] text-[#D96A00]"
                           : "bg-[#F3F3F4] text-black",
                       )}
                       variant="secondary"
                     >
-                      {skill.matched ? (
-                        <span className="flex size-4 items-center justify-center rounded bg-[#11BF2A] text-[11px] text-white">
-                          ✓
-                        </span>
-                      ) : null}
+                      {skill.matched ? <span>✅</span> : null}
                       {skill.skill}
                     </Badge>
                   ))}
@@ -620,7 +616,7 @@ function FitGroup({
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        {groupIcon}
+        {/*{groupIcon}*/}
         <p className={cn("text-sm font-extrabold", titleClassName)}>{title}</p>
       </div>
       <ul className="space-y-2">

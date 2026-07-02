@@ -32,6 +32,7 @@ type Props = {
   coach?: string;
   companies?: string[];
   config: ProctorConfig;
+  proctoringEnabled: boolean;
   jobId?: string;
   jobTitle?: string;
   roundId?: string;
@@ -57,6 +58,7 @@ export function ProctoredDiagnosticsSession({
   coach,
   companies,
   config,
+  proctoringEnabled,
   jobId,
   jobTitle,
   roundId,
@@ -69,12 +71,16 @@ export function ProctoredDiagnosticsSession({
   const hasStoppedRef = useRef(false);
   const stopResolversRef = useRef<Array<() => void>>([]);
   const [sdkReady, setSdkReady] = useState(false);
-  const [statusText, setStatusText] = useState("Loading proctoring...");
+  const [statusText, setStatusText] = useState(
+    proctoringEnabled ? "Loading proctoring..." : "Connecting interview...",
+  );
   const [liveKitDetails, setLiveKitDetails] =
     useState<LiveKitTokenResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!proctoringEnabled) return;
+
     if (window.AutoProctor) {
       setSdkReady(true);
       return;
@@ -99,7 +105,26 @@ export function ProctoredDiagnosticsSession({
       window.removeEventListener("apLibReady", handleLibReady);
       window.removeEventListener("apLibLoadingFailed", handleLibFailed);
     };
-  }, []);
+  }, [proctoringEnabled]);
+
+  useEffect(() => {
+    if (proctoringEnabled) return;
+
+    let cancelled = false;
+    void fetchJson<LiveKitTokenResponse>("/api/livekit/session-token", {
+      sessionId,
+    })
+      .then((details) => {
+        if (!cancelled) setLiveKitDetails(details);
+      })
+      .catch((fetchError) => {
+        if (!cancelled) setError(getErrorMessage(fetchError));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [proctoringEnabled, sessionId]);
 
   const stopAndPersistProctoring = async () => {
     if (hasStoppedRef.current) return;
@@ -126,7 +151,7 @@ export function ProctoredDiagnosticsSession({
   };
 
   useEffect(() => {
-    if (!sdkReady || hasStartedRef.current) return;
+    if (!proctoringEnabled || !sdkReady || hasStartedRef.current) return;
     if (!window.AutoProctor) {
       setError("AutoProctor failed to load.");
       return;
@@ -247,7 +272,7 @@ export function ProctoredDiagnosticsSession({
       window.removeEventListener("apErrorEvent", handleError);
       window.removeEventListener("apEvidenceEvent", handleEvidence);
     };
-  }, [config, jobId, router, sdkReady, sessionId]);
+  }, [config, jobId, proctoringEnabled, router, sdkReady, sessionId]);
 
   useEffect(() => {
     return () => {
@@ -263,11 +288,13 @@ export function ProctoredDiagnosticsSession({
 
   return (
     <>
-      <Script
-        src={SDK_SRC}
-        strategy="afterInteractive"
-        onLoad={() => setStatusText("Loading proctoring library...")}
-      />
+      {proctoringEnabled ? (
+        <Script
+          src={SDK_SRC}
+          strategy="afterInteractive"
+          onLoad={() => setStatusText("Loading proctoring library...")}
+        />
+      ) : null}
       <div id={PROCTOR_TEST_CONTAINER_ID} className="min-h-dvh">
         {liveKitDetails ? (
           <DiagnosticsAgentSession
@@ -280,7 +307,9 @@ export function ProctoredDiagnosticsSession({
             sessionId={sessionId}
             token={liveKitDetails.participant_token}
             userName={userName}
-            onBeforeEndSession={stopAndPersistProctoring}
+            onBeforeEndSession={
+              proctoringEnabled ? stopAndPersistProctoring : undefined
+            }
           />
         ) : (
           <main className="flex min-h-dvh items-center justify-center bg-[#1B1238] px-6 text-center text-white">
