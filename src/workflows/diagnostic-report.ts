@@ -94,8 +94,6 @@ export async function generateDiagnosticSessionReportWorkflow(
 }
 
 async function fetchAutoProctorReportWithPolling(sessionId: string) {
-  if (!isProctoringEnabled()) return;
-
   let lastResult: AutoProctorFetchStepResult | null = null;
 
   try {
@@ -135,6 +133,8 @@ async function fetchAutoProctorReportStep(
   attempt: number,
 ): Promise<AutoProctorFetchStepResult> {
   "use step";
+
+  if (!isProctoringEnabled()) return { status: "skipped" };
 
   const session = await prisma.interviewSession.findUnique({
     where: { id: sessionId },
