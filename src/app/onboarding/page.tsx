@@ -1,13 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/app-header";
 import {
   JobPreferencesForm,
   type JobProfileFilters,
 } from "@/components/jobs/job-preferences-form";
 import {
+  isOnboardingStep,
+  OnboardingProgress,
+  type OnboardingStep,
   ResumeParsingSkeleton,
   ResumeReviewStep,
   ResumeUploadStep,
@@ -34,10 +37,26 @@ const PENDING_PROFILE_KEY = "intervoo:pending-onboarding-profile";
 const PENDING_FILTERS_KEY = "intervoo:pending-onboarding-filters";
 
 export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Spinner className="size-8" />
+        </div>
+      }
+    >
+      <OnboardingPageContent />
+    </Suspense>
+  );
+}
+
+function OnboardingPageContent() {
   const router = useRouter();
-  const [step, setStep] = useState<
-    "upload" | "review" | "job-preferences"
-  >("upload");
+  const searchParams = useSearchParams();
+  const requestedStep = searchParams.get("step");
+  const step: OnboardingStep = isOnboardingStep(requestedStep)
+    ? requestedStep
+    : "resume-upload";
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | undefined>();
   const [loadedSections, setLoadedSections] = useState<ResumeSection[]>([]);
@@ -58,6 +77,24 @@ export default function OnboardingPage() {
     email: "",
     phoneNumber: "",
   });
+
+  const navigateToStep = useCallback(
+    (nextStep: OnboardingStep) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("step", nextStep);
+      router.push(`/onboarding?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  const replaceStep = useCallback(
+    (nextStep: OnboardingStep) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("step", nextStep);
+      router.replace(`/onboarding?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
 
   useEffect(() => {
     const checkStage = async () => {
@@ -86,9 +123,18 @@ export default function OnboardingPage() {
               ? [restoredProfile.role.trim()]
               : [],
           };
+          setResumeData(restoredProfile);
+          setResumeUrl(restoredProfile.resumeUrl);
           setPendingProfile(restoredProfile);
           setJobFilters(restoredFilters);
-          setStep("job-preferences");
+
+          const initialParams = new URLSearchParams(window.location.search);
+          if (!isOnboardingStep(initialParams.get("step"))) {
+            initialParams.set("step", "job-preferences");
+            router.replace(`/onboarding?${initialParams.toString()}`, {
+              scroll: false,
+            });
+          }
 
           try {
             setCompanyOptions(await fetchCompanyOptions());
@@ -111,17 +157,22 @@ export default function OnboardingPage() {
   }, [router]);
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const urlStep =
-      step === "review"
-        ? "resume-details"
-        : step === "job-preferences"
-          ? "job-preferences"
-          : "resume-upload";
-    if (url.searchParams.get("step") === urlStep) return;
-    url.searchParams.set("step", urlStep);
-    router.replace(`${url.pathname}${url.search}`, { scroll: false });
-  }, [router, step]);
+    if (isLoading) return;
+
+    if (!isOnboardingStep(requestedStep)) {
+      replaceStep(pendingProfile ? "job-preferences" : "resume-upload");
+      return;
+    }
+
+    if (requestedStep === "job-preferences" && !pendingProfile) {
+      replaceStep(resumeData ? "resume-details" : "resume-upload");
+      return;
+    }
+
+    if (requestedStep === "resume-details" && !resumeData) {
+      replaceStep("resume-upload");
+    }
+  }, [isLoading, pendingProfile, replaceStep, requestedStep, resumeData]);
 
   useEffect(() => {
     if (step !== "job-preferences" || !pendingProfile) return;
@@ -138,6 +189,9 @@ export default function OnboardingPage() {
       setLoadedSections([]);
       setResumeData(createEmptyResume(userDefaults));
       setResumeUrl(undefined);
+      setPendingProfile(null);
+      window.sessionStorage.removeItem(PENDING_PROFILE_KEY);
+      window.sessionStorage.removeItem(PENDING_FILTERS_KEY);
 
       try {
         const result = await uploadAndParseResume(file, {
@@ -163,7 +217,7 @@ export default function OnboardingPage() {
 
         await waitForFinalSection();
         setIsParsing(false);
-        setStep("review");
+        navigateToStep("resume-details");
       } catch (err) {
         setParseError(
           err instanceof Error ? err.message : "Failed to parse resume",
@@ -171,11 +225,14 @@ export default function OnboardingPage() {
         setIsParsing(false);
       }
     },
-    [userDefaults],
+    [navigateToStep, userDefaults],
   );
 
   const handleSkip = useCallback(() => {
     setResumeUrl(undefined);
+    setPendingProfile(null);
+    window.sessionStorage.removeItem(PENDING_PROFILE_KEY);
+    window.sessionStorage.removeItem(PENDING_FILTERS_KEY);
     setResumeData({
       name: "",
       email: "",
@@ -187,8 +244,8 @@ export default function OnboardingPage() {
       experience: [],
       projects: [],
     });
-    setStep("review");
-  }, [userDefaults]);
+    navigateToStep("resume-details");
+  }, [navigateToStep, userDefaults]);
 
   const handleComplete = useCallback(
     async (data: ResumeData) => {
@@ -214,32 +271,27 @@ export default function OnboardingPage() {
           roles: data.role.trim() ? [data.role.trim()] : [],
         });
         setPreferenceError(null);
-        setStep("job-preferences");
+        navigateToStep("job-preferences");
 
         setCompanyOptions(await fetchCompanyOptions());
       } catch (err) {
         setPreferenceError(
-          err instanceof Error
-            ? err.message
-            : "Could not load job preferences",
+          err instanceof Error ? err.message : "Could not load job preferences",
         );
       } finally {
         setIsCompleting(false);
       }
     },
-    [resumeData, resumeUrl],
+    [navigateToStep, resumeData, resumeUrl],
   );
 
   const handleApplyPreferences = useCallback(async () => {
     if (!pendingProfile) {
-      setPreferenceError("Profile information is missing. Go back and save again.");
+      setPreferenceError(
+        "Profile information is missing. Go back and save again.",
+      );
       return;
     }
-    if (jobFilters.roles.length === 0 || jobFilters.companies.length === 0) {
-      setPreferenceError("Select at least one role and one company.");
-      return;
-    }
-
     setIsCompleting(true);
     setPreferenceError(null);
     try {
@@ -259,7 +311,9 @@ export default function OnboardingPage() {
       router.push("/jobs");
     } catch (error) {
       setPreferenceError(
-        error instanceof Error ? error.message : "Failed to complete onboarding",
+        error instanceof Error
+          ? error.message
+          : "Failed to complete onboarding",
       );
     } finally {
       setIsCompleting(false);
@@ -277,6 +331,19 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-[#F7F1FF] font-sans">
       <AppHeader />
+      <OnboardingProgress
+        activeStep={step}
+        availableSteps={[
+          "resume-upload",
+          ...(!isParsing && resumeData ? (["resume-details"] as const) : []),
+          ...(pendingProfile ? (["job-preferences"] as const) : []),
+        ]}
+        completedSteps={[
+          ...(!isParsing && resumeData ? (["resume-upload"] as const) : []),
+          ...(pendingProfile ? (["resume-details"] as const) : []),
+        ]}
+        onStepChange={navigateToStep}
+      />
       {isParsing ? (
         <ResumeParsingSkeleton
           email={userDefaults.email}
@@ -285,19 +352,19 @@ export default function OnboardingPage() {
           phoneNumber={userDefaults.phoneNumber}
           resumeData={resumeData}
         />
-      ) : step === "upload" ? (
+      ) : step === "resume-upload" ? (
         <ResumeUploadStep
           onParse={handleParseResume}
           onSkip={handleSkip}
           isParsing={isParsing}
           error={parseError}
         />
-      ) : step === "review" ? (
+      ) : step === "resume-details" ? (
         resumeData && (
           <ResumeReviewStep
             initialData={resumeData}
             onComplete={handleComplete}
-            onBack={() => setStep("upload")}
+            onBack={() => navigateToStep("resume-upload")}
             isCompleting={isCompleting}
           />
         )

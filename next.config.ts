@@ -6,6 +6,32 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   allowedDevOrigins: ["192.168.29.214"],
   skipTrailingSlashRedirect: true,
+  turbopack: {
+    rules: {
+      "*.svg": {
+        loaders: [
+          {
+            loader: "@svgr/webpack",
+            options: { titleProp: true, dimensions: false },
+          },
+        ],
+        as: "*.js",
+      },
+    },
+  },
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.svg$/i,
+      issuer: /\.[jt]sx?$/,
+      use: [
+        {
+          loader: "@svgr/webpack",
+          options: { titleProp: true, dimensions: false },
+        },
+      ],
+    });
+    return config;
+  },
   async rewrites() {
     return [
       {

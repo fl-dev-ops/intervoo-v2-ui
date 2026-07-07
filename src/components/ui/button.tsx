@@ -15,7 +15,7 @@ const buttonVariants = cva(
         secondary:
           "rounded-full border border-[#E9E4FE] bg-white text-[#5C3BD8] shadow-sm hover:bg-[#F7F3FF] aria-expanded:bg-[#F7F3FF] aria-expanded:text-[#5C3BD8]",
         glass:
-          "relative rounded-full border border-transparent bg-[linear-gradient(90deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.055)_100%)] text-white shadow-[0_0_24px_0_rgba(0,0,0,0.06)] backdrop-blur-[5px] before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(100.81deg,rgba(255,255,255,0.34)_6%,rgba(255,255,255,0)_21.18%)] before:p-px before:content-[''] before:[-webkit-mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)] before:[-webkit-mask-composite:xor] before:[mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)] before:[mask-composite:exclude] hover:brightness-110",
+          "rounded-full border border-white/1 bg-[linear-gradient(90deg,rgba(255,255,255,0.2)_0%,rgba(255,255,255,0.05)_55%,rgba(255,255,255,0.05)_100%)] text-white shadow-[inset_1px_0_0_0_rgba(255,255,255,0.28),inset_0_1px_0_0_rgba(255,255,255,0.1),0_8px_24px_-6px_rgba(0,0,0,0.35)] backdrop-blur-[12px] hover:brightness-110 hover:border-white/25",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:

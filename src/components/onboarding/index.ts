@@ -1,6 +1,11 @@
 export { BasicInfoCard } from "./basic-info-card";
 export { EducationCard } from "./education-card";
 export { ExperienceCard } from "./experience-card";
+export {
+  isOnboardingStep,
+  OnboardingProgress,
+  type OnboardingStep,
+} from "./onboarding-progress";
 export { ProjectsCard } from "./projects-card";
 export { ResumeCard } from "./resume-card";
 export { ResumeParsingSkeleton } from "./resume-parsing-skeleton";

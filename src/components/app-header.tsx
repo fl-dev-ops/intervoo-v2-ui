@@ -1,9 +1,11 @@
 "use client";
 
+import { IconSubtitlesEdit } from "@tabler/icons-react";
 import { BadgeHelp, BriefcaseBusiness, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { HavingIssuesDialog } from "@/components/having-issues-dialog";
+import AppLogoIcon from "@/components/icons/app-logo.svg";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,10 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Icon } from "@/components/ui/icon";
 import { getHavingIssuesContext } from "@/constants/having-issues";
 import { authClient } from "@/lib/auth-client";
-import { IconSubtitlesEdit } from "@tabler/icons-react";
 
 type AppHeaderProps = {
   displayOnly?: boolean;
@@ -64,7 +64,13 @@ export function AppHeader({
     <header className="border-b border-[#EDEAF0] bg-white">
       <div className="mx-auto flex h-16 w-full max-w-225 items-center justify-between px-4 md:h-[72px]">
         <div className="flex items-center gap-3">
-          <Icon name="app-logo" width={38} height={22} title="Intervoo" />
+          <AppLogoIcon
+            className="text-[#242424]"
+            width={38}
+            height={22}
+            role="img"
+            title="Intervoo"
+          />
           <div className="hidden leading-none sm:block">
             <p className="text-base font-extrabold tracking-tight text-black">
               Intervoo.ai

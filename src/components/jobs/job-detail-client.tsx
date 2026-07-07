@@ -62,7 +62,9 @@ export function JobDetailClient({
 }: JobDetailClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const step = getDetailStep(searchParams.get("step"));
+  const [step, setStepState] = useState<DetailStep>(() =>
+    getDetailStep(searchParams.get("step")),
+  );
   const [startingRoundId, setStartingRoundId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [localReadyRoundIds, setLocalReadyRoundIds] = useState(readyRoundIds);
@@ -103,10 +105,12 @@ export function JobDetailClient({
     if (searchParams.get("step")) return;
     const params = new URLSearchParams(searchParams.toString());
     params.set("step", "match-details");
-    router.replace(`/jobs/${job.jobId}?${params.toString()}`, {
-      scroll: false,
-    });
-  }, [job.jobId, router, searchParams]);
+    window.history.replaceState(
+      null,
+      "",
+      `/jobs/${job.jobId}?${params.toString()}`,
+    );
+  }, [job.jobId, searchParams]);
 
   // While a round's report is still generating, refresh so the CTA flips to
   // "View Report" once it is ready.
@@ -157,9 +161,14 @@ export function JobDetailClient({
   }
 
   function setStep(nextStep: DetailStep) {
+    setStepState(nextStep);
     const params = new URLSearchParams(searchParams.toString());
     params.set("step", nextStep);
-    router.push(`/jobs/${job.jobId}?${params.toString()}`);
+    window.history.replaceState(
+      null,
+      "",
+      `/jobs/${job.jobId}?${params.toString()}`,
+    );
   }
 
   return (

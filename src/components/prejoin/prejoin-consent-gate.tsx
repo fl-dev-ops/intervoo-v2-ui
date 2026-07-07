@@ -2,9 +2,9 @@
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import PrejoinConsentLockIcon from "@/components/icons/prejoin-consent-lock.svg";
 import { CustomPreJoin } from "@/components/prejoin/custom-prejoin";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -100,13 +100,10 @@ export function PrejoinConsentGate({
             </DialogPrimitive.Close>
 
             <div className="flex min-h-0 flex-col overflow-y-auto rounded-[inherit] px-6 pb-9 pt-7 sm:p-8">
-              <Image
-                alt="A lock protected by a shield"
-                className="mx-auto h-auto w-58"
-                height={145}
-                priority
-                src="/prejoin-consent-lock.svg"
-                width={232}
+              <PrejoinConsentLockIcon
+                className="mx-auto size-58"
+                role="img"
+                title="A lock protected by a shield"
               />
 
               <div className="mt-6 sm:mt-5">
