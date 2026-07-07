@@ -297,6 +297,7 @@ model Payment {
   amount            Int
   currency          String        @default("INR")
   method            String?
+  receiptKey        String?
   capturedAt        DateTime?
   failedAt          DateTime?
   metadata          Json?

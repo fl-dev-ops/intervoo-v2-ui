@@ -248,6 +248,9 @@ export function JobDetailClient({
                 const isActive = index === activeRoundIndex;
                 const isDone = round.isReportReady;
                 const isProcessing = round.isReportProcessing;
+                // Lock all rounds at or beyond the paywall
+                const isLocked =
+                  requiresPayment && index >= activeRoundIndex && !isDone && !isProcessing;
                 return (
                   <RoundTimelineItem
                     key={round.id}
@@ -256,6 +259,7 @@ export function JobDetailClient({
                     isCurrent={isActive}
                     isDone={isDone}
                     isLast={isLast(index, rounds.length)}
+                    isLocked={isLocked}
                     isProcessing={isProcessing}
                     jobId={job.jobId}
                     completedRoundIds={localReadyRoundIds}
@@ -295,6 +299,7 @@ function RoundTimelineItem({
   isCurrent,
   isDone,
   isLast,
+  isLocked,
   isProcessing,
   jobId,
   completedRoundIds,
@@ -312,6 +317,7 @@ function RoundTimelineItem({
   isCurrent: boolean;
   isDone: boolean;
   isLast: boolean;
+  isLocked: boolean;
   isProcessing: boolean;
   jobId: string;
   completedRoundIds: string[];
@@ -500,7 +506,7 @@ function RoundTimelineItem({
                       : "Payment required to continue."}
                   </p>
                 </div>
-              ) : !isProcessing ? (
+              ) : !isProcessing && !isLocked ? (
                 <Button
                   className="col-span-2 w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:col-span-1 md:ml-auto"
                   disabled={Boolean(startingRoundId)}
