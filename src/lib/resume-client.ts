@@ -90,7 +90,7 @@ function normalizeSection(
             company: experience.company || "",
             startDate: experience.start_date || "",
             endDate: experience.end_date || "",
-            description: "",
+            description: experience.initiatives.filter(Boolean).join("\n"),
           })),
         },
       };
@@ -126,22 +126,22 @@ function normalizeProfile(profile: OnboardingProfile): ResumeData {
         score: profile.scores?.cgpa || "",
       },
     ],
-    skills: profile.skills || [],
-    experience: (profile.work_experience || []).map((experience) => ({
+    skills: profile.skills,
+    experience: profile.work_experience.map((experience, index) => ({
       title: experience.role || "",
       company: experience.company || "",
       startDate: experience.start_date || "",
       endDate: experience.end_date || "",
-      description: "",
+      description: (profile.workInitiatives[index] ?? []).filter(Boolean).join("\n"),
     })),
-    projects: (profile.projects || []).map((project) => {
+    projects: profile.projects.map((project) => {
       const [title, description] = splitResumePair(project);
       return { title, description };
     }),
-    skillGlosses: profile.skillGlosses || {},
-    projectKeywords: profile.projectKeywords || [],
-    projectCapabilities: profile.projectCapabilities || [],
-    workInitiatives: profile.workInitiatives || [],
+    skillGlosses: profile.skillGlosses,
+    projectKeywords: profile.projectKeywords,
+    projectCapabilities: profile.projectCapabilities,
+    workInitiatives: profile.workInitiatives,
   };
 }
 

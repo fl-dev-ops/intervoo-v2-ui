@@ -181,14 +181,15 @@ async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
     .map((p) =>
       p.description ? `${p.name} · ${p.description}` : (p.name as string),
     );
-  const workExperience = (parsed.work_experience || [])
-    .filter((w) => w.role || w.company)
-    .map((w) => ({
-      company: w.company || "",
-      role: w.role || "",
-      start_date: w.start_date || "",
-      end_date: w.end_date || "",
-    }));
+  const filteredWork = parsed.work_experience.filter(
+    (w) => w.role || w.company,
+  );
+  const workExperience = filteredWork.map((w) => ({
+    company: w.company || "",
+    role: w.role || "",
+    start_date: w.start_date || "",
+    end_date: w.end_date || "",
+  }));
   const work = workExperience.map((w) =>
     [w.role, w.company].filter(Boolean).join(" · "),
   );
@@ -216,10 +217,10 @@ async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
     skills: skillNames,
     skillGlosses,
     projects,
-    projectKeywords: parsed.projects.map((p) => p.keywords ?? []),
-    projectCapabilities: parsed.projects.map((p) => p.capabilities ?? []),
+    projectKeywords: parsed.projects.map((p) => p.keywords),
+    projectCapabilities: parsed.projects.map((p) => p.capabilities),
     work_experience: workExperience,
-    workInitiatives: parsed.work_experience.map((w) => w.initiatives ?? []),
+    workInitiatives: filteredWork.map((w) => w.initiatives),
     experience: work,
     scores: {
       cgpa: edu?.cgpa != null ? String(edu.cgpa) : "",
