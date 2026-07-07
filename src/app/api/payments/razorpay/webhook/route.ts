@@ -97,6 +97,7 @@ export async function POST(request: Request) {
     );
   }
 }
+import { deliverWhatsAppReceipt } from "@/lib/receipt-delivery";
 
 // ─── Receipt Helper ──────────────────────────────────────────────────────────
 
@@ -126,53 +127,24 @@ async function sendPaymentReceipt(params: {
   payment: PaymentEntity;
 }) {
   const { order, payment } = params;
-  const phoneNumber = order.user.phoneNumber;
-
-  if (!phoneNumber) {
-    console.warn(`No phone number for user on order ${order.id} — skipping receipt.`);
-    return;
-  }
 
   // Resolve job title from notes (saved during order creation)
   const jobTitle = getJobTitle(order.notes) ?? order.jobId;
   const paidAmount = payment.amount ?? order.amount;
   const currency = payment.currency ?? order.currency;
-  const amountFormatted = `${currency === "INR" ? "₹" : currency}${Math.round(paidAmount / 100)}`;
 
-  // Generate PDF
-  const pdfBuffer = await generateReceiptPdf({
+  await deliverWhatsAppReceipt({
+    amount: paidAmount,
+    currency,
+    originalAmount: order.originalAmount,
+    discountAmount: order.discountAmount,
+    couponCode: order.couponCode,
     orderId: order.id,
     razorpayOrderId: order.razorpayOrderId,
     razorpayPaymentId: payment.id,
-    amount: paidAmount,
-    currency,
     jobTitle,
     userName: order.user.name,
-    userPhone: phoneNumber,
-    paidAt: new Date(),
-    couponCode: order.couponCode,
-    originalAmount: order.originalAmount,
-    discountAmount: order.discountAmount,
-  });
-
-  // Upload to S3 and get a signed URL
-  const s3Key = `receipts/${order.id}.pdf`;
-  const receiptUrl = await uploadReceiptToS3({ buffer: pdfBuffer, key: s3Key });
-
-  // Persist the S3 key so we can regenerate signed URLs on demand
-  await prisma.payment.update({
-    where: { razorpayPaymentId: payment.id },
-    data: { receiptKey: s3Key },
-  });
-
-  // Send via WhatsApp
-  await sendWhatsAppReceipt({
-    phoneNumber,
-    userName: order.user.name,
-    amountFormatted,
-    jobTitle,
-    orderId: order.id,
-    receiptUrl,
+    userPhone: order.user.phoneNumber,
   });
 }
 
