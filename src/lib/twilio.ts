@@ -85,18 +85,16 @@ export async function sendWhatsAppReportLink(
   }
 }
 
+const RECEIPT_WHATSAPP_TEMPLATE_SID = "HXb1b408d7573ea68b0adedb1e996086a0";
+
 /**
  * Sends a payment receipt PDF to the user via WhatsApp.
- * Uses a free-form message (not a template) with the PDF hosted at `receiptUrl`.
- *
- * NOTE: Twilio WhatsApp free-form messages can only be sent within the 24-hour
- * customer service window. For production, create a Twilio Content Template for
- * the receipt and replace Body/MediaUrl with ContentSid/ContentVariables.
+ * Uses a Twilio Content Template to ensure delivery outside the 24-hour window.
  */
 export async function sendWhatsAppReceipt(params: {
   phoneNumber: string;
   userName: string;
-  amountFormatted: string; // e.g. "₹299"
+  amountFormatted: string; // e.g. "₹299" or "₹0"
   jobTitle: string;
   orderId: string;
   receiptUrl: string;
@@ -108,25 +106,16 @@ export async function sendWhatsAppReceipt(params: {
   const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
   const credentials = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
 
-  const messageBody = [
-    `Hi ${params.userName || "there"} 👋`,
-    ``,
-    `Your payment of *${params.amountFormatted}* for the *${params.jobTitle}* diagnostic on Intervoo has been confirmed! 🎉`,
-    ``,
-    `📄 Your payment receipt is attached to this message.`,
-    ``,
-    `Order ID: ${params.orderId}`,
-    ``,
-    `You now have full access to all interview rounds for this JD. Good luck! 💪`,
-    ``,
-    `– Team Intervoo`,
-  ].join("\n");
-
   const body = new URLSearchParams({
     From: from,
     To: `whatsapp:${params.phoneNumber}`,
-    Body: messageBody,
-    MediaUrl: params.receiptUrl,
+    ContentSid: RECEIPT_WHATSAPP_TEMPLATE_SID,
+    ContentVariables: JSON.stringify({
+      "1": params.userName || "Customer",
+      "2": params.amountFormatted,
+      "3": params.jobTitle,
+      "4": params.receiptUrl,
+    }),
   });
 
   const response = await fetch(url, {

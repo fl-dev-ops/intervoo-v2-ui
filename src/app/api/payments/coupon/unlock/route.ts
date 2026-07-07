@@ -38,45 +38,43 @@ export async function POST(request: Request) {
       return NextResponse.json(result, { status: 400 });
     }
 
-    // --- Deliver $0 Receipt Asynchronously ---
+    // --- Deliver $0 Receipt ---
     const userId = session.user.id;
-    void (async () => {
-      try {
-        const { prisma } = await import("@/lib/db");
-        const { deliverWhatsAppReceipt } = await import("@/lib/receipt-delivery");
-        
-        const [user, diagnostic] = await Promise.all([
-          prisma.user.findUnique({ where: { id: userId }, select: { name: true, phoneNumber: true } }),
-          prisma.diagnostic.findUnique({ where: { id: diagnosticId }, select: { selectedJob: true } })
-        ]);
+    try {
+      const { prisma } = await import("@/lib/db");
+      const { deliverWhatsAppReceipt } = await import("@/lib/receipt-delivery");
+      
+      const [user, diagnostic] = await Promise.all([
+        prisma.user.findUnique({ where: { id: userId }, select: { name: true, phoneNumber: true } }),
+        prisma.diagnostic.findUnique({ where: { id: diagnosticId }, select: { selectedJob: true } })
+      ]);
 
-        let jobTitle = jobId;
-        if (diagnostic?.selectedJob && typeof diagnostic.selectedJob === "object") {
-          const sj = diagnostic.selectedJob as Record<string, unknown>;
-          if (typeof sj.jobTitle === "string") jobTitle = sj.jobTitle;
-          else if (typeof sj.title === "string") jobTitle = sj.title;
-        }
-
-        if (user) {
-          const pseudoOrderId = `coup_${diagnosticId.slice(-10)}_${Date.now().toString(36)}`;
-          await deliverWhatsAppReceipt({
-            amount: 0,
-            currency: "INR",
-            originalAmount: result.originalAmount ?? 29900,
-            discountAmount: result.discountAmount ?? 29900,
-            couponCode: result.code ?? code,
-            orderId: pseudoOrderId,
-            razorpayOrderId: "COUPON_100",
-            razorpayPaymentId: "COUPON_100",
-            jobTitle,
-            userName: user.name ?? "Customer",
-            userPhone: user.phoneNumber,
-          });
-        }
-      } catch (err) {
-        console.error("Failed to send 100% coupon receipt:", err);
+      let jobTitle = jobId;
+      if (diagnostic?.selectedJob && typeof diagnostic.selectedJob === "object") {
+        const sj = diagnostic.selectedJob as Record<string, unknown>;
+        if (typeof sj.jobTitle === "string") jobTitle = sj.jobTitle;
+        else if (typeof sj.title === "string") jobTitle = sj.title;
       }
-    })();
+
+      if (user) {
+        const pseudoOrderId = `coup_${diagnosticId.slice(-10)}_${Date.now().toString(36)}`;
+        await deliverWhatsAppReceipt({
+          amount: 0,
+          currency: "INR",
+          originalAmount: result.originalAmount ?? 29900,
+          discountAmount: result.discountAmount ?? 29900,
+          couponCode: result.code ?? code,
+          orderId: pseudoOrderId,
+          razorpayOrderId: "COUPON_100",
+          razorpayPaymentId: "COUPON_100",
+          jobTitle,
+          userName: user.name ?? "Customer",
+          userPhone: user.phoneNumber,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to send 100% coupon receipt:", err);
+    }
 
     return NextResponse.json({ ...result, unlocked: true });
   } catch (error) {
