@@ -15,6 +15,7 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { getHavingIssuesContext } from "@/constants/having-issues";
 import { authClient } from "@/lib/auth-client";
+import { IconSubtitlesEdit } from "@tabler/icons-react";
 
 type AppHeaderProps = {
   displayOnly?: boolean;
@@ -72,15 +73,15 @@ export function AppHeader({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* <Button
+          <Button
             className={hasProfileMenu ? "hidden md:inline-flex" : "inline-flex"}
             onClick={openIssuesDialog}
             variant="secondary"
             type="button"
           >
-            <BadgeHelp className="size-4" />
+            <IconSubtitlesEdit className="size-4" />
             Having issues?
-          </Button> */}
+          </Button>
 
           {user && displayOnly ? (
             <div className="flex size-9 items-center justify-center rounded-full bg-[#242225] text-sm font-bold text-white">
@@ -124,13 +125,13 @@ export function AppHeader({
                   Profile edit
                 </DropdownMenuItem>
 
-                {/* <DropdownMenuItem
+                <DropdownMenuItem
                   className="rounded-xl px-3 py-3 text-sm font-medium text-[#2F2B35] hover:bg-[#F5F3F7] focus:bg-[#F5F3F7] md:hidden"
                   onClick={openIssuesDialog}
                 >
                   <BadgeHelp className="mr-2 size-5 text-[#56515A]" />
                   Having issues?
-                </DropdownMenuItem> */}
+                </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="mx-0 my-3 md:hidden" />
 

@@ -67,6 +67,7 @@ export function ProctoredDiagnosticsSession({
 }: Props) {
   const router = useRouter();
   const apInstanceRef = useRef<AutoProctorInstance | null>(null);
+  const hasBootstrappedLiveKitRef = useRef(false);
   const hasStartedRef = useRef(false);
   const hasStoppedRef = useRef(false);
   const stopResolversRef = useRef<Array<() => void>>([]);
@@ -98,12 +99,14 @@ export function ProctoredDiagnosticsSession({
       );
     };
 
-    window.addEventListener("apLibReady", handleLibReady);
-    window.addEventListener("apLibLoadingFailed", handleLibFailed);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    window.addEventListener("apLibReady", handleLibReady, { signal });
+    window.addEventListener("apLibLoadingFailed", handleLibFailed, { signal });
 
     return () => {
-      window.removeEventListener("apLibReady", handleLibReady);
-      window.removeEventListener("apLibLoadingFailed", handleLibFailed);
+      controller.abort();
     };
   }, [proctoringEnabled]);
 
@@ -190,6 +193,8 @@ export function ProctoredDiagnosticsSession({
         sessionId,
         status: "monitoring",
       });
+      if (hasBootstrappedLiveKitRef.current) return;
+      hasBootstrappedLiveKitRef.current = true;
       void fetchJson<LiveKitTokenResponse>("/api/livekit/session-token", {
         sessionId,
       })
@@ -245,10 +250,17 @@ export function ProctoredDiagnosticsSession({
       }
     };
 
-    window.addEventListener("apMonitoringStarted", handleMonitoringStarted);
-    window.addEventListener("apMonitoringStopped", handleMonitoringStopped);
-    window.addEventListener("apErrorEvent", handleError);
-    window.addEventListener("apEvidenceEvent", handleEvidence);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    window.addEventListener("apMonitoringStarted", handleMonitoringStarted, {
+      signal,
+    });
+    window.addEventListener("apMonitoringStopped", handleMonitoringStopped, {
+      signal,
+    });
+    window.addEventListener("apErrorEvent", handleError, { signal });
+    window.addEventListener("apEvidenceEvent", handleEvidence, { signal });
 
     startProctoring().catch((startError) => {
       const message = getErrorMessage(startError);
@@ -261,16 +273,7 @@ export function ProctoredDiagnosticsSession({
 
     return () => {
       cancelled = true;
-      window.removeEventListener(
-        "apMonitoringStarted",
-        handleMonitoringStarted,
-      );
-      window.removeEventListener(
-        "apMonitoringStopped",
-        handleMonitoringStopped,
-      );
-      window.removeEventListener("apErrorEvent", handleError);
-      window.removeEventListener("apEvidenceEvent", handleEvidence);
+      controller.abort();
     };
   }, [config, jobId, proctoringEnabled, router, sdkReady, sessionId]);
 

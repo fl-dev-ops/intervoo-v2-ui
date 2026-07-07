@@ -6,37 +6,9 @@ import {
   type ResumeFileInput,
   type ResumeParseStreamEvent,
 } from "./resume-parser";
+import type { ResumeData } from "./resume-schema";
 
-export type ResumeData = {
-  name: string;
-  email: string;
-  phoneNumber: string;
-  role: string;
-  experienceYears: number | null;
-  education: {
-    degree: string;
-    stream: string;
-    institution: string;
-    graduationYear: string;
-    score: string;
-  }[];
-  skills: string[];
-  experience: {
-    title: string;
-    company: string;
-    startDate: string;
-    endDate: string;
-    description: string;
-  }[];
-  projects: {
-    title: string;
-    description: string;
-  }[];
-  skillGlosses?: Record<string, string>;
-  projectKeywords?: string[][];
-  projectCapabilities?: string[][];
-  workInitiatives?: string[][];
-};
+export type { ResumeData } from "./resume-schema";
 
 export type ResumeSection = Extract<
   ResumeParseStreamEvent,

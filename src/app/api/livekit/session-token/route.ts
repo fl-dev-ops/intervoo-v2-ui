@@ -2,7 +2,13 @@ import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createParticipantToken, getLiveKitCredentials } from "@/lib/livekit";
+import {
+  createAgentDispatchClient,
+  createParticipantToken,
+  getLiveKitCredentials,
+} from "@/lib/livekit";
+
+const LIVEKIT_AGENT_NAME = "intervoo-agent-hs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +40,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { liveKitUrl } = getLiveKitCredentials();
+    const { agentName: configuredAgentName, liveKitUrl } =
+      getLiveKitCredentials();
+    const agentName = configuredAgentName || LIVEKIT_AGENT_NAME;
+    const agentDispatchClient = createAgentDispatchClient();
+    const dispatches = await agentDispatchClient.listDispatch(
+      interviewSession.roomName,
+    );
+    const existingDispatch = dispatches.find(
+      (dispatch) => dispatch.agentName === agentName,
+    );
+
+    if (existingDispatch) {
+      console.info("[diagnostics] LiveKit agent dispatch reused", {
+        agentName,
+        roomName: interviewSession.roomName,
+        sessionId: interviewSession.id,
+      });
+    } else {
+      await agentDispatchClient.createDispatch(
+        interviewSession.roomName,
+        agentName,
+        {
+          metadata: JSON.stringify(interviewSession.metadata ?? {}),
+        },
+      );
+      console.info("[diagnostics] LiveKit agent dispatch created", {
+        agentName,
+        roomName: interviewSession.roomName,
+        sessionId: interviewSession.id,
+      });
+    }
+
     const participantName =
       interviewSession.user.resume?.name ||
       interviewSession.user.name ||

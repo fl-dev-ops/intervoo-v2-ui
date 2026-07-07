@@ -11,6 +11,7 @@ export type HavingIssuesContent = {
 };
 
 export type HavingIssuesContentKey =
+  | "agent-session"
   | "general"
   | "jd-details"
   | "jd-listing"
@@ -41,6 +42,25 @@ const RESUME_SECTIONS = [
 ];
 
 export const HAVING_ISSUES_CONTENT = {
+  "agent-session": {
+    title: INTERVIEW_TITLE,
+    description: INTERVIEW_DESCRIPTION,
+    sections: [
+      {
+        options: [
+          "The interview didn't start properly",
+          "It couldn't hear me",
+          "My audio cut out or lagged",
+          "Agent spoke over me",
+          "The questions aren’t relevant",
+          "Slow response",
+          "It asked me something I'd already answered",
+          "It misunderstood my answer",
+        ],
+      },
+    ],
+    textareaPlaceholder: INTERVIEW_PLACEHOLDER,
+  },
   general: {
     title: INCORRECT_TITLE,
     description: INCORRECT_DESCRIPTION,
@@ -98,7 +118,7 @@ export const HAVING_ISSUES_CONTENT = {
         ],
       },
     ],
-    textareaPlaceholder: INTERVIEW_PLACEHOLDER,
+    // textareaPlaceholder: INTERVIEW_PLACEHOLDER,
   },
   "round-details": {
     title: INTERVIEW_TITLE,
@@ -115,7 +135,7 @@ export const HAVING_ISSUES_CONTENT = {
         ],
       },
     ],
-    textareaPlaceholder: INTERVIEW_PLACEHOLDER,
+    // textareaPlaceholder: INTERVIEW_PLACEHOLDER,
   },
 } satisfies Record<HavingIssuesContentKey, HavingIssuesContent>;
 
@@ -128,6 +148,8 @@ export function getHavingIssuesContext(
 
   if (pathname === "/onboarding" && step === "resume-details") {
     key = "resume-details";
+  } else if (/^\/sessions\/[^/]+$/.test(pathname)) {
+    key = "agent-session";
   } else if (pathname === "/jobs") {
     key = step === "job-preferences" ? "job-preferences" : "jd-listing";
   } else if (/^\/jobs\/[^/]+$/.test(pathname)) {

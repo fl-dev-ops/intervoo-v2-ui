@@ -6,13 +6,27 @@ import {
   IconUserCheck,
   IconUsersGroup,
 } from "@tabler/icons-react";
-import { ArrowLeft, CheckIcon, LoaderCircle, Play } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckIcon,
+  ChevronDown,
+  CircleAlert,
+  CloudUpload,
+  LoaderCircle,
+  Play,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AddSkillsDialog } from "@/components/jobs/add-skills-dialog";
 import { AppHeader } from "@/components/app-header";
+import { AddSkillsDialog } from "@/components/jobs/add-skills-dialog";
+import { ChangeResumeDialog } from "@/components/jobs/change-resume-dialog";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   DIAGNOSTIC_ROUNDS,
   type DiagnosticRoundConfig,
@@ -51,6 +65,7 @@ export function JobDetailClient({
     useState(processingRoundIds);
   const [localRoundScores, setLocalRoundScores] = useState(roundScores);
   const [isAddSkillsOpen, setIsAddSkillsOpen] = useState(false);
+  const [isChangeResumeOpen, setIsChangeResumeOpen] = useState(false);
   const [dialogJobSkills, setDialogJobSkills] = useState<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -161,7 +176,25 @@ export function JobDetailClient({
           </button>
         )}
 
-        <div className="mt-8">
+        {step === "match-details" ? (
+          <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-[#E9DFB7] bg-[#FFFDF0] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-3 text-base text-[#706B7A]">
+              <CircleAlert className="size-5 shrink-0 fill-[#B6A234] text-[#B6A234] stroke-white" />
+              Do you feel this info doesn&apos;t match to your Resume?
+            </p>
+            <Button
+              className="shrink-0"
+              onClick={() => setIsChangeResumeOpen(true)}
+              type="button"
+              variant="secondary"
+            >
+              <CloudUpload />
+              Change my Resume
+            </Button>
+          </div>
+        ) : null}
+
+        <div className={step === "match-details" ? "mt-4" : "mt-8"}>
           <JobDetailCard
             companyName={job.companyName}
             description={job.roleSummary ?? undefined}
@@ -201,6 +234,11 @@ export function JobDetailClient({
             router.refresh();
           }}
           open={isAddSkillsOpen}
+        />
+
+        <ChangeResumeDialog
+          onOpenChange={setIsChangeResumeOpen}
+          open={isChangeResumeOpen}
         />
 
         {isPracticeComplete && diagnosticId ? (
@@ -309,45 +347,24 @@ function RoundTimelineItem({
 }) {
   const showQuestions = !isDone && !isProcessing;
   const isActiveCard = isCurrent && !isProcessing;
+  const [isOpen, setIsOpen] = useState(isActiveCard);
+
+  useEffect(() => {
+    if (isActiveCard) setIsOpen(true);
+  }, [isActiveCard]);
 
   return (
-    <article className="relative grid grid-cols-[3rem_1fr] gap-x-2 gap-y-2 md:gap-x-4 md:gap-y-0">
-      <div className="flex items-center justify-center">
+    <article className="relative grid grid-cols-[3rem_1fr] gap-x-2 md:gap-x-4">
+      <div className="flex flex-col items-center">
         <RoundStateIcon
           config={config}
           isCurrent={isCurrent}
           isDone={isDone || isProcessing}
         />
-      </div>
-
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <span
-          className={cn(
-            "text-xs font-semibold uppercase tracking-[0.12em]",
-            isActiveCard
-              ? "text-purple-400"
-              : isDone || isProcessing
-                ? "text-[#3DD24A]"
-                : "text-white/40",
-          )}
-        >
-          ROUND {roundNumber}
-        </span>
-        <span
-          className={cn(
-            "rounded-full px-4 py-1.5 text-xs font-semibold text-white",
-            isActiveCard ? "border border-white/25 bg-white/10" : "bg-white/10",
-          )}
-        >
-          {config.duration}
-        </span>
-      </div>
-
-      <div className="hidden justify-center md:flex">
         {!isLast && (
           <div
             className={cn(
-              "hidden h-full min-h-28 w-1 rounded-full md:block",
+              "hidden min-h-12 w-1 flex-1 rounded-full md:block",
               isActiveCard
                 ? "bg-[linear-gradient(180deg,rgba(108,71,255,0.75)_0%,rgba(0,180,0,0)_100%)]"
                 : isDone || isProcessing
@@ -358,25 +375,29 @@ function RoundTimelineItem({
         )}
       </div>
 
-      <div className="col-span-2 min-w-0 pb-6 md:col-span-1">
-        <div
+      <div className="min-w-0 pb-6">
+        <Collapsible
           className={cn(
-            "rounded-2xl border p-5 transition md:p-6",
+            "cursor-pointer rounded-2xl border p-5 transition md:p-6",
             isActiveCard
               ? "border-white/80 bg-white shadow-sm"
               : "border-white/15 bg-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.12)]",
           )}
+          onClick={(event) => {
+            if (
+              event.target instanceof Element &&
+              event.target.closest("button, a, input, select, textarea")
+            ) {
+              return;
+            }
+            setIsOpen((current) => !current);
+          }}
+          onOpenChange={setIsOpen}
+          open={isOpen}
         >
-          <div
-            className={cn(
-              "grid gap-4",
-              isDone || isProcessing
-                ? "md:grid-cols-[minmax(0,1fr)_auto] md:gap-5"
-                : "md:grid-cols-1",
-            )}
-          >
+          <div className="min-w-0">
             <div className="min-w-0">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2
                   className={cn(
                     "text-base font-semibold tracking-tight",
@@ -385,11 +406,44 @@ function RoundTimelineItem({
                 >
                   {config.title}
                 </h2>
-                {isDone ? (
-                  <span className="md:hidden">
-                    <RoundResultBadge score={score} />
+                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+                  <span
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium",
+                      isActiveCard
+                        ? "bg-muted text-foreground"
+                        : "bg-white/10 text-white/80",
+                    )}
+                  >
+                    Round {roundNumber}
                   </span>
-                ) : null}
+                  <span
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium",
+                      isActiveCard
+                        ? "bg-muted text-foreground"
+                        : "bg-white/10 text-white/80",
+                    )}
+                  >
+                    {config.duration}
+                  </span>
+                  {isDone ? (
+                    <span>
+                      <RoundResultBadge score={score} />
+                    </span>
+                  ) : null}
+                  <CollapsibleTrigger
+                    aria-label={`Toggle ${config.title} round details`}
+                    className={cn(
+                      "group rounded-full p-1 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
+                      isActiveCard
+                        ? "text-foreground hover:bg-muted"
+                        : "text-white hover:bg-white/10",
+                    )}
+                  >
+                    <ChevronDown className="size-5 transition-transform group-aria-expanded:rotate-180" />
+                  </CollapsibleTrigger>
+                </div>
               </div>
               <p
                 className={cn(
@@ -399,45 +453,17 @@ function RoundTimelineItem({
               >
                 {config.description}
               </p>
-              {isDone && diagnosticId ? (
-                <div className="mt-3 flex justify-end md:hidden">
-                  <Button
-                    className="h-auto rounded-none border-0 bg-transparent p-0 text-sm font-medium text-[#A991F4] shadow-none hover:bg-transparent hover:text-[#C4B5FD]"
-                    variant="ghost"
-                    type="button"
-                    onClick={onViewReport}
-                  >
-                    View report
-                  </Button>
-                </div>
+              {isProcessing ? (
+                <p className="mt-3 text-sm font-medium text-white/80">
+                  Calculating your report
+                </p>
               ) : null}
             </div>
-
-            {isDone && diagnosticId ? (
-              <div className="hidden shrink-0 flex-col items-end justify-between gap-6 md:flex">
-                <RoundResultBadge score={score} />
-                <Button
-                  className="h-auto rounded-none border-0 bg-transparent p-0 text-sm font-medium text-[#A991F4] shadow-none hover:bg-transparent hover:text-[#C4B5FD]"
-                  variant="ghost"
-                  type="button"
-                  onClick={onViewReport}
-                >
-                  View report
-                </Button>
-              </div>
-            ) : null}
-
-            {isProcessing ? (
-              <div className="flex shrink-0 items-start justify-start md:items-center md:justify-end">
-                <span className="text-sm font-medium text-white/80">
-                  Calculating your report
-                </span>
-              </div>
-            ) : null}
           </div>
 
-          {showQuestions && (
-            <div className="grid items-end gap-4 md:grid-cols-3">
+          {showQuestions ? (
+            <CollapsibleContent>
+              <div className="grid items-end gap-4 pt-1 md:grid-cols-3">
               <div className="md:col-span-2">
                 <p
                   className={cn(
@@ -485,9 +511,24 @@ function RoundTimelineItem({
                   )}
                 </Button>
               ) : null}
-            </div>
-          )}
-        </div>
+              </div>
+            </CollapsibleContent>
+          ) : null}
+          {isDone && diagnosticId ? (
+            <CollapsibleContent>
+              <div className="flex justify-end pt-4">
+                <Button
+                  className="w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:w-auto"
+                  onClick={onViewReport}
+                  size="lg"
+                  type="button"
+                >
+                  View report
+                </Button>
+              </div>
+            </CollapsibleContent>
+          ) : null}
+        </Collapsible>
       </div>
     </article>
   );

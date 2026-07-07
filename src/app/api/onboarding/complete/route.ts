@@ -4,69 +4,14 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { getUserStage } from "@/lib/progress";
+import { upsertResumeForUser } from "@/lib/resume-persistence";
+import {
+  type OnboardingResumePayload,
+  onboardingResumePayloadSchema,
+} from "@/lib/resume-schema";
 import { isResumeKeyOwnedByUser } from "@/lib/s3";
 
-type EducationEntry = {
-  degree: string;
-  stream: string;
-  institution: string;
-  graduationYear: string;
-  score: string;
-};
-
-type ExperienceEntry = {
-  title: string;
-  company: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-};
-
-type ProjectEntry = {
-  title: string;
-  description: string;
-};
-
-type ResumePayload = {
-  name: string;
-  email: string;
-  phoneNumber: string;
-  role: string;
-  experienceYears: number | null;
-  education: EducationEntry[];
-  skills: string[];
-  experience: ExperienceEntry[];
-  projects: ProjectEntry[];
-  // Rich matching fields (optional; absent for manually-built profiles).
-  skillGlosses?: Record<string, string>;
-  projectKeywords?: string[][];
-  projectCapabilities?: string[][];
-  workInitiatives?: string[][];
-  resumeUrl?: string;
-};
-
-function validateBody(body: unknown): body is ResumePayload {
-  if (typeof body !== "object" || body === null) return false;
-  const b = body as Record<string, unknown>;
-
-  if (typeof b.name !== "string") return false;
-  if (typeof b.email !== "string") return false;
-  if (typeof b.phoneNumber !== "string") return false;
-  if (typeof b.role !== "string") return false;
-  if (b.experienceYears !== null && typeof b.experienceYears !== "number")
-    return false;
-  if (!Array.isArray(b.education)) return false;
-  if (!Array.isArray(b.skills)) return false;
-  if (!Array.isArray(b.experience)) return false;
-  if (!Array.isArray(b.projects)) return false;
-  if (b.resumeUrl !== undefined && typeof b.resumeUrl !== "string") {
-    return false;
-  }
-
-  return true;
-}
-
-function getValidationError(body: ResumePayload) {
+function getValidationError(body: OnboardingResumePayload) {
   if (!body.name.trim()) return "Name is required";
   if (!body.email.trim()) return "Email is required";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()))
@@ -96,14 +41,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = (await request.json()) as unknown;
-
-    if (!validateBody(body)) {
+    const requestBody = onboardingResumePayloadSchema.safeParse(
+      await request.json(),
+    );
+    if (!requestBody.success) {
       return NextResponse.json(
         { error: "Invalid resume data" },
         { status: 400 },
       );
     }
+    const body = requestBody.data;
 
     const validationError = getValidationError(body);
     if (validationError) {
@@ -141,37 +88,19 @@ export async function POST(request: NextRequest) {
           email: email.trim(),
         },
       }),
-      prisma.resume.upsert({
-        where: { userId: session.user.id },
-        create: {
-          userId: session.user.id,
-          name: name.trim(),
-          role: role.trim(),
-          experienceYears,
-          education,
-          skills,
-          experience,
-          projects,
-          skillGlosses,
-          projectKeywords,
-          projectCapabilities,
-          workInitiatives,
-          resumeUrl,
-        },
-        update: {
-          name: name.trim(),
-          role: role.trim(),
-          experienceYears,
-          education,
-          skills,
-          experience,
-          projects,
-          skillGlosses,
-          projectKeywords,
-          projectCapabilities,
-          workInitiatives,
-          resumeUrl,
-        },
+      upsertResumeForUser(session.user.id, {
+        name,
+        role,
+        experienceYears,
+        education,
+        skills,
+        experience,
+        projects,
+        skillGlosses,
+        projectKeywords,
+        projectCapabilities,
+        workInitiatives,
+        resumeUrl,
       }),
       prisma.userProgress.upsert({
         where: { userId: session.user.id },

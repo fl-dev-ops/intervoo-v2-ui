@@ -104,6 +104,22 @@ export async function getResumeFile({ key, userId }: GetResumeFileInput) {
   };
 }
 
+export async function createResumeDownloadUrl({
+  key,
+  userId,
+}: GetResumeFileInput) {
+  assertBucketConfigured();
+  if (!isResumeKeyOwnedByUser(key, userId)) {
+    throw new Error("Resume file not found");
+  }
+
+  return getSignedUrl(
+    s3Client,
+    new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key }),
+    { expiresIn: 300 },
+  );
+}
+
 export async function getResumeObjectStream({
   key,
   offset,

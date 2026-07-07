@@ -1,20 +1,17 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  JobPreferencesForm,
+  type JobProfileFilters,
+} from "@/components/jobs/job-preferences-form";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MultiCombobox } from "@/components/ui/multi-combobox";
 
-export type JobProfileFilters = {
-  companies: string[];
-  roles: string[];
-};
+export type { JobProfileFilters } from "@/components/jobs/job-preferences-form";
 
 type JobPreferencesDialogProps = {
   canClose?: boolean;
@@ -56,46 +53,14 @@ export function JobPreferencesDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <MultiCombobox
-            closeOnValueChange
-            label="Role"
-            onValueChange={(roles) =>
-              setFilters((prev) => ({ ...prev, roles }))
-            }
-            options={roleOptions}
-            placeholder="Search role..."
-            value={filters.roles}
-          />
-          <MultiCombobox
-            closeOnValueChange
-            label="Company"
-            onValueChange={(companies) =>
-              setFilters((prev) => ({ ...prev, companies }))
-            }
-            options={companyOptions}
-            placeholder="Search company..."
-            value={filters.companies}
-          />
-        </div>
-
-        <DialogFooter>
-          <Button
-            type="button"
-            size="lg"
-            disabled={isApplying}
-            onClick={onApply}
-          >
-            {isApplying ? (
-              <>
-                <Loader2 className="mr-2 size-4 animate-spin" />
-                Searching...
-              </>
-            ) : (
-              "Save preference"
-            )}
-          </Button>
-        </DialogFooter>
+        <JobPreferencesForm
+          companyOptions={companyOptions}
+          filters={filters}
+          isApplying={isApplying}
+          onApply={onApply}
+          roleOptions={roleOptions}
+          setFilters={setFilters}
+        />
       </DialogContent>
     </Dialog>
   );

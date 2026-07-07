@@ -14,6 +14,8 @@ const buttonVariants = cva(
           "rounded-full border-border bg-background shadow-xs hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
           "rounded-full border border-[#E9E4FE] bg-white text-[#5C3BD8] shadow-sm hover:bg-[#F7F3FF] aria-expanded:bg-[#F7F3FF] aria-expanded:text-[#5C3BD8]",
+        glass:
+          "relative rounded-full border border-transparent bg-[linear-gradient(90deg,rgba(255,255,255,0.11)_0%,rgba(255,255,255,0.055)_100%)] text-white shadow-[0_0_24px_0_rgba(0,0,0,0.06)] backdrop-blur-[5px] before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:bg-[linear-gradient(100.81deg,rgba(255,255,255,0.34)_6%,rgba(255,255,255,0)_21.18%)] before:p-px before:content-[''] before:[-webkit-mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)] before:[-webkit-mask-composite:xor] before:[mask:linear-gradient(#000_0_0)_content-box,linear-gradient(#000_0_0)] before:[mask-composite:exclude] hover:brightness-110",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:
@@ -26,6 +28,8 @@ const buttonVariants = cva(
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),8px)] px-2 text-xs in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-8 gap-1 rounded-[min(var(--radius-md),10px)] px-2.5 in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5",
         lg: "h-11 gap-1.5 px-6 has-data-[icon=inline-end]:pr-5 has-data-[icon=inline-start]:pl-5",
+        glass:
+          "h-auto gap-[5px] px-[22px] py-3 text-sm font-semibold tracking-[0.002em]",
         icon: "size-9",
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),8px)] in-data-[slot=button-group]:rounded-md [&_svg:not([class*='size-'])]:size-3",
