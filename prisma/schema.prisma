@@ -284,7 +284,6 @@ model CouponRedemption {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   order  Order? @relation(fields: [orderId], references: [id])
 
-  @@unique([couponId, userId])
   @@index([diagnosticId])
   @@index([userId])
   @@map("coupon_redemption")

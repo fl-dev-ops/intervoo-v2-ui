@@ -222,18 +222,12 @@ export async function recordCouponRedemptionForOrder(params: {
 
   if (!coupon) return;
 
-  await prisma.couponRedemption.upsert({
-    where: { couponId_userId: { couponId: coupon.id, userId: params.userId } },
-    create: {
+  await prisma.couponRedemption.create({
+    data: {
       couponId: coupon.id,
       diagnosticId: params.diagnosticId,
       orderId: params.orderId,
       userId: params.userId,
-    },
-    update: {
-      diagnosticId: params.diagnosticId,
-      orderId: params.orderId,
-      redeemedAt: new Date(),
     },
   });
 }
