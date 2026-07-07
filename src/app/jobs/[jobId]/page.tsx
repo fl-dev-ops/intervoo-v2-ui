@@ -2,12 +2,16 @@ import { redirect } from "next/navigation";
 import { JobDetailClient } from "@/components/jobs/job-detail-client";
 import { prisma } from "@/lib/db";
 import { deriveFinalDiagnosticReport } from "@/lib/diagnostics/final-report";
-import { getLatestDiagnosticForJob } from "@/lib/diagnostics/jd-progress";
+import {
+  getLatestDiagnosticForJob,
+  getOrCreateDiagnosticForJob,
+} from "@/lib/diagnostics/jd-progress";
 import {
   isDiagnosticRoundReadyForProgression,
   isDiagnosticSessionComplete,
 } from "@/lib/diagnostics/rules";
 import { getJobDetail, type JobDetail } from "@/lib/jd-client";
+import { getDiagnosticPaymentEligibility } from "@/lib/payments";
 import { requirePageStage } from "@/lib/stage-guards";
 
 type Props = { params: Promise<{ jobId: string }> };
@@ -24,13 +28,28 @@ export default async function JobDetailPage({ params }: Props) {
     redirect("/onboarding");
   }
 
-  const diagnostic = await getLatestDiagnosticForJob(user.id, jobId);
+  let diagnostic = await getLatestDiagnosticForJob(user.id, jobId);
   const result = await getJobDetail(jobId);
   const storedJob = getStoredJobDetail(diagnostic?.selectedJob, jobId);
   const job = result.data?.job ?? storedJob;
 
   if (!job) {
     redirect("/jobs");
+  }
+
+  let paymentEligibility = await getDiagnosticPaymentEligibility({
+    diagnosticId: diagnostic?.id ?? null,
+    jobId,
+    userId: user.id,
+  });
+
+  if (paymentEligibility.requiresPayment && !diagnostic) {
+    diagnostic = await getOrCreateDiagnosticForJob(user.id, job);
+    paymentEligibility = await getDiagnosticPaymentEligibility({
+      diagnosticId: diagnostic.id,
+      jobId,
+      userId: user.id,
+    });
   }
 
   const roundsForJob = diagnostic?.rounds ?? [];
@@ -75,6 +94,8 @@ export default async function JobDetailPage({ params }: Props) {
       roundScores={roundScores}
       diagnosticId={diagnostic?.id ?? null}
       overallScore={finalReadinessScore}
+      paymentReason={paymentEligibility.reason}
+      requiresPayment={paymentEligibility.requiresPayment}
       user={{ email: user.email ?? null, name: user.name ?? null }}
     />
   );

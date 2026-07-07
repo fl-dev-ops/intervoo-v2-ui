@@ -4,6 +4,7 @@ import "@livekit/components-styles";
 import "./globals.css";
 import { PostHogPageView, PostHogProvider } from "@posthog/next";
 import { ThemeProvider } from "next-themes";
+import { RazorpayProvider } from "@/components/payments/razorpay-provider";
 import { PostHogIdentify } from "@/components/posthog-identify";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Toaster } from "@/components/ui/sonner";
@@ -81,10 +82,12 @@ export default function RootLayout({
             defaultTheme="light"
             enableSystem={false}
           >
-            <TooltipProvider>
-              <ScrollArea className="min-h-0 flex-1">{children}</ScrollArea>
-              <Toaster />
-            </TooltipProvider>
+            <RazorpayProvider>
+              <TooltipProvider>
+                <ScrollArea className="min-h-0 flex-1">{children}</ScrollArea>
+                <Toaster />
+              </TooltipProvider>
+            </RazorpayProvider>
           </ThemeProvider>
         </PostHogProvider>
       </body>

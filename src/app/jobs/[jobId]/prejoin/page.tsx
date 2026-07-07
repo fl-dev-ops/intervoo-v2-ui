@@ -4,6 +4,7 @@ import { getOrCreateDiagnosticForJob } from "@/lib/diagnostics/jd-progress";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import { canStartDiagnosticRound } from "@/lib/diagnostics/rules";
 import { getJobDetail } from "@/lib/jd-client";
+import { getDiagnosticPaymentEligibility } from "@/lib/payments";
 import { requirePageStage } from "@/lib/stage-guards";
 
 type Props = {
@@ -45,6 +46,18 @@ export default async function JobPrejoinPage({ params, searchParams }: Props) {
     })
   ) {
     redirect(`/jobs/${jobId}`);
+  }
+
+  if (!existingRound) {
+    const eligibility = await getDiagnosticPaymentEligibility({
+      diagnosticId: diagnostic.id,
+      jobId,
+      userId: user.id,
+    });
+
+    if (eligibility.requiresPayment) {
+      redirect(`/jobs/${jobId}?step=round-list`);
+    }
   }
 
   return (

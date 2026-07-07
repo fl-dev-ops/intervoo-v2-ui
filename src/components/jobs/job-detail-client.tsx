@@ -21,6 +21,7 @@ import { AppHeader } from "@/components/app-header";
 import { AddSkillsDialog } from "@/components/jobs/add-skills-dialog";
 import { ChangeResumeDialog } from "@/components/jobs/change-resume-dialog";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
+import { DiagnosticUnlockDialog } from "@/components/payments/diagnostic-unlock-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -43,6 +44,8 @@ type JobDetailClientProps = {
   roundScores?: Record<string, number | null>;
   diagnosticId?: string | null;
   overallScore?: number | null;
+  paymentReason?: string;
+  requiresPayment?: boolean;
   user: { email: string | null; name: string | null };
 };
 
@@ -53,6 +56,8 @@ export function JobDetailClient({
   roundScores = {},
   diagnosticId,
   overallScore,
+  paymentReason,
+  requiresPayment = false,
   user,
 }: JobDetailClientProps) {
   const router = useRouter();
@@ -281,6 +286,9 @@ export function JobDetailClient({
                 const isActive = index === activeRoundIndex;
                 const isDone = round.isReportReady;
                 const isProcessing = round.isReportProcessing;
+                // Lock all rounds at or beyond the paywall
+                const isLocked =
+                  requiresPayment && index >= activeRoundIndex && !isDone && !isProcessing;
                 return (
                   <RoundTimelineItem
                     key={round.id}
@@ -289,8 +297,13 @@ export function JobDetailClient({
                     isCurrent={isActive}
                     isDone={isDone}
                     isLast={isLast(index, rounds.length)}
+                    isLocked={isLocked}
                     isProcessing={isProcessing}
+                    jobId={job.jobId}
+                    completedRoundIds={localReadyRoundIds}
+                    paymentReason={paymentReason}
                     questions={round.questions}
+                    requiresPayment={requiresPayment && isActive}
                     roundNumber={roundNumber}
                     score={round.score}
                     startingRoundId={startingRoundId}
@@ -324,10 +337,15 @@ function RoundTimelineItem({
   isCurrent,
   isDone,
   isLast,
+  isLocked,
   isProcessing,
+  jobId,
+  completedRoundIds,
   onStart,
   onViewReport,
+  paymentReason,
   questions,
+  requiresPayment,
   roundNumber,
   score,
   startingRoundId,
@@ -337,10 +355,15 @@ function RoundTimelineItem({
   isCurrent: boolean;
   isDone: boolean;
   isLast: boolean;
+  isLocked: boolean;
   isProcessing: boolean;
+  jobId: string;
+  completedRoundIds: string[];
   onStart: () => void;
   onViewReport: () => void;
+  paymentReason?: string;
   questions: string[];
+  requiresPayment: boolean;
   roundNumber: number;
   score: number | null;
   startingRoundId: string | null;
@@ -490,7 +513,26 @@ function RoundTimelineItem({
                 </div>
               </div>
 
-              {!isProcessing ? (
+              {requiresPayment && diagnosticId ? (
+                <div className="col-span-2 space-y-2 md:col-span-1 md:ml-auto">
+                  <DiagnosticUnlockDialog
+                    className="w-full rounded-full border-0 bg-button px-10 py-6 shadow-none"
+                    completedRoundIds={completedRoundIds}
+                    diagnosticId={diagnosticId}
+                    jobId={jobId}
+                  />
+                  <p
+                    className={cn(
+                      "text-center text-xs font-medium",
+                      isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
+                    )}
+                  >
+                    {paymentReason === "PAYMENT_REQUIRED"
+                      ? "Unlock all rounds for this JD."
+                      : "Payment required to continue."}
+                  </p>
+                </div>
+              ) : !isProcessing && !isLocked ? (
                 <Button
                   className="col-span-2 w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:col-span-1 md:ml-auto"
                   disabled={Boolean(startingRoundId)}

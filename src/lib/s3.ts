@@ -8,14 +8,14 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || "us-east-1",
+  region: process.env.AWS_REGION || "ap-south-1",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
   },
 });
 
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || "";
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || process.env.AWS_S3_BUCKET || "";
 const RESUMES_FOLDER = process.env.S3_RESUMES_FOLDER || "diagnostics/resumes";
 
 export const MAX_RESUME_FILE_SIZE = 10 * 1024 * 1024;
@@ -141,6 +141,30 @@ export async function getResumeObjectStream({
   }
 
   return object.Body;
+}
+
+/**
+ * Uploads a PDF buffer to S3 and returns a pre-signed GET URL valid for 7 days.
+ */
+export async function uploadReceiptToS3(params: {
+  buffer: Buffer;
+  key: string; // e.g. "receipts/order_abc123.pdf"
+}): Promise<string> {
+  assertBucketConfigured();
+
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: params.key,
+      Body: params.buffer,
+      ContentType: "application/pdf",
+      ContentDisposition: `attachment; filename="${params.key.split("/").pop()}"`,
+    }),
+  );
+
+  // Return a pre-signed GET URL (7 days = 604800 seconds)
+  const getCommand = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: params.key });
+  return getSignedUrl(s3Client, getCommand, { expiresIn: 604800 });
 }
 
 function assertBucketConfigured() {
