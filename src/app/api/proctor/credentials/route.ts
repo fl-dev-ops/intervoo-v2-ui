@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import {
   getAutoProctorClientId,
   hashAutoProctorTestAttemptId,
+  isProctoringEnabled,
   updateSessionProctorMetadata,
 } from "@/lib/proctor/server";
 
@@ -13,6 +14,13 @@ export async function POST(request: NextRequest) {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!isProctoringEnabled()) {
+      return NextResponse.json(
+        { error: "Proctoring is disabled" },
+        { status: 503 },
+      );
     }
 
     const body = (await request.json()) as { sessionId?: unknown };

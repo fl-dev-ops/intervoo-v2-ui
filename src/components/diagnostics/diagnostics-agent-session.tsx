@@ -12,6 +12,7 @@ import {
   useSessionMessages,
   VideoTrack,
 } from "@livekit/components-react";
+import { IconSubtitlesEdit } from "@tabler/icons-react";
 import {
   ConnectionState,
   ParticipantKind,
@@ -23,9 +24,13 @@ import { motion, type Variants } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { toast } from "sonner";
 import { AgentAudioVisualizerAura } from "@/components/agents-ui/agent-audio-visualizer-aura";
 import { EndSessionDialog } from "@/components/diagnostics/end-session-dialog";
+import { HavingIssuesDialog } from "@/components/having-issues-dialog";
 import { SessionExitGuard } from "@/components/session/session-exit-guard";
+import { Button } from "@/components/ui/button";
+import { getHavingIssuesContext } from "@/constants/having-issues";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -179,6 +184,9 @@ function SessionLayout({
   const [guardActive, setGuardActive] = useState(true);
   const [showOverlay, setShowOverlay] = useState(true);
   const [countdown, setCountdown] = useState(5);
+  const [issuesContext, setIssuesContext] = useState<ReturnType<
+    typeof getHavingIssuesContext
+  > | null>(null);
 
   const cameraTrack = useMemo<TrackReference | undefined>(() => {
     if (!cameraPublication) return undefined;
@@ -227,6 +235,20 @@ function SessionLayout({
     const handleData = (payload: Uint8Array) => {
       try {
         const event = JSON.parse(new TextDecoder().decode(payload));
+        if (event?.type === "diagnostic_question_time_limit_reached") {
+          const limit = event?.metadata?.time_limit_seconds;
+          const seconds = typeof limit === "number" ? limit : 30;
+          console.info("[diagnostics] question_time_limit_reached", {
+            questionId: event?.metadata?.question?.id,
+            seconds,
+            sessionId,
+          });
+          toast.warning(`${seconds}-second response limit reached`, {
+            description: "Please wrap up your answer.",
+          });
+          return;
+        }
+
         if (event?.type !== "diagnostic_question_started") return;
 
         const question = event?.metadata?.question;
@@ -316,6 +338,15 @@ function SessionLayout({
     });
   };
 
+  const openIssuesDialog = () => {
+    setIssuesContext(
+      getHavingIssuesContext(
+        window.location.pathname,
+        new URLSearchParams(window.location.search),
+      ),
+    );
+  };
+
   const endSession = async () => {
     if (isEndingRef.current) return;
     isEndingRef.current = true;
@@ -370,7 +401,18 @@ function SessionLayout({
           variants={FADE_UP}
         >
           <div />
-          <SessionTimer />
+          <div className="flex items-center gap-6">
+            <Button
+              onClick={openIssuesDialog}
+              size="glass"
+              type="button"
+              variant="glass"
+            >
+              <IconSubtitlesEdit className="size-4" />
+              Having issue?
+            </Button>
+            <SessionTimer />
+          </div>
         </motion.header>
 
         {/* Main content */}
@@ -461,6 +503,16 @@ function SessionLayout({
           onConfirmEnd={endSession}
           onContinue={() => setEndDialogOpen(false)}
         />
+
+        {issuesContext ? (
+          <HavingIssuesDialog
+            context={issuesContext}
+            onOpenChange={(open) => {
+              if (!open) setIssuesContext(null);
+            }}
+            open
+          />
+        ) : null}
 
         {/* Floating camera preview */}
         <motion.div

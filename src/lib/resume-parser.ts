@@ -1,11 +1,9 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-import { unlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
+import { uploadGeminiFileFromS3 } from "./gemini-resumable-upload";
+import { getResumeObjectStream } from "./s3";
 
 const LOG_PREFIX = "[ResumeParser]";
 const MODEL = "gemini-3.5-flash";
@@ -135,6 +133,13 @@ export type ResumeParseStreamEvent =
   | SectionEvent<ResumeStreamLine>
   | { type: "complete"; profile: OnboardingProfile };
 
+export type ResumeFileInput = {
+  contentLength: number;
+  contentType: string;
+  displayName: string;
+  key: string;
+};
+
 const SYSTEM_PROMPT = `You extract structured data from a candidate's resume for a job-matching product.
 Return EXACTLY five newline-delimited JSON objects (NDJSON), in this order, with one complete object per line and no markdown or prose:
 {"section":"basic","data":{"name":string|null,"email":string|null,"phone_number":string|null,"experience_years":number,"strongest_domain":string|null}}
@@ -167,35 +172,6 @@ function getApiKey(): string {
     throw new Error("GEMINI_API_KEY is not configured");
   }
   return apiKey;
-}
-
-async function writeBufferToTempFile(
-  buffer: Buffer,
-  extension: string,
-): Promise<string> {
-  const tempPath = join(tmpdir(), `resume-${randomUUID()}${extension}`);
-  await writeFile(tempPath, buffer);
-  return tempPath;
-}
-
-function guessMimeType(filename: string): string {
-  const ext = filename.toLowerCase().split(".").pop();
-  const mimeMap: Record<string, string> = {
-    pdf: "application/pdf",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    doc: "application/msword",
-    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    xls: "application/vnd.ms-excel",
-    csv: "text/csv",
-    txt: "text/plain",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    webp: "image/webp",
-    heif: "image/heif",
-    heic: "image/heic",
-  };
-  return mimeMap[ext ?? ""] ?? "application/octet-stream";
 }
 
 async function mapToProfile(parsed: ParsedResume): Promise<OnboardingProfile> {
@@ -286,107 +262,92 @@ function dedupe(items: string[]): string[] {
 }
 
 export async function* parseResumeStream(
-  file: File,
+  file: ResumeFileInput,
+  signal?: AbortSignal,
 ): AsyncGenerator<ResumeParseStreamEvent> {
-  const ai = new GoogleGenAI({ apiKey: getApiKey() });
-  let tempFilePath: string | null = null;
+  const apiKey = getApiKey();
+  const ai = new GoogleGenAI({ apiKey });
 
-  try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const mimeType = guessMimeType(file.name);
-    const extension = file.name.includes(".")
-      ? `.${file.name.split(".").pop()}`
-      : ".bin";
+  console.info(LOG_PREFIX, "Uploading file to Gemini", {
+    mimeType: file.contentType,
+  });
 
-    tempFilePath = await writeBufferToTempFile(buffer, extension);
+  const uploaded = await uploadGeminiFileFromS3({
+    apiKey,
+    contentLength: file.contentLength,
+    displayName: file.displayName,
+    mimeType: file.contentType,
+    openStream: (offset, abortSignal) =>
+      getResumeObjectStream({ key: file.key, offset, signal: abortSignal }),
+    signal,
+  });
 
-    console.info(LOG_PREFIX, "Uploading file to Gemini", {
-      filename: file.name,
-      mimeType,
-      size: buffer.length,
-    });
+  console.info(LOG_PREFIX, "File uploaded, analyzing", {
+    fileName: uploaded.name,
+  });
 
-    const uploaded = await ai.files.upload({
-      file: tempFilePath,
-      config: {
-        mimeType,
-        displayName: file.name,
-      },
-    });
-
-    if (!uploaded.name) {
-      throw new Error("Gemini upload returned no file name");
-    }
-
-    console.info(LOG_PREFIX, "File uploaded, analyzing", {
-      fileName: uploaded.name,
-    });
-
-    const response = await ai.models.generateContentStream({
-      model: MODEL,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { fileData: { fileUri: uploaded.uri ?? "", mimeType } },
-            {
-              text: "Extract all structured data from this resume. Return exactly the five NDJSON section objects specified by the system instruction, in the required order.",
+  const response = await ai.models.generateContentStream({
+    model: MODEL,
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            fileData: {
+              fileUri: uploaded.uri ?? "",
+              mimeType: file.contentType,
             },
-          ],
-        },
-      ],
-      config: {
-        temperature: 0,
-        maxOutputTokens: 8192,
-        systemInstruction: SYSTEM_PROMPT,
+          },
+          {
+            text: "Extract all structured data from this resume. Return exactly the five NDJSON section objects specified by the system instruction, in the required order.",
+          },
+        ],
       },
-    });
+    ],
+    config: {
+      abortSignal: signal,
+      temperature: 0,
+      maxOutputTokens: 8192,
+      systemInstruction: SYSTEM_PROMPT,
+    },
+  });
 
-    console.info(LOG_PREFIX, "Streaming Gemini response");
+  console.info(LOG_PREFIX, "Streaming Gemini response");
 
-    let pendingText = "";
-    const parsedFields: Record<string, unknown> = {};
-    const receivedSections = new Set<ResumeStreamLine["section"]>();
+  let pendingText = "";
+  const parsedFields: Record<string, unknown> = {};
+  const receivedSections = new Set<ResumeStreamLine["section"]>();
 
-    for await (const chunk of response) {
-      pendingText += chunk.text ?? "";
-      const lines = pendingText.split(/\r?\n/);
-      pendingText = lines.pop() ?? "";
+  for await (const chunk of response) {
+    pendingText += chunk.text ?? "";
+    const lines = pendingText.split(/\r?\n/);
+    pendingText = lines.pop() ?? "";
 
-      for (const line of lines) {
-        const streamLine = parseNdjsonLine(line);
-        if (!streamLine || receivedSections.has(streamLine.section)) continue;
+    for (const line of lines) {
+      const streamLine = parseNdjsonLine(line);
+      if (!streamLine || receivedSections.has(streamLine.section)) continue;
 
-        receivedSections.add(streamLine.section);
-        Object.assign(parsedFields, streamLine.data);
-        yield { type: "section", ...streamLine };
-      }
-    }
-
-    const finalLine = parseNdjsonLine(pendingText);
-    if (finalLine && !receivedSections.has(finalLine.section)) {
-      receivedSections.add(finalLine.section);
-      Object.assign(parsedFields, finalLine.data);
-      yield { type: "section", ...finalLine };
-    }
-
-    if (receivedSections.size !== ResumeStreamLineSchema.options.length) {
-      throw new Error(
-        `Gemini returned ${receivedSections.size} of ${ResumeStreamLineSchema.options.length} resume sections`,
-      );
-    }
-
-    const parsed = ResumeSchema.parse(parsedFields);
-    yield { type: "complete", profile: await mapToProfile(parsed) };
-  } finally {
-    if (tempFilePath) {
-      try {
-        await unlink(tempFilePath);
-      } catch {
-        // ignore cleanup errors
-      }
+      receivedSections.add(streamLine.section);
+      Object.assign(parsedFields, streamLine.data);
+      yield { type: "section", ...streamLine };
     }
   }
+
+  const finalLine = parseNdjsonLine(pendingText);
+  if (finalLine && !receivedSections.has(finalLine.section)) {
+    receivedSections.add(finalLine.section);
+    Object.assign(parsedFields, finalLine.data);
+    yield { type: "section", ...finalLine };
+  }
+
+  if (receivedSections.size !== ResumeStreamLineSchema.options.length) {
+    throw new Error(
+      `Gemini returned ${receivedSections.size} of ${ResumeStreamLineSchema.options.length} resume sections`,
+    );
+  }
+
+  const parsed = ResumeSchema.parse(parsedFields);
+  yield { type: "complete", profile: await mapToProfile(parsed) };
 }
 
 function parseNdjsonLine(line: string): ResumeStreamLine | null {

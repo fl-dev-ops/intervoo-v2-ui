@@ -32,6 +32,7 @@ type Props = {
   coach?: string;
   companies?: string[];
   config: ProctorConfig;
+  proctoringEnabled: boolean;
   jobId?: string;
   jobTitle?: string;
   roundId?: string;
@@ -57,6 +58,7 @@ export function ProctoredDiagnosticsSession({
   coach,
   companies,
   config,
+  proctoringEnabled,
   jobId,
   jobTitle,
   roundId,
@@ -65,16 +67,21 @@ export function ProctoredDiagnosticsSession({
 }: Props) {
   const router = useRouter();
   const apInstanceRef = useRef<AutoProctorInstance | null>(null);
+  const hasBootstrappedLiveKitRef = useRef(false);
   const hasStartedRef = useRef(false);
   const hasStoppedRef = useRef(false);
   const stopResolversRef = useRef<Array<() => void>>([]);
   const [sdkReady, setSdkReady] = useState(false);
-  const [statusText, setStatusText] = useState("Loading proctoring...");
+  const [statusText, setStatusText] = useState(
+    proctoringEnabled ? "Loading proctoring..." : "Connecting interview...",
+  );
   const [liveKitDetails, setLiveKitDetails] =
     useState<LiveKitTokenResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!proctoringEnabled) return;
+
     if (window.AutoProctor) {
       setSdkReady(true);
       return;
@@ -92,14 +99,35 @@ export function ProctoredDiagnosticsSession({
       );
     };
 
-    window.addEventListener("apLibReady", handleLibReady);
-    window.addEventListener("apLibLoadingFailed", handleLibFailed);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    window.addEventListener("apLibReady", handleLibReady, { signal });
+    window.addEventListener("apLibLoadingFailed", handleLibFailed, { signal });
 
     return () => {
-      window.removeEventListener("apLibReady", handleLibReady);
-      window.removeEventListener("apLibLoadingFailed", handleLibFailed);
+      controller.abort();
     };
-  }, []);
+  }, [proctoringEnabled]);
+
+  useEffect(() => {
+    if (proctoringEnabled) return;
+
+    let cancelled = false;
+    void fetchJson<LiveKitTokenResponse>("/api/livekit/session-token", {
+      sessionId,
+    })
+      .then((details) => {
+        if (!cancelled) setLiveKitDetails(details);
+      })
+      .catch((fetchError) => {
+        if (!cancelled) setError(getErrorMessage(fetchError));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [proctoringEnabled, sessionId]);
 
   const stopAndPersistProctoring = async () => {
     if (hasStoppedRef.current) return;
@@ -126,7 +154,7 @@ export function ProctoredDiagnosticsSession({
   };
 
   useEffect(() => {
-    if (!sdkReady || hasStartedRef.current) return;
+    if (!proctoringEnabled || !sdkReady || hasStartedRef.current) return;
     if (!window.AutoProctor) {
       setError("AutoProctor failed to load.");
       return;
@@ -165,6 +193,8 @@ export function ProctoredDiagnosticsSession({
         sessionId,
         status: "monitoring",
       });
+      if (hasBootstrappedLiveKitRef.current) return;
+      hasBootstrappedLiveKitRef.current = true;
       void fetchJson<LiveKitTokenResponse>("/api/livekit/session-token", {
         sessionId,
       })
@@ -220,10 +250,17 @@ export function ProctoredDiagnosticsSession({
       }
     };
 
-    window.addEventListener("apMonitoringStarted", handleMonitoringStarted);
-    window.addEventListener("apMonitoringStopped", handleMonitoringStopped);
-    window.addEventListener("apErrorEvent", handleError);
-    window.addEventListener("apEvidenceEvent", handleEvidence);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    window.addEventListener("apMonitoringStarted", handleMonitoringStarted, {
+      signal,
+    });
+    window.addEventListener("apMonitoringStopped", handleMonitoringStopped, {
+      signal,
+    });
+    window.addEventListener("apErrorEvent", handleError, { signal });
+    window.addEventListener("apEvidenceEvent", handleEvidence, { signal });
 
     startProctoring().catch((startError) => {
       const message = getErrorMessage(startError);
@@ -236,18 +273,9 @@ export function ProctoredDiagnosticsSession({
 
     return () => {
       cancelled = true;
-      window.removeEventListener(
-        "apMonitoringStarted",
-        handleMonitoringStarted,
-      );
-      window.removeEventListener(
-        "apMonitoringStopped",
-        handleMonitoringStopped,
-      );
-      window.removeEventListener("apErrorEvent", handleError);
-      window.removeEventListener("apEvidenceEvent", handleEvidence);
+      controller.abort();
     };
-  }, [config, jobId, router, sdkReady, sessionId]);
+  }, [config, jobId, proctoringEnabled, router, sdkReady, sessionId]);
 
   useEffect(() => {
     return () => {
@@ -263,11 +291,13 @@ export function ProctoredDiagnosticsSession({
 
   return (
     <>
-      <Script
-        src={SDK_SRC}
-        strategy="afterInteractive"
-        onLoad={() => setStatusText("Loading proctoring library...")}
-      />
+      {proctoringEnabled ? (
+        <Script
+          src={SDK_SRC}
+          strategy="afterInteractive"
+          onLoad={() => setStatusText("Loading proctoring library...")}
+        />
+      ) : null}
       <div id={PROCTOR_TEST_CONTAINER_ID} className="min-h-dvh">
         {liveKitDetails ? (
           <DiagnosticsAgentSession
@@ -280,7 +310,9 @@ export function ProctoredDiagnosticsSession({
             sessionId={sessionId}
             token={liveKitDetails.participant_token}
             userName={userName}
-            onBeforeEndSession={stopAndPersistProctoring}
+            onBeforeEndSession={
+              proctoringEnabled ? stopAndPersistProctoring : undefined
+            }
           />
         ) : (
           <main className="flex min-h-dvh items-center justify-center bg-[#1B1238] px-6 text-center text-white">

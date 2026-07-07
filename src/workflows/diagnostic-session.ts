@@ -13,7 +13,6 @@ import { getDiagnosticRoundRecoveryState } from "@/lib/diagnostics/rules";
 import type { JobDetail } from "@/lib/jd-client";
 import {
   buildDiagnosticRoomName,
-  createAgentDispatchClient,
   createParticipantToken,
   createRoomServiceClient,
   getLiveKitCredentials,
@@ -22,7 +21,6 @@ import { getDiagnosticPaymentEligibility } from "@/lib/payments";
 import { buildInitialProctorMetadata } from "@/lib/proctor/server";
 import { getUserStage } from "@/lib/progress";
 
-const LIVEKIT_AGENT_NAME = "intervoo-agent-hs";
 const DIAGNOSTIC_AGENT_ID = "diagnostic_v2";
 const DIAGNOSTIC_QUESTION_CATEGORY_BY_ROUND: Record<string, string> = {
   behavioural: "behavioral",
@@ -126,7 +124,6 @@ export async function createDiagnosticSessionWorkflow(
     generated.generationMetadata,
   );
   await createLiveKitRoomStep(persisted.roomName, persisted.metadata);
-  await dispatchLiveKitAgentStep(persisted.roomName, persisted.metadata);
   return await createParticipantConnectionDetailsStep(prepared, persisted);
 }
 
@@ -421,20 +418,6 @@ async function createLiveKitRoomStep(
     metadata: JSON.stringify(metadata),
     emptyTimeout: 60 * 15,
     maxParticipants: 5,
-  });
-}
-
-async function dispatchLiveKitAgentStep(
-  roomName: string,
-  metadata: Record<string, unknown>,
-) {
-  "use step";
-
-  const credentials = getLiveKitCredentials();
-  const agentName = credentials.agentName || LIVEKIT_AGENT_NAME;
-  const agentDispatchClient = createAgentDispatchClient();
-  await agentDispatchClient.createDispatch(roomName, agentName, {
-    metadata: JSON.stringify(metadata),
   });
 }
 

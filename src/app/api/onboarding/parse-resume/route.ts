@@ -6,14 +6,7 @@ import {
   type OnboardingResumeStreamEvent,
   streamOnboardingResume,
 } from "@/lib/resume-client";
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "text/plain",
-];
+import { getResumeFile } from "@/lib/s3";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,29 +18,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    const body = (await request.json()) as { resumeUrl?: unknown };
+    const resumeUrl =
+      typeof body.resumeUrl === "string" ? body.resumeUrl.trim() : "";
+    if (!resumeUrl) {
       return NextResponse.json(
-        { error: "Invalid file type. Please upload a PDF, DOC, or DOCX file." },
+        { error: "Missing resume file" },
         { status: 400 },
       );
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: "File too large. Maximum size is 10MB." },
-        { status: 400 },
-      );
-    }
+    const file = await getResumeFile({
+      key: resumeUrl,
+      userId: session.user.id,
+    });
 
     return createNdjsonStreamResponse<OnboardingResumeStreamEvent>(
-      streamOnboardingResume(file),
+      streamOnboardingResume(file, resumeUrl, request.signal),
       {
         signal: request.signal,
         errorEvent(error) {

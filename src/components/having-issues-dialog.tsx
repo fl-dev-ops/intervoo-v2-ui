@@ -2,6 +2,7 @@
 
 import posthog from "posthog-js";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -47,6 +48,7 @@ export function HavingIssuesDialog({
       step: context.step ?? undefined,
       variant: context.key,
     });
+    toast.success("Issue reported successfully");
     handleOpenChange(false);
   }
 
@@ -108,6 +110,30 @@ export function HavingIssuesDialog({
               </fieldset>
             ))}
 
+            <label
+              className={cn(
+                "flex min-h-12 w-fit cursor-pointer items-center gap-3 rounded-xl border px-4 py-2.5 text-base text-[#302D33] transition-colors",
+                selectedIssues.includes("other")
+                  ? "border-[#6242E8] bg-white"
+                  : "border-transparent bg-[#F7F4FC]",
+              )}
+              htmlFor="having-issues-other"
+            >
+              <Checkbox
+                checked={selectedIssues.includes("other")}
+                className="size-5 data-checked:border-[#6242E8] data-checked:bg-[#6242E8]"
+                id="having-issues-other"
+                onCheckedChange={(checked) =>
+                  setSelectedIssues((current) =>
+                    checked
+                      ? [...current, "other"]
+                      : current.filter((issue) => issue !== "other"),
+                  )
+                }
+              />
+              Others
+            </label>
+
             <div>
               <label
                 className="mb-2 block text-base font-semibold text-[#56515A]"
@@ -126,7 +152,11 @@ export function HavingIssuesDialog({
           </div>
 
           <DialogFooter className="mt-6">
-            <Button size="lg" type="submit">
+            <Button
+              disabled={selectedIssues.length === 0}
+              size="lg"
+              type="submit"
+            >
               Report Issue
             </Button>
           </DialogFooter>

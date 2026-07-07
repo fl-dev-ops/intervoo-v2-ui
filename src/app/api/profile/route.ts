@@ -2,6 +2,9 @@ import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { upsertResumeForUser } from "@/lib/resume-persistence";
+import { profileRequestSchema } from "@/lib/resume-schema";
+import { isResumeKeyOwnedByUser } from "@/lib/s3";
 
 export async function GET() {
   try {
@@ -57,8 +60,42 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { name, email, role, experienceYears, education, skills, experience, projects } = body;
+    const requestBody = profileRequestSchema.safeParse(await request.json());
+    if (!requestBody.success) {
+      return NextResponse.json(
+        { error: "Invalid profile data" },
+        { status: 400 },
+      );
+    }
+
+    if ("action" in requestBody.data) {
+      const { resume, resumeUrl } = requestBody.data;
+      if (!isResumeKeyOwnedByUser(resumeUrl, session.user.id)) {
+        return NextResponse.json(
+          { error: "Invalid resume file" },
+          { status: 400 },
+        );
+      }
+
+      await upsertResumeForUser(session.user.id, {
+        ...resume,
+        name: resume.name.trim() || session.user.name?.trim() || "",
+        resumeUrl,
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    const {
+      name,
+      email,
+      role,
+      experienceYears,
+      education,
+      skills,
+      experience,
+      projects,
+    } = requestBody.data;
 
     if (!name?.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -75,27 +112,14 @@ export async function PUT(request: NextRequest) {
           email: email.trim(),
         },
       }),
-      prisma.resume.upsert({
-        where: { userId: session.user.id },
-        create: {
-          userId: session.user.id,
-          name: name.trim(),
-          role: role?.trim() || "",
-          experienceYears: experienceYears ?? null,
-          education: education ?? [],
-          skills: skills ?? [],
-          experience: experience ?? [],
-          projects: projects ?? [],
-        },
-        update: {
-          name: name.trim(),
-          role: role?.trim() || "",
-          experienceYears: experienceYears ?? null,
-          education: education ?? [],
-          skills: skills ?? [],
-          experience: experience ?? [],
-          projects: projects ?? [],
-        },
+      upsertResumeForUser(session.user.id, {
+        name,
+        role: role ?? "",
+        experienceYears: experienceYears ?? null,
+        education: education ?? [],
+        skills: skills ?? [],
+        experience: experience ?? [],
+        projects: projects ?? [],
       }),
     ]);
 

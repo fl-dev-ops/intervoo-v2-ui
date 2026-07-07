@@ -22,6 +22,7 @@ import {
 import {
   getAutoProctorClientId,
   hashAutoProctorTestAttemptId,
+  isProctoringEnabled,
 } from "@/lib/proctor/server";
 import {
   buildDiagnosticReportResult,
@@ -132,6 +133,8 @@ async function fetchAutoProctorReportStep(
   attempt: number,
 ): Promise<AutoProctorFetchStepResult> {
   "use step";
+
+  if (!isProctoringEnabled()) return { status: "skipped" };
 
   const session = await prisma.interviewSession.findUnique({
     where: { id: sessionId },

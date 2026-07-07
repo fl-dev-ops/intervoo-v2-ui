@@ -3,39 +3,12 @@ import "server-only";
 import {
   type OnboardingProfile,
   parseResumeStream,
+  type ResumeFileInput,
   type ResumeParseStreamEvent,
 } from "./resume-parser";
+import type { ResumeData } from "./resume-schema";
 
-export type ResumeData = {
-  name: string;
-  email: string;
-  phoneNumber: string;
-  role: string;
-  experienceYears: number | null;
-  education: {
-    degree: string;
-    stream: string;
-    institution: string;
-    graduationYear: string;
-    score: string;
-  }[];
-  skills: string[];
-  experience: {
-    title: string;
-    company: string;
-    startDate: string;
-    endDate: string;
-    description: string;
-  }[];
-  projects: {
-    title: string;
-    description: string;
-  }[];
-  skillGlosses?: Record<string, string>;
-  projectKeywords?: string[][];
-  projectCapabilities?: string[][];
-  workInitiatives?: string[][];
-};
+export type { ResumeData } from "./resume-schema";
 
 export type ResumeSection = Extract<
   ResumeParseStreamEvent,
@@ -48,15 +21,17 @@ export type OnboardingResumeStreamEvent =
       section: ResumeSection;
       data: Partial<ResumeData>;
     }
-  | { type: "complete"; resume: ResumeData }
+  | { type: "complete"; resume: ResumeData; resumeUrl?: string }
   | { type: "error"; error: string };
 
 export async function* streamOnboardingResume(
-  file: File,
+  file: ResumeFileInput,
+  resumeUrl?: string,
+  signal?: AbortSignal,
 ): AsyncGenerator<OnboardingResumeStreamEvent> {
-  for await (const event of parseResumeStream(file)) {
+  for await (const event of parseResumeStream(file, signal)) {
     yield event.type === "complete"
-      ? { type: "complete", resume: normalizeProfile(event.profile) }
+      ? { type: "complete", resume: normalizeProfile(event.profile), resumeUrl }
       : normalizeSection(event);
   }
 }

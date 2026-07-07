@@ -32,9 +32,11 @@ import {
 } from "@/components/ui/tooltip";
 import { getLogoText } from "@/lib/company";
 import type { JobCard, SearchInput } from "@/lib/jd-client";
+import {
+  readStoredJobProfileFilters,
+  writeStoredJobProfileFilters,
+} from "@/lib/job-profile-filters";
 import { cn } from "@/lib/utils";
-
-const JOB_PROFILE_FILTERS_KEY = "intervoo:job-profile-filters";
 
 type Option = { id?: string; name: string };
 
@@ -99,7 +101,7 @@ export function JobsClient({
   }, [cards, filters.roles]);
 
   useEffect(() => {
-    const savedFilters = readStoredFilters();
+    const savedFilters = readStoredJobProfileFilters();
     if (!savedFilters) {
       // No saved preferences — search with profile defaults and open dialog
       setHasLoadedFilters(true);
@@ -117,7 +119,9 @@ export function JobsClient({
   }, []);
 
   async function openJobPreferences() {
-    setFilters(readStoredFilters() ?? getDefaultFilters(initialSearch));
+    setFilters(
+      readStoredJobProfileFilters() ?? getDefaultFilters(initialSearch),
+    );
     setJobPrefDialogOpen(true);
     setJobsStep("job-preferences");
 
@@ -191,7 +195,7 @@ export function JobsClient({
   }
 
   async function applyJobPreferences() {
-    writeStoredFilters(filters);
+    writeStoredJobProfileFilters(filters);
     setHasSavedFilters(true);
     setJobPrefDialogOpen(false);
     setJobsStep("jd-listing");
@@ -507,28 +511,9 @@ function formatExperience(min: number | null, max: number | null) {
   return `Up to ${max} years`;
 }
 
-function readStoredFilters(): JobProfileFilters | null {
-  try {
-    const raw = window.localStorage.getItem(JOB_PROFILE_FILTERS_KEY);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw) as Partial<JobProfileFilters>;
-    return {
-      companies: Array.isArray(parsed.companies) ? parsed.companies : [],
-      roles: Array.isArray(parsed.roles) ? parsed.roles : [],
-    };
-  } catch {
-    return null;
-  }
-}
-
 function getDefaultFilters(initialSearch: SearchInput): JobProfileFilters {
   return {
     companies: [],
     roles: initialSearch.roleText ? [initialSearch.roleText] : [],
   };
-}
-
-function writeStoredFilters(filters: JobProfileFilters) {
-  window.localStorage.setItem(JOB_PROFILE_FILTERS_KEY, JSON.stringify(filters));
 }

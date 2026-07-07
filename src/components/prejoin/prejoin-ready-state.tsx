@@ -110,31 +110,19 @@ export function PreJoinReadyState({
                     </div>
                   </div>
                 )}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/40 backdrop-blur-sm rounded-full overflow-hidden px-3 h-13">
-                  {/*<Button
-                    type="button"
-                    onClick={onCameraMuteToggle}
-                    className="flex-1 bg-transparent flex size-9 items-center justify-center text-white transition hover:bg-transparent rounded-full"
-                  >
-                    {isCameraMuted ? (
-                      <VideoOff className="size-6" />
-                    ) : (
-                      <Video className="size-6" />
-                    )}
-                  </Button>*/}
-                  <Button
-                    type="button"
-                    disabled={audioDevices.length === 0}
-                    onClick={onMicMuteToggle}
-                    className="flex-1 bg-transparent flex size-9 items-center justify-center text-white transition hover:bg-transparent rounded-full disabled:opacity-50"
-                  >
-                    {isMicMuted ? (
-                      <MicOff className="size-6" />
-                    ) : (
-                      <Mic className="size-6" />
-                    )}
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={audioDevices.length === 0}
+                  onClick={onMicMuteToggle}
+                  className="absolute bottom-3 left-1/2 h-13 -translate-x-1/2 rounded-full bg-black/40 px-4 text-white backdrop-blur-sm hover:bg-black/50 hover:text-white disabled:opacity-50"
+                >
+                  {isMicMuted ? (
+                    <MicOff className="size-6" />
+                  ) : (
+                    <Mic className="size-6" />
+                  )}
+                </Button>
               </div>
             </div>
 

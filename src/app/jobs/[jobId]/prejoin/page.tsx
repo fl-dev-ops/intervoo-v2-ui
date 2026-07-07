@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { CustomPreJoin } from "@/components/prejoin/custom-prejoin";
+import { PrejoinConsentGate } from "@/components/prejoin/prejoin-consent-gate";
 import { getOrCreateDiagnosticForJob } from "@/lib/diagnostics/jd-progress";
 import { getRoundConfig } from "@/lib/diagnostics/rounds-config";
 import { canStartDiagnosticRound } from "@/lib/diagnostics/rules";
@@ -61,11 +61,11 @@ export default async function JobPrejoinPage({ params, searchParams }: Props) {
   }
 
   return (
-    <CustomPreJoin
+    <PrejoinConsentGate
       diagnosticId={diagnostic.id}
-      hideCoachSelection
       jobId={jobId}
       roundId={roundId}
+      userId={user.id}
       userName={user.name ?? user.email ?? null}
     />
   );
