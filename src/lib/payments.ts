@@ -133,10 +133,12 @@ export async function validateCouponForDiagnostic(params: {
   const coupon = await prisma.coupon.findUnique({
     where: { code },
     include: {
-      redemptions: {
-        where: { userId: params.userId },
-        select: { id: true },
-        take: 1,
+      _count: {
+        select: {
+          redemptions: {
+            where: { userId: params.userId },
+          },
+        },
       },
     },
   });
@@ -149,8 +151,8 @@ export async function validateCouponForDiagnostic(params: {
     return { error: "This coupon has expired", valid: false };
   }
 
-  if (coupon.redemptions.length > 0) {
-    return { error: "You have already used this coupon", valid: false };
+  if (coupon._count.redemptions >= coupon.maxUsesPerUser) {
+    return { error: "You have reached the maximum uses for this coupon", valid: false };
   }
 
   const discountAmount = calculateCouponDiscount({
