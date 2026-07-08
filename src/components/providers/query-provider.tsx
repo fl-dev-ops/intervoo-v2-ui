@@ -21,10 +21,15 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   // across requests during SSR.
   const [queryClient] = useState(makeQueryClient);
 
+  // Devtools are off by default; set NEXT_PUBLIC_DEV_DEBUG=true to enable.
+  const showDevtools = process.env.NEXT_PUBLIC_DEV_DEBUG === "true";
+
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+      {showDevtools && (
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+      )}
     </QueryClientProvider>
   );
 }

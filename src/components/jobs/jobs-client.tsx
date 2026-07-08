@@ -43,6 +43,7 @@ import {
   readStoredJobProfileFilters,
   writeStoredJobProfileFilters,
 } from "@/lib/job-profile-filters";
+import { JOB_ROLE_OPTIONS } from "@/lib/job-roles";
 import {
   readStoredJobSort,
   writeStoredJobSort,
@@ -129,11 +130,7 @@ export function JobsClient({
     (optionsQuery.error instanceof Error ? optionsQuery.error.message : null) ??
     (hasLoadedFilters ? null : initialError);
 
-  const roleOptions = useMemo(() => {
-    const names = new Set(cards.map((card) => card.jobTitle).filter(Boolean));
-    filters.roles.forEach((role) => names.add(role));
-    return [...names].sort();
-  }, [cards, filters.roles]);
+  const roleOptions = JOB_ROLE_OPTIONS;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount to load saved filters
   useEffect(() => {
@@ -344,6 +341,7 @@ function JobListCard({ card }: { card: JobCard | StartedJobCard }) {
   const totalSkills = "totalSkills" in card ? card.totalSkills : null;
   const hasScore = score !== null;
   const strongMatch = hasScore && score >= 80;
+  const isStarted = "roundProgress" in card;
 
   return (
     <button
@@ -352,9 +350,11 @@ function JobListCard({ card }: { card: JobCard | StartedJobCard }) {
       className={cn(
         "grid w-full items-center gap-4 rounded-xl border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
         hasScore ? "grid-cols-[72px_1fr_60px]" : "grid-cols-[72px_1fr]",
-        strongMatch
-          ? "border-[#CBEDE0] bg-[#EFFFF8]"
-          : "border-[#E9E2D9] bg-[#FFF9EF]",
+        isStarted
+          ? "border-[#E4E0E7] bg-white"
+          : strongMatch
+            ? "border-[#CBEDE0] bg-[#EFFFF8]"
+            : "border-[#E9E2D9] bg-[#FFF9EF]",
       )}
     >
       <div className="flex size-16 items-center justify-center rounded-lg border border-[#DDD8DF] bg-white p-2 text-center text-sm font-extrabold leading-tight">
@@ -477,10 +477,13 @@ function formatExperience(min: number | null, max: number | null) {
   return `Up to ${max} years`;
 }
 
-function getDefaultFilters(initialSearch: SearchInput): JobProfileFilters {
+function getDefaultFilters(_initialSearch: SearchInput): JobProfileFilters {
+  // Roles are intentionally NOT seeded from the resume role here. The resume
+  // role is seeded once during onboarding and persisted; re-seeding on /jobs
+  // would ignore the user having cleared it.
   return {
     companies: [],
-    roles: initialSearch.roleText ? [initialSearch.roleText] : [],
+    roles: [],
   };
 }
 
