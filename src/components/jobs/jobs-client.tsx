@@ -1,6 +1,7 @@
 "use client";
 
 import { IconEdit } from "@tabler/icons-react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BriefcaseBusiness,
   Check,
@@ -30,15 +31,23 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  type JobSort,
+  jobsKeys,
+  useJobOptions,
+  useJobSearch,
+} from "@/hooks/jobs/hooks";
 import { getLogoText } from "@/lib/company";
 import type { JobCard, SearchInput } from "@/lib/jd-client";
 import {
   readStoredJobProfileFilters,
   writeStoredJobProfileFilters,
 } from "@/lib/job-profile-filters";
+import {
+  readStoredJobSort,
+  writeStoredJobSort,
+} from "@/lib/job-sort-preference";
 import { cn } from "@/lib/utils";
-
-type Option = { id?: string; name: string };
 
 type JobListCardBase = Pick<
   JobCard,
@@ -65,12 +74,6 @@ type JobsClientProps = {
   user: { email: string | null; name: string | null };
 };
 
-type JobOptions = {
-  companies: Option[];
-};
-
-type JobSort = NonNullable<SearchInput["sort"]>;
-
 export function JobsClient({
   initialCards,
   initialError,
@@ -78,21 +81,53 @@ export function JobsClient({
   startedJobs,
   user,
 }: JobsClientProps) {
-  const [cards, setCards] = useState(initialCards);
-  const [options, setOptions] = useState<JobOptions>({
-    companies: [],
-  });
+  const queryClient = useQueryClient();
+  // `filters` is the draft the preferences dialog edits; `appliedFilters` is
+  // what actually drives the search query (committed on Apply).
   const [filters, setFilters] = useState<JobProfileFilters>(() =>
     getDefaultFilters(initialSearch),
   );
+  const [appliedFilters, setAppliedFilters] = useState<JobProfileFilters>(() =>
+    getDefaultFilters(initialSearch),
+  );
+  const [sort, setSort] = useState<JobSort>(
+    () => readStoredJobSort() ?? "default",
+  );
   const [isJobPrefDialogOpen, setJobPrefDialogOpen] = useState(false);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
-  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState(initialError);
   const [hasLoadedFilters, setHasLoadedFilters] = useState(false);
   const [hasSavedFilters, setHasSavedFilters] = useState(false);
-  const [sort, setSort] = useState<JobSort>("default");
+  const [optionsEnabled, setOptionsEnabled] = useState(false);
+
+  // Seed the server-rendered cards into the cache for the default filter combo
+  // so the initial view renders without an extra fetch.
+  useState(() => {
+    queryClient.setQueryData(
+      jobsKeys.search(
+        buildSearchInput(
+          getDefaultFilters(initialSearch),
+          "default",
+          initialSearch,
+        ),
+      ),
+      initialCards,
+    );
+  });
+
+  const searchInput = useMemo(
+    () => buildSearchInput(appliedFilters, sort, initialSearch),
+    [appliedFilters, sort, initialSearch],
+  );
+  const searchQuery = useJobSearch(searchInput, { enabled: hasLoadedFilters });
+  const optionsQuery = useJobOptions({ enabled: optionsEnabled });
+
+  const cards = searchQuery.data ?? [];
+  const companyOptions = optionsQuery.data?.companies ?? [];
+  const isSearching = searchQuery.isFetching;
+  const error =
+    (searchQuery.error instanceof Error ? searchQuery.error.message : null) ??
+    (optionsQuery.error instanceof Error ? optionsQuery.error.message : null) ??
+    (hasLoadedFilters ? null : initialError);
 
   const roleOptions = useMemo(() => {
     const names = new Set(cards.map((card) => card.jobTitle).filter(Boolean));
@@ -100,114 +135,45 @@ export function JobsClient({
     return [...names].sort();
   }, [cards, filters.roles]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount to load saved filters
   useEffect(() => {
     const savedFilters = readStoredJobProfileFilters();
     if (!savedFilters) {
-      // No saved preferences — search with profile defaults and open dialog
+      // No saved preferences — show default results and open the dialog.
       setHasLoadedFilters(true);
       setHasSavedFilters(false);
-      void searchWithFilters(filters);
-      void openJobPreferences();
+      openJobPreferences();
       return;
     }
 
     setFilters(savedFilters);
+    setAppliedFilters(savedFilters);
     setHasLoadedFilters(true);
     setHasSavedFilters(true);
     setJobsStep("jd-listing");
-    void searchWithFilters(savedFilters);
   }, []);
 
-  async function openJobPreferences() {
+  function openJobPreferences() {
     setFilters(
       readStoredJobProfileFilters() ?? getDefaultFilters(initialSearch),
     );
     setJobPrefDialogOpen(true);
     setJobsStep("job-preferences");
-
-    if (options.companies.length || isLoadingOptions) {
-      return;
-    }
-
-    setIsLoadingOptions(true);
-    try {
-      const response = await fetch("/api/jobs/options");
-      const payload = (await response.json()) as JobOptions & {
-        error?: string;
-      };
-
-      if (!response.ok)
-        throw new Error(payload.error ?? "Failed to load options");
-      setOptions({
-        companies: payload.companies ?? [],
-      });
-    } catch (optionsError) {
-      setError(
-        optionsError instanceof Error
-          ? optionsError.message
-          : "Failed to load options",
-      );
-    } finally {
-      setIsLoadingOptions(false);
-    }
+    setOptionsEnabled(true);
   }
 
-  async function searchWithFilters(
-    nextFilters: JobProfileFilters,
-    { sortBy = sort }: { sortBy?: JobSort } = {},
-  ) {
-    const nextSearch: SearchInput = {
-      companyText: nextFilters.companies.join(", "),
-      roleText: nextFilters.roles.join(", "),
-      skills: initialSearch.skills,
-      skillNames: initialSearch.skillNames,
-      experienceYears: null,
-      projectTexts: initialSearch.projectTexts ?? [],
-      sort: sortBy,
-    };
-
-    setIsSearching(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/jobs/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextSearch),
-      });
-      const payload = (await response.json()) as {
-        cards?: JobCard[];
-        error?: string;
-      };
-
-      if (!response.ok)
-        throw new Error(payload.error ?? "Failed to search jobs");
-      setCards(payload.cards ?? []);
-    } catch (searchError) {
-      setError(
-        searchError instanceof Error
-          ? searchError.message
-          : "Failed to search jobs",
-      );
-    } finally {
-      setIsSearching(false);
-    }
-  }
-
-  async function applyJobPreferences() {
+  function applyJobPreferences() {
     writeStoredJobProfileFilters(filters);
+    setAppliedFilters(filters);
     setHasSavedFilters(true);
     setJobPrefDialogOpen(false);
     setJobsStep("jd-listing");
-    await searchWithFilters(filters);
   }
 
-  async function changeSort(nextSort: JobSort) {
+  function changeSort(nextSort: JobSort) {
     if (nextSort === sort) return;
+    writeStoredJobSort(nextSort);
     setSort(nextSort);
-    await searchWithFilters(filters, {
-      sortBy: nextSort,
-    });
   }
 
   return (
@@ -339,7 +305,7 @@ export function JobsClient({
       {isJobPrefDialogOpen && (
         <JobPreferencesDialog
           canClose={hasSavedFilters}
-          companyOptions={options.companies.map((company) => company.name)}
+          companyOptions={companyOptions.map((company) => company.name)}
           isApplying={isSearching}
           onApply={applyJobPreferences}
           onClose={() => {
@@ -515,5 +481,23 @@ function getDefaultFilters(initialSearch: SearchInput): JobProfileFilters {
   return {
     companies: [],
     roles: initialSearch.roleText ? [initialSearch.roleText] : [],
+  };
+}
+
+// Builds the search payload from the applied filters + sort, carrying over the
+// resume-derived fields (skills, projects) from the server's initial search.
+function buildSearchInput(
+  filters: JobProfileFilters,
+  sort: JobSort,
+  base: SearchInput,
+): SearchInput {
+  return {
+    companyText: filters.companies.join(", "),
+    roleText: filters.roles.join(", "),
+    skills: base.skills,
+    skillNames: base.skillNames,
+    experienceYears: null,
+    projectTexts: base.projectTexts ?? [],
+    sort,
   };
 }

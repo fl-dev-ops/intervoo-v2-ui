@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { useProfile, useUpdateProfile } from "@/hooks/profile/hooks";
 
 type EducationEntry = {
   degree: string;
@@ -82,61 +83,48 @@ export function ProfileEditDialog({
   onSaved,
   open,
 }: ProfileEditDialogProps) {
+  const profileQuery = useProfile({ enabled: open });
+  const saveMutation = useUpdateProfile();
   const [data, setData] = useState<ProfileData | null>(null);
   const [editingSections, setEditingSections] =
     useState<Record<EditableSection, boolean>>(EDITING_SECTIONS);
   const [errors, setErrors] = useState<ValidationErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
+  const isLoading = profileQuery.isFetching;
+  const isSaving = saveMutation.isPending;
+
+  // Reset the draft's editing UI each time the dialog opens.
   useEffect(() => {
     if (!open) return;
-
-    let cancelled = false;
-    setIsLoading(true);
-    setData(null);
     setSubmitError("");
     setErrors({});
     setEditingSections(EDITING_SECTIONS);
-
-    async function loadProfile() {
-      try {
-        const response = await fetch("/api/profile", { cache: "no-store" });
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.error || "Failed to load profile");
-        }
-        if (cancelled) return;
-
-        const resume = payload.resume;
-        setData({
-          name: resume?.name || payload.name || "",
-          email: payload.email || "",
-          phoneNumber: payload.phoneNumber || "",
-          role: resume?.role || "",
-          experienceYears: resume?.experienceYears ?? null,
-          education: (resume?.education ?? []) as EducationEntry[],
-          skills: (resume?.skills ?? []) as string[],
-          experience: (resume?.experience ?? []) as ExperienceEntry[],
-          projects: (resume?.projects ?? []) as ProjectEntry[],
-        });
-      } catch (error) {
-        if (!cancelled) {
-          setSubmitError(
-            error instanceof Error ? error.message : "Failed to load profile",
-          );
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    void loadProfile();
-    return () => {
-      cancelled = true;
-    };
   }, [open]);
+
+  // Seed the editable draft from the loaded profile.
+  useEffect(() => {
+    const payload = profileQuery.data;
+    if (!payload) return;
+    const resume = payload.resume;
+    setData({
+      name: resume?.name || payload.name || "",
+      email: payload.email || "",
+      phoneNumber: payload.phoneNumber || "",
+      role: resume?.role || "",
+      experienceYears: resume?.experienceYears ?? null,
+      education: (resume?.education ?? []) as EducationEntry[],
+      skills: (resume?.skills ?? []) as string[],
+      experience: (resume?.experience ?? []) as ExperienceEntry[],
+      projects: (resume?.projects ?? []) as ProjectEntry[],
+    });
+  }, [profileQuery.data]);
+
+  useEffect(() => {
+    if (profileQuery.error instanceof Error) {
+      setSubmitError(profileQuery.error.message);
+    }
+  }, [profileQuery.error]);
 
   function toggleSection(section: EditableSection) {
     setEditingSections((current) => ({
@@ -162,27 +150,15 @@ export function ProfileEditDialog({
       return;
     }
 
-    setIsSaving(true);
     setSubmitError("");
     try {
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to save profile");
-      }
-
+      await saveMutation.mutateAsync(data);
       onOpenChange(false);
       onSaved();
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Failed to save profile",
       );
-    } finally {
-      setIsSaving(false);
     }
   }
 

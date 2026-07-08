@@ -6,6 +6,7 @@ import { PostHogPageView, PostHogProvider } from "@posthog/next";
 import { ThemeProvider } from "next-themes";
 import { RazorpayProvider } from "@/components/payments/razorpay-provider";
 import { PostHogIdentify } from "@/components/posthog-identify";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -74,22 +75,24 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex h-dvh max-h-full flex-col overflow-hidden bg-[linear-gradient(180deg,#0B061E_0%,#3C2390_100%)]">
-        <PostHogProvider clientOptions={{ api_host: "/ingest" }}>
-          <PostHogPageView />
-          <PostHogIdentify />
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
-          >
-            <RazorpayProvider>
-              <TooltipProvider>
-                <ScrollArea className="min-h-0 flex-1">{children}</ScrollArea>
-                <Toaster />
-              </TooltipProvider>
-            </RazorpayProvider>
-          </ThemeProvider>
-        </PostHogProvider>
+        <QueryProvider>
+          <PostHogProvider clientOptions={{ api_host: "/ingest" }}>
+            <PostHogPageView />
+            <PostHogIdentify />
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem={false}
+            >
+              <RazorpayProvider>
+                <TooltipProvider>
+                  <ScrollArea className="min-h-0 flex-1">{children}</ScrollArea>
+                  <Toaster />
+                </TooltipProvider>
+              </RazorpayProvider>
+            </ThemeProvider>
+          </PostHogProvider>
+        </QueryProvider>
       </body>
     </html>
   );

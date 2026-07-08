@@ -28,6 +28,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { useRoundStatus } from "@/hooks/jobs/hooks";
 import {
   DIAGNOSTIC_ROUNDS,
   type DiagnosticRoundConfig,
@@ -112,36 +113,22 @@ export function JobDetailClient({
     );
   }, [job.jobId, searchParams]);
 
-  // While a round's report is still generating, refresh so the CTA flips to
-  // "View Report" once it is ready.
+  // Poll round status while a report is still generating; the query stops
+  // itself once nothing is processing. Seeded with the server-rendered state.
+  const roundStatusQuery = useRoundStatus(job.jobId, {
+    enabled: localProcessingRoundIds.length > 0,
+    initialData: { readyRoundIds, processingRoundIds, roundScores },
+  });
+
+  // Mirror polled status into local state so the CTA flips to "View Report"
+  // once a report is ready.
   useEffect(() => {
-    if (localProcessingRoundIds.length === 0) return;
-
-    const intervalId = window.setInterval(() => {
-      void fetch(`/api/jobs/${encodeURIComponent(job.jobId)}/round-status`, {
-        cache: "no-store",
-      })
-        .then((response) => {
-          if (!response.ok) return null;
-          return response.json() as Promise<{
-            processingRoundIds?: string[];
-            readyRoundIds?: string[];
-            roundScores?: Record<string, number | null>;
-          }>;
-        })
-        .then((status) => {
-          if (!status) return;
-          setLocalReadyRoundIds(status.readyRoundIds ?? []);
-          setLocalProcessingRoundIds(status.processingRoundIds ?? []);
-          setLocalRoundScores(status.roundScores ?? {});
-        })
-        .catch(() => {
-          router.refresh();
-        });
-    }, 2000);
-
-    return () => window.clearInterval(intervalId);
-  }, [job.jobId, localProcessingRoundIds.length, router]);
+    const status = roundStatusQuery.data;
+    if (!status) return;
+    setLocalReadyRoundIds(status.readyRoundIds);
+    setLocalProcessingRoundIds(status.processingRoundIds);
+    setLocalRoundScores(status.roundScores);
+  }, [roundStatusQuery.data]);
 
   async function handleStart(roundId: string) {
     if (startingRoundId) return;
@@ -297,7 +284,10 @@ export function JobDetailClient({
                 const isProcessing = round.isReportProcessing;
                 // Lock all rounds at or beyond the paywall
                 const isLocked =
-                  requiresPayment && index >= activeRoundIndex && !isDone && !isProcessing;
+                  requiresPayment &&
+                  index >= activeRoundIndex &&
+                  !isDone &&
+                  !isProcessing;
                 return (
                   <RoundTimelineItem
                     key={round.id}
@@ -496,72 +486,72 @@ function RoundTimelineItem({
           {showQuestions ? (
             <CollapsibleContent>
               <div className="grid items-end gap-4 pt-1 md:grid-cols-3">
-              <div className="md:col-span-2">
-                <p
-                  className={cn(
-                    "mt-4 text-sm font-medium",
-                    isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
-                  )}
-                >
-                  Questions may cover
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {questions.map((question) => (
-                    <span
-                      key={question}
-                      className={cn(
-                        "rounded-lg border px-3 py-1.5 text-xs",
-                        isActiveCard
-                          ? "border-border bg-muted/50 text-gray-600"
-                          : "border-white/15 bg-white/10 text-white/70",
-                      )}
-                    >
-                      {question}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {requiresPayment && diagnosticId ? (
-                <div className="col-span-2 space-y-2 md:col-span-1 md:ml-auto">
-                  <DiagnosticUnlockDialog
-                    className="w-full rounded-full border-0 bg-button px-10 py-6 shadow-none"
-                    completedRoundIds={completedRoundIds}
-                    diagnosticId={diagnosticId}
-                    jobId={jobId}
-                  />
+                <div className="md:col-span-2">
                   <p
                     className={cn(
-                      "text-center text-xs font-medium",
+                      "mt-4 text-sm font-medium",
                       isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
                     )}
                   >
-                    {paymentReason === "PAYMENT_REQUIRED"
-                      ? "Unlock all rounds for this JD."
-                      : "Payment required to continue."}
+                    Questions may cover
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {questions.map((question) => (
+                      <span
+                        key={question}
+                        className={cn(
+                          "rounded-lg border px-3 py-1.5 text-xs",
+                          isActiveCard
+                            ? "border-border bg-muted/50 text-gray-600"
+                            : "border-white/15 bg-white/10 text-white/70",
+                        )}
+                      >
+                        {question}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              ) : !isProcessing && !isLocked ? (
-                <Button
-                  className="col-span-2 w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:col-span-1 md:ml-auto"
-                  disabled={Boolean(startingRoundId)}
-                  type="button"
-                  size="lg"
-                  onClick={onStart}
-                >
-                  {startingRoundId === config.id ? (
-                    <>
-                      <LoaderCircle className="mr-1 size-4 animate-spin" />
-                      Starting...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-1 size-3 fill-current" />
-                      Start Round {roundNumber}
-                    </>
-                  )}
-                </Button>
-              ) : null}
+
+                {requiresPayment && diagnosticId ? (
+                  <div className="col-span-2 space-y-2 md:col-span-1 md:ml-auto">
+                    <DiagnosticUnlockDialog
+                      className="w-full rounded-full border-0 bg-button px-10 py-6 shadow-none"
+                      completedRoundIds={completedRoundIds}
+                      diagnosticId={diagnosticId}
+                      jobId={jobId}
+                    />
+                    <p
+                      className={cn(
+                        "text-center text-xs font-medium",
+                        isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
+                      )}
+                    >
+                      {paymentReason === "PAYMENT_REQUIRED"
+                        ? "Unlock all rounds for this JD."
+                        : "Payment required to continue."}
+                    </p>
+                  </div>
+                ) : !isProcessing && !isLocked ? (
+                  <Button
+                    className="col-span-2 w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:col-span-1 md:ml-auto"
+                    disabled={Boolean(startingRoundId)}
+                    type="button"
+                    size="lg"
+                    onClick={onStart}
+                  >
+                    {startingRoundId === config.id ? (
+                      <>
+                        <LoaderCircle className="mr-1 size-4 animate-spin" />
+                        Starting...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="mr-1 size-3 fill-current" />
+                        Start Round {roundNumber}
+                      </>
+                    )}
+                  </Button>
+                ) : null}
               </div>
             </CollapsibleContent>
           ) : null}

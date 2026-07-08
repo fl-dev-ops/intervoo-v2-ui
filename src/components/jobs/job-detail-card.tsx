@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Blocks,
   CheckCircle2,
@@ -9,7 +10,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { InterviewReadinessScore } from "@/components/diagnostics/interview-readiness-score";
 import {
   Accordion,
@@ -20,14 +21,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  jobsKeys,
+  useJobAnalysis,
+  useJobMatch,
+  useSourceUrlStatus,
+} from "@/hooks/jobs/hooks";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getLogoText } from "@/lib/company";
-import type {
-  FitSection,
-  JobFitAnalysis,
-  JobMatch,
-  SkillChip,
-} from "@/lib/jd-client";
+import type { FitSection, SkillChip } from "@/lib/jd-client";
 import { cn } from "@/lib/utils";
 
 export type JobDetailCardProps = {
@@ -70,19 +72,39 @@ export function JobDetailCard({
   workMode,
 }: JobDetailCardProps) {
   const isMobile = useIsMobile();
-  const [match, setMatch] = useState<JobMatch | null>(null);
-  const [analysis, setAnalysis] = useState<JobFitAnalysis | null>(null);
-  const [hasAnalysisEvidence, setHasAnalysisEvidence] = useState<
-    boolean | null
-  >(null);
-  const [matchError, setMatchError] = useState<string | null>(null);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [isMatchLoading, setIsMatchLoading] = useState(Boolean(jobId));
-  const [isAnalysisLoading, setIsAnalysisLoading] = useState(Boolean(jobId));
-  const [postingAvailability, setPostingAvailability] = useState<{
-    sourceUrl: string;
-    status: "checking" | PostingStatus;
-  } | null>(sourceUrl ? { sourceUrl, status: "checking" } : null);
+  const queryClient = useQueryClient();
+  const matchQuery = useJobMatch(jobId);
+  const analysisQuery = useJobAnalysis(jobId, matchQuery.data?.match, {
+    enabled: matchQuery.data?.hasAnalysisEvidence === true,
+  });
+  const sourceUrlQuery = useSourceUrlStatus(sourceUrl ?? undefined);
+
+  const match = matchQuery.data?.match ?? null;
+  const analysis = analysisQuery.data ?? null;
+  const hasAnalysisEvidence = matchQuery.data
+    ? matchQuery.data.hasAnalysisEvidence
+    : null;
+  const isMatchLoading = Boolean(jobId) && matchQuery.isPending;
+  const isAnalysisLoading =
+    Boolean(jobId) &&
+    (matchQuery.isPending ||
+      (matchQuery.data?.hasAnalysisEvidence === true &&
+        analysisQuery.isPending));
+  const matchError =
+    matchQuery.error instanceof Error ? matchQuery.error.message : null;
+  const analysisError =
+    analysisQuery.error instanceof Error ? analysisQuery.error.message : null;
+  const postingStatus: "checking" | PostingStatus | null = !sourceUrl
+    ? null
+    : (sourceUrlQuery.data ?? "checking");
+
+  // Add-skills saves bump `refreshKey`; refetch fit data when it changes.
+  useEffect(() => {
+    if (!jobId || refreshKey === 0) return;
+    void queryClient.invalidateQueries({ queryKey: jobsKeys.match(jobId) });
+    void queryClient.invalidateQueries({ queryKey: jobsKeys.analysis(jobId) });
+  }, [jobId, queryClient, refreshKey]);
+
   const skillChips = analysis
     ? getSkillChips(analysis.skills)
     : hasAnalysisEvidence === false
@@ -92,167 +114,8 @@ export function JobDetailCard({
   const showStartInterview = Boolean(jobId && onStartInterview);
   const meta = [experience, location, workMode].filter(Boolean);
 
-  useEffect(() => {
-    void refreshKey;
-
-    if (!jobId) {
-      setIsMatchLoading(false);
-      setIsAnalysisLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    const activeJobId = jobId;
-
-    async function loadFitData() {
-      let didLoadMatch = false;
-      setIsMatchLoading(true);
-      setIsAnalysisLoading(true);
-      setMatchError(null);
-      setAnalysisError(null);
-      setMatch(null);
-      setAnalysis(null);
-      setHasAnalysisEvidence(null);
-
-      try {
-        const matchResponse = await fetch(
-          `/api/jobs/${encodeURIComponent(activeJobId)}/match`,
-          { cache: "no-store" },
-        );
-        const matchJson = (await matchResponse.json()) as {
-          error?: string;
-          match?: JobMatch;
-          hasAnalysisEvidence?: boolean;
-        };
-
-        if (!matchResponse.ok || matchJson.error || !matchJson.match) {
-          throw new Error(matchJson.error || "Failed to load job match");
-        }
-
-        if (cancelled) return;
-        setMatch(matchJson.match);
-        didLoadMatch = true;
-        setIsMatchLoading(false);
-        setHasAnalysisEvidence(matchJson.hasAnalysisEvidence === true);
-
-        if (matchJson.hasAnalysisEvidence !== true) {
-          setIsAnalysisLoading(false);
-          return;
-        }
-
-        setIsAnalysisLoading(true);
-
-        const analysisResponse = await fetch(
-          `/api/jobs/${encodeURIComponent(activeJobId)}/analysis`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ match: matchJson.match }),
-          },
-        );
-        const analysisJson = (await analysisResponse.json()) as {
-          analysis?: JobFitAnalysis;
-          error?: string;
-        };
-
-        if (
-          !analysisResponse.ok ||
-          analysisJson.error ||
-          !analysisJson.analysis
-        ) {
-          throw new Error(
-            analysisJson.error || "Failed to load job fit analysis",
-          );
-        }
-
-        if (cancelled) return;
-        setAnalysis(analysisJson.analysis);
-      } catch (error) {
-        if (cancelled) return;
-        const message =
-          error instanceof Error ? error.message : "Failed to load fit data";
-        if (didLoadMatch) {
-          setAnalysisError(message);
-        } else {
-          setMatchError(message);
-          setIsMatchLoading(false);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsMatchLoading(false);
-          setIsAnalysisLoading(false);
-        }
-      }
-    }
-
-    void loadFitData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [jobId, refreshKey]);
-
-  useEffect(() => {
-    if (!sourceUrl) {
-      setPostingAvailability(null);
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-    const activeSourceUrl = sourceUrl;
-    setPostingAvailability({ sourceUrl: activeSourceUrl, status: "checking" });
-
-    async function checkSourceUrl() {
-      try {
-        const res = await fetch(
-          `/api/jobs/check-url?url=${encodeURIComponent(activeSourceUrl)}`,
-          { signal: controller.signal },
-        );
-        if (!res.ok) {
-          if (!cancelled) {
-            setPostingAvailability({
-              sourceUrl: activeSourceUrl,
-              status: "unknown",
-            });
-          }
-          return;
-        }
-
-        const data: unknown = await res.json();
-        if (!cancelled) {
-          setPostingAvailability({
-            sourceUrl: activeSourceUrl,
-            status: getPostingStatus(data),
-          });
-        }
-      } catch (error) {
-        if (
-          !cancelled &&
-          !(error instanceof DOMException && error.name === "AbortError")
-        ) {
-          setPostingAvailability({
-            sourceUrl: activeSourceUrl,
-            status: "unknown",
-          });
-        }
-      }
-    }
-
-    void checkSourceUrl();
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [sourceUrl]);
-
-  const currentPostingStatus =
-    postingAvailability && postingAvailability.sourceUrl === sourceUrl
-      ? postingAvailability.status
-      : null;
   const shouldShowPosting =
-    currentPostingStatus === "available" || currentPostingStatus === "unknown";
+    postingStatus === "available" || postingStatus === "unknown";
 
   return (
     <div className="space-y-5">
@@ -645,19 +508,6 @@ function ScorePill({ label, value }: { label: string; value?: number | null }) {
       {Math.round(value)}% {label}
     </Badge>
   );
-}
-
-function getPostingStatus(data: unknown): PostingStatus {
-  if (!data || typeof data !== "object" || !("status" in data)) {
-    return "unknown";
-  }
-
-  const { status } = data;
-  return status === "available" ||
-    status === "unavailable" ||
-    status === "unknown"
-    ? status
-    : "unknown";
 }
 
 function SourceIcon({ sourceUrl }: { sourceUrl: string }) {

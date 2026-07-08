@@ -1,9 +1,10 @@
 "use client";
 
 import { IconDeviceFloppyFilled } from "@tabler/icons-react";
+import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, CloudUpload, FileText, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppHeader } from "@/components/app-header";
 import { ChangeResumeDialog } from "@/components/jobs/change-resume-dialog";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/components/onboarding";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { useProfile, useUpdateProfile } from "@/hooks/profile/hooks";
 import { authClient } from "@/lib/auth-client";
 import type { ResumeData, ResumeSection } from "@/lib/resume-client";
 import {
@@ -56,20 +58,29 @@ interface ProfileData {
   projects: ProjectEntry[];
 }
 
-type EditableSection = "basic" | "education" | "skills" | "experience" | "projects";
-type ValidationErrors = Partial<Record<"name" | "email" | "phoneNumber", string>>;
+type EditableSection =
+  | "basic"
+  | "education"
+  | "skills"
+  | "experience"
+  | "projects";
+type ValidationErrors = Partial<
+  Record<"name" | "email" | "phoneNumber", string>
+>;
 
 export default function ProfilePage() {
   const router = useRouter();
+  const profileQuery = useProfile();
+  const saveMutation = useUpdateProfile();
   const [data, setData] = useState<ProfileData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [isChangeResumeOpen, setIsChangeResumeOpen] = useState(false);
-  const [isParsingResume, setIsParsingResume] = useState(false);
   const [loadedSections, setLoadedSections] = useState<ResumeSection[]>([]);
-  const [parsingResumeData, setParsingResumeData] =
-    useState<ResumeData | null>(null);
-  const [editingSections, setEditingSections] = useState<Record<EditableSection, boolean>>({
+  const [parsingResumeData, setParsingResumeData] = useState<ResumeData | null>(
+    null,
+  );
+  const [editingSections, setEditingSections] = useState<
+    Record<EditableSection, boolean>
+  >({
     basic: false,
     education: false,
     skills: false,
@@ -78,95 +89,102 @@ export default function ProfilePage() {
   });
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [submitError, setSubmitError] = useState("");
+  const parseStartedRef = useRef(false);
 
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const response = await fetch("/api/profile");
-        if (!response.ok) {
-          router.push("/login");
-          return;
-        }
-        const payload = await response.json();
-        const resume = payload.resume;
-        const profileData = {
-          name: resume?.name || payload.name || "",
-          email: payload.email || "",
-          phoneNumber: payload.phoneNumber || "",
-          role: resume?.role || "",
-          experienceYears: resume?.experienceYears ?? null,
-          education: (resume?.education ?? []) as EducationEntry[],
-          skills: (resume?.skills ?? []) as string[],
-          experience: (resume?.experience ?? []) as ExperienceEntry[],
-          projects: (resume?.projects ?? []) as ProjectEntry[],
-        };
-        setData(profileData);
-        setIsLoading(false);
-
-        const pendingResumeUrl = window.sessionStorage.getItem(
-          PENDING_RESUME_STORAGE_KEY,
-        );
-        if (!pendingResumeUrl) return;
-        window.sessionStorage.removeItem(PENDING_RESUME_STORAGE_KEY);
-
-        setIsParsingResume(true);
-        setLoadedSections([]);
-        setParsingResumeData(createEmptyResume(profileData));
-
-        try {
-          const result = await parseUploadedResume(pendingResumeUrl, {
-            async onEvent(event) {
-              if (event.type !== "section") return;
-              setParsingResumeData((current) => ({
-                ...(current ?? createEmptyResume(profileData)),
-                ...event.data,
-              }));
-              setLoadedSections((current) =>
-                current.includes(event.section)
-                  ? current
-                  : [...current, event.section],
-              );
-              await waitForPaint();
-            },
-          });
-          const parsedResume = mergeWithProfileDefaults(
-            result.resume,
-            profileData,
+  // Streams a pending uploaded resume, then persists it via replace-resume.
+  const parseMutation = useMutation({
+    mutationFn: async ({
+      resumeUrl,
+      profileData,
+    }: {
+      resumeUrl: string;
+      profileData: ProfileData;
+    }) => {
+      setLoadedSections([]);
+      setParsingResumeData(createEmptyResume(profileData));
+      const result = await parseUploadedResume(resumeUrl, {
+        async onEvent(event) {
+          if (event.type !== "section") return;
+          setParsingResumeData((current) => ({
+            ...(current ?? createEmptyResume(profileData)),
+            ...event.data,
+          }));
+          setLoadedSections((current) =>
+            current.includes(event.section)
+              ? current
+              : [...current, event.section],
           );
-          const saveResponse = await fetch("/api/profile", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "replace-resume",
-              resume: parsedResume,
-              resumeUrl: result.resumeUrl,
-            }),
-          });
-          if (!saveResponse.ok) {
-            const saveError = await saveResponse.json();
-            throw new Error(saveError.error || "Failed to replace resume");
-          }
-
-          setData(parsedResume);
-          setParsingResumeData(parsedResume);
-          router.replace("/profile", { scroll: false });
-        } catch (error) {
-          setSubmitError(
-            error instanceof Error
-              ? error.message
-              : "Failed to replace resume",
-          );
-        } finally {
-          setIsParsingResume(false);
-        }
-      } catch {
-        router.push("/login");
-      } finally {
-        setIsLoading(false);
+          await waitForPaint();
+        },
+      });
+      const parsedResume = mergeWithProfileDefaults(result.resume, profileData);
+      const saveResponse = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "replace-resume",
+          resume: parsedResume,
+          resumeUrl: result.resumeUrl,
+        }),
+      });
+      if (!saveResponse.ok) {
+        const saveError = (await saveResponse.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(saveError?.error || "Failed to replace resume");
       }
-    }
-    fetchProfile();
-  }, [router]);
+      return parsedResume;
+    },
+    onSuccess: (parsedResume) => {
+      setData(parsedResume);
+      setParsingResumeData(parsedResume);
+      router.replace("/profile", { scroll: false });
+    },
+    onError: (error) => {
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to replace resume",
+      );
+    },
+  });
+
+  const isLoading = profileQuery.isPending;
+  const isSaving = saveMutation.isPending;
+  const isParsingResume = parseMutation.isPending;
+
+  // A failed profile load means the session is gone.
+  useEffect(() => {
+    if (profileQuery.isError) router.push("/login");
+  }, [profileQuery.isError, router]);
+
+  // Seed the editable draft from the loaded profile, then kick off a pending
+  // resume parse (from the upload flow) once.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run once when the profile first loads
+  useEffect(() => {
+    const payload = profileQuery.data;
+    if (!payload) return;
+    const resume = payload.resume;
+    const profileData: ProfileData = {
+      name: resume?.name || payload.name || "",
+      email: payload.email || "",
+      phoneNumber: payload.phoneNumber || "",
+      role: resume?.role || "",
+      experienceYears: resume?.experienceYears ?? null,
+      education: (resume?.education ?? []) as EducationEntry[],
+      skills: (resume?.skills ?? []) as string[],
+      experience: (resume?.experience ?? []) as ExperienceEntry[],
+      projects: (resume?.projects ?? []) as ProjectEntry[],
+    };
+    setData(profileData);
+
+    if (parseStartedRef.current) return;
+    const pendingResumeUrl = window.sessionStorage.getItem(
+      PENDING_RESUME_STORAGE_KEY,
+    );
+    if (!pendingResumeUrl) return;
+    parseStartedRef.current = true;
+    window.sessionStorage.removeItem(PENDING_RESUME_STORAGE_KEY);
+    parseMutation.mutate({ resumeUrl: pendingResumeUrl, profileData });
+  }, [profileQuery.data]);
 
   const toggleSection = (section: EditableSection) => {
     setEditingSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -201,30 +219,17 @@ export default function ProfilePage() {
       return;
     }
 
-    setIsSaving(true);
     setSubmitError("");
 
     try {
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to save profile");
-      }
-
+      await saveMutation.mutateAsync(data);
       router.replace("/jobs");
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Failed to save profile",
       );
-    } finally {
-      setIsSaving(false);
     }
-  }, [data, router]);
+  }, [data, router, saveMutation]);
 
   const handleLogout = useCallback(async () => {
     await authClient.signOut({
@@ -244,7 +249,10 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#F7F1FF] font-sans">
-      <AppHeader user={{ email: data.email, name: data.name }} onLogout={handleLogout} />
+      <AppHeader
+        user={{ email: data.email, name: data.name }}
+        onLogout={handleLogout}
+      />
       {isParsingResume ? (
         <ResumeParsingSkeleton
           email={data.email}
@@ -255,114 +263,122 @@ export default function ProfilePage() {
         />
       ) : (
         <div className="mx-auto w-full max-w-[560px] px-4 pb-14 pt-8 md:pt-10">
-        <button
-          type="button"
-          onClick={() => router.push("/jobs")}
-          className="mb-6 inline-flex items-center gap-2 text-base font-semibold text-black"
-        >
-          <ArrowLeft className="size-5" />
-          Back
-        </button>
-
-        <div className="mb-7 text-center">
-          <h2 className="text-lg font-extrabold tracking-tight text-black">
-            Your Profile
-          </h2>
-          <p className="mt-1 text-sm text-[#6D6873]">
-            Review and update your details
-          </p>
-        </div>
-
-        <div className="mb-7 flex flex-col items-stretch gap-3 rounded-2xl bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <a
-            className="flex items-center gap-2 rounded-xl bg-[#F7F3F8] px-3 py-2 text-base font-semibold text-black transition-colors hover:bg-[#EFE8F5] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            href="/api/profile/resume"
-            rel="noreferrer"
-            target="_blank"
-          >
-            <FileText className="size-4 text-[#5C3BD8]" />
-            My Resume
-          </a>
-          <Button
-            onClick={() => setIsChangeResumeOpen(true)}
+          <button
             type="button"
-            variant="secondary"
+            onClick={() => router.push("/jobs")}
+            className="mb-6 inline-flex items-center gap-2 text-base font-semibold text-black"
           >
-            <CloudUpload />
-            Change my Resume
-          </Button>
-        </div>
+            <ArrowLeft className="size-5" />
+            Back
+          </button>
 
-        <div className="space-y-4">
-          <BasicInfoCard
-            name={data.name}
-            email={data.email}
-            phoneNumber={data.phoneNumber}
-            editing={editingSections.basic}
-            errors={errors}
-            onChange={handleBasicInfoChange}
-            onEdit={() => toggleSection("basic")}
+          <div className="mb-7 text-center">
+            <h2 className="text-lg font-extrabold tracking-tight text-black">
+              Your Profile
+            </h2>
+            <p className="mt-1 text-sm text-[#6D6873]">
+              Review and update your details
+            </p>
+          </div>
+
+          <div className="mb-7 flex flex-col items-stretch gap-3 rounded-2xl bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <a
+              className="flex items-center gap-2 rounded-xl bg-[#F7F3F8] px-3 py-2 text-base font-semibold text-black transition-colors hover:bg-[#EFE8F5] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              href="/api/profile/resume"
+              rel="noreferrer"
+              target="_blank"
+            >
+              <FileText className="size-4 text-[#5C3BD8]" />
+              My Resume
+            </a>
+            <Button
+              onClick={() => setIsChangeResumeOpen(true)}
+              type="button"
+              variant="secondary"
+            >
+              <CloudUpload />
+              Change my Resume
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            <BasicInfoCard
+              name={data.name}
+              email={data.email}
+              phoneNumber={data.phoneNumber}
+              editing={editingSections.basic}
+              errors={errors}
+              onChange={handleBasicInfoChange}
+              onEdit={() => toggleSection("basic")}
+            />
+
+            <EducationCard
+              education={data.education}
+              editing={editingSections.education}
+              onChange={(education) =>
+                setData((prev) => (prev ? { ...prev, education } : prev))
+              }
+              onEdit={() => toggleSection("education")}
+            />
+
+            <SkillsCard
+              skills={data.skills}
+              editing={editingSections.skills}
+              onChange={(skills) =>
+                setData((prev) => (prev ? { ...prev, skills } : prev))
+              }
+              onEdit={() => toggleSection("skills")}
+            />
+
+            <ExperienceCard
+              experience={data.experience}
+              editing={editingSections.experience}
+              onChange={(experience) =>
+                setData((prev) => (prev ? { ...prev, experience } : prev))
+              }
+              onEdit={() => toggleSection("experience")}
+            />
+
+            <ProjectsCard
+              projects={data.projects}
+              editing={editingSections.projects}
+              onChange={(projects) =>
+                setData((prev) => (prev ? { ...prev, projects } : prev))
+              }
+              onEdit={() => toggleSection("projects")}
+            />
+          </div>
+
+          {submitError && (
+            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              {submitError}
+            </p>
+          )}
+
+          <div className="mt-6">
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="h-[54px] w-full rounded-full bg-gradient-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white shadow-none hover:from-[#4B2EAA] hover:to-[#6846E8]"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <IconDeviceFloppyFilled className="mr-2 size-4" />
+                  Save Profile
+                </>
+              )}
+            </Button>
+          </div>
+
+          <ChangeResumeDialog
+            onOpenChange={setIsChangeResumeOpen}
+            open={isChangeResumeOpen}
           />
-
-          <EducationCard
-            education={data.education}
-            editing={editingSections.education}
-            onChange={(education) => setData((prev) => prev ? { ...prev, education } : prev)}
-            onEdit={() => toggleSection("education")}
-          />
-
-          <SkillsCard
-            skills={data.skills}
-            editing={editingSections.skills}
-            onChange={(skills) => setData((prev) => prev ? { ...prev, skills } : prev)}
-            onEdit={() => toggleSection("skills")}
-          />
-
-          <ExperienceCard
-            experience={data.experience}
-            editing={editingSections.experience}
-            onChange={(experience) => setData((prev) => prev ? { ...prev, experience } : prev)}
-            onEdit={() => toggleSection("experience")}
-          />
-
-          <ProjectsCard
-            projects={data.projects}
-            editing={editingSections.projects}
-            onChange={(projects) => setData((prev) => prev ? { ...prev, projects } : prev)}
-            onEdit={() => toggleSection("projects")}
-          />
-        </div>
-
-        {submitError && (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {submitError}
-          </p>
-        )}
-
-        <div className="mt-6">
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="h-[54px] w-full rounded-full bg-gradient-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white shadow-none hover:from-[#4B2EAA] hover:to-[#6846E8]"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 size-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <IconDeviceFloppyFilled className="mr-2 size-4" />
-                Save Profile
-              </>
-            )}
-          </Button>
-        </div>
-
-        <ChangeResumeDialog
-          onOpenChange={setIsChangeResumeOpen}
-          open={isChangeResumeOpen}
-        />
         </div>
       )}
     </div>

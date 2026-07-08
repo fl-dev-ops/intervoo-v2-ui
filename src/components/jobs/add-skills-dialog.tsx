@@ -10,25 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useProfile, useUpdateProfile } from "@/hooks/profile/hooks";
 
 type AddSkillsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   jobSkills: string[];
   onSaved: () => void;
-};
-
-type ProfileData = {
-  name: string;
-  email: string;
-  resume: {
-    role: string;
-    experienceYears: number | null;
-    education: unknown[];
-    skills: string[];
-    experience: unknown[];
-    projects: unknown[];
-  } | null;
 };
 
 function normalizeSkill(skill: string): string {
@@ -51,39 +39,33 @@ export function AddSkillsDialog({
   jobSkills,
   onSaved,
 }: AddSkillsDialogProps) {
-  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const profileQuery = useProfile({ enabled: open });
+  const saveMutation = useUpdateProfile();
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const profile = profileQuery.data ?? null;
+  const isLoading = profileQuery.isFetching;
+  const isSaving = saveMutation.isPending;
 
   useEffect(() => {
     if (!open) return;
-
     setError(null);
     setNewSkill("");
-
-    async function fetchProfile() {
-      setIsLoading(true);
-      try {
-        const response = await fetch("/api/profile", { cache: "no-store" });
-        if (!response.ok) {
-          setError("Failed to load your profile. Please try again.");
-          return;
-        }
-        const data = (await response.json()) as ProfileData;
-        setProfile(data);
-        setSelectedSkills(data.resume?.skills ?? []);
-      } catch {
-        setError("Failed to load your profile. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    void fetchProfile();
   }, [open]);
+
+  useEffect(() => {
+    if (profileQuery.data) {
+      setSelectedSkills(profileQuery.data.resume?.skills ?? []);
+    }
+  }, [profileQuery.data]);
+
+  useEffect(() => {
+    if (profileQuery.isError) {
+      setError("Failed to load your profile. Please try again.");
+    }
+  }, [profileQuery.isError]);
 
   const addJobSkill = (skill: string) => {
     if (!skillExists(selectedSkills, skill)) {
@@ -113,39 +95,23 @@ export function AddSkillsDialog({
 
   const handleSave = async () => {
     if (!profile) return;
-
-    setIsSaving(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: profile.name,
-          email: profile.email,
-          role: profile.resume?.role ?? "",
-          experienceYears: profile.resume?.experienceYears ?? null,
-          education: profile.resume?.education ?? [],
-          skills: selectedSkills,
-          experience: profile.resume?.experience ?? [],
-          projects: profile.resume?.projects ?? [],
-        }),
+      await saveMutation.mutateAsync({
+        name: profile.name ?? "",
+        email: profile.email ?? "",
+        role: profile.resume?.role ?? "",
+        experienceYears: profile.resume?.experienceYears ?? null,
+        education: profile.resume?.education ?? [],
+        skills: selectedSkills,
+        experience: profile.resume?.experience ?? [],
+        projects: profile.resume?.projects ?? [],
       });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        throw new Error(body?.error ?? "Failed to save skills");
-      }
-
       onSaved();
       onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save skills");
-    } finally {
-      setIsSaving(false);
     }
   };
 
