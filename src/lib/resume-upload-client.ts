@@ -15,6 +15,14 @@ type ResumeUploadOptions = {
 
 export const PENDING_RESUME_STORAGE_KEY = "intervoo:pending-resume-key";
 
+export function getResumeDisplayName(
+  resumeUrl: string | undefined,
+): string | undefined {
+  if (!resumeUrl) return undefined;
+  const lastSegment = resumeUrl.split("/").pop() || resumeUrl;
+  return lastSegment.replace(/^\d+_/, "") || lastSegment;
+}
+
 export async function uploadAndParseResume(
   file: File,
   options: ResumeUploadOptions = {},

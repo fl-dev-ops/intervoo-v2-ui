@@ -8,7 +8,7 @@ import { EducationCard } from "./education-card";
 import { SkillsCard } from "./skills-card";
 import { ExperienceCard } from "./experience-card";
 import { ProjectsCard } from "./projects-card";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 
 interface EducationEntry {
   degree: string;
@@ -50,8 +50,11 @@ interface ResumeReviewStepProps {
   isCompleting: boolean;
 }
 
-type EditableSection = "basic" | "education" | "skills" | "experience" | "projects";
-type ValidationErrors = Partial<Record<"name" | "email" | "phoneNumber", string>>;
+type EditableSection =
+  "basic" | "education" | "skills" | "experience" | "projects";
+type ValidationErrors = Partial<
+  Record<"name" | "email" | "phoneNumber", string>
+>;
 
 export function ResumeReviewStep({
   initialData,
@@ -60,7 +63,9 @@ export function ResumeReviewStep({
   isCompleting,
 }: ResumeReviewStepProps) {
   const [data, setData] = useState<ResumeData>(initialData);
-  const [editingSections, setEditingSections] = useState<Record<EditableSection, boolean>>({
+  const [editingSections, setEditingSections] = useState<
+    Record<EditableSection, boolean>
+  >({
     basic: false,
     education: false,
     skills: false,
@@ -113,7 +118,7 @@ export function ResumeReviewStep({
   return (
     <div className="mx-auto w-full max-w-[560px] px-4 pb-14 pt-8 md:pt-10">
       <div className="mb-7 text-center">
-        <h2 className="text-lg font-extrabold tracking-tight text-black">
+        <h2 className="font-serif text-2xl font-semibold leading-tight text-black">
           Here's what we read from your resume.
         </h2>
       </div>
@@ -164,20 +169,20 @@ export function ResumeReviewStep({
         </p>
       )}
 
-      <div className="mt-6 grid grid-cols-[1fr_1.35fr] gap-4">
+      <div className="mt-6 flex justify-between">
         <Button
           type="button"
           variant="ghost"
           onClick={onBack}
-          className="h-[54px] rounded-full bg-white/60 text-base font-bold text-[#5A5562] hover:bg-white"
+          className="px-8 rounded-full bg-white/80 text-base font-bold text-[#5A5562] hover:bg-white"
         >
-          <ArrowLeft className="mr-2 size-4" />
+          <ArrowLeft className="mr-1 size-4" />
           Back
         </Button>
         <Button
           onClick={handleSubmit}
           disabled={isCompleting}
-          className="h-[54px] rounded-full bg-gradient-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white shadow-none hover:from-[#4B2EAA] hover:to-[#6846E8]"
+          className="px-8 rounded-full bg-gradient-to-r from-[#5436B8] to-[#7149F6] text-base font-bold text-white shadow-none hover:from-[#4B2EAA] hover:to-[#6846E8]"
         >
           {isCompleting ? (
             <>
@@ -186,8 +191,8 @@ export function ResumeReviewStep({
             </>
           ) : (
             <>
-              <IconDeviceFloppyFilled className="mr-2 size-4" />
-              Save
+              Save & Continue
+              <ArrowRight className="ml-1 size-4" />
             </>
           )}
         </Button>

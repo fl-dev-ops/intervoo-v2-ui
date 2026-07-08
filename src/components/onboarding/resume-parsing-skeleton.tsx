@@ -27,11 +27,7 @@ type ParsedResumeData = {
 type ResumeParsingSkeletonProps = {
   email: string;
   loadedSections: (
-    | "basic"
-    | "education"
-    | "skills"
-    | "experience"
-    | "projects"
+    "basic" | "education" | "skills" | "experience" | "projects"
   )[];
   name: string;
   phoneNumber: string;
@@ -47,8 +43,8 @@ export function ResumeParsingSkeleton({
 }: ResumeParsingSkeletonProps) {
   return (
     <div className="mx-auto w-full max-w-[620px] px-4 pb-14 pt-8 md:pt-10">
-      <h1 className="mx-auto max-w-[520px] text-center font-serif text-2xl font-bold leading-tight text-black">
-        AI is reading your resume and getting your information
+      <h1 className="mx-auto max-w-[520px] text-center font-serif text-2xl font-semibold leading-tight text-black">
+        Getting your profile ready...
       </h1>
 
       <div className="mt-8 space-y-4">

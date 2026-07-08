@@ -19,6 +19,7 @@ const CREATE_PREFIX = "__create_option__:";
 
 type MultiComboboxProps = {
   closeOnValueChange?: boolean;
+  isLoading?: boolean;
   label: string;
   onValueChange: (value: string[]) => void;
   options: string[];
@@ -28,6 +29,7 @@ type MultiComboboxProps = {
 
 export function MultiCombobox({
   closeOnValueChange = false,
+  isLoading = false,
   label,
   onValueChange,
   options,
@@ -95,6 +97,7 @@ export function MultiCombobox({
 
       <Combobox
         autoHighlight
+        disabled={isLoading}
         inputValue={query}
         items={items}
         multiple
@@ -122,7 +125,9 @@ export function MultiCombobox({
           <ComboboxChipsInput
             id={id}
             className="h-7 min-w-24 p-0 text-base placeholder:text-muted-foreground"
-            placeholder={selected.length ? "" : placeholder}
+            placeholder={
+              isLoading ? "Loading..." : selected.length ? "" : placeholder
+            }
           />
           <ComboboxTrigger
             aria-label={`Open ${label.toLowerCase()} options`}

@@ -26,7 +26,10 @@ import {
   type OnboardingResumePayload,
   onboardingResumePayloadSchema,
 } from "@/lib/resume-schema";
-import { uploadAndParseResume } from "@/lib/resume-upload-client";
+import {
+  getResumeDisplayName,
+  uploadAndParseResume,
+} from "@/lib/resume-upload-client";
 
 type UserDefaults = {
   name: string;
@@ -63,6 +66,8 @@ function OnboardingPageContent() {
   const [loadedSections, setLoadedSections] = useState<ResumeSection[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isLoadingCompanyOptions, setIsLoadingCompanyOptions] =
+    useState(false);
   const [pendingProfile, setPendingProfile] =
     useState<OnboardingResumePayload | null>(null);
   const [companyOptions, setCompanyOptions] = useState<string[]>([]);
@@ -137,6 +142,7 @@ function OnboardingPageContent() {
             });
           }
 
+          setIsLoadingCompanyOptions(true);
           try {
             setCompanyOptions(await fetchCompanyOptions());
           } catch (error) {
@@ -145,6 +151,8 @@ function OnboardingPageContent() {
                 ? error.message
                 : "Could not load company suggestions",
             );
+          } finally {
+            setIsLoadingCompanyOptions(false);
           }
         }
       } catch {
@@ -273,13 +281,18 @@ function OnboardingPageContent() {
         });
         setPreferenceError(null);
         navigateToStep("job-preferences");
+        setIsCompleting(false);
 
-        setCompanyOptions(await fetchCompanyOptions());
+        setIsLoadingCompanyOptions(true);
+        try {
+          setCompanyOptions(await fetchCompanyOptions());
+        } finally {
+          setIsLoadingCompanyOptions(false);
+        }
       } catch (err) {
         setPreferenceError(
           err instanceof Error ? err.message : "Could not load job preferences",
         );
-      } finally {
         setIsCompleting(false);
       }
     },
@@ -333,14 +346,14 @@ function OnboardingPageContent() {
     <div className="min-h-screen bg-[#F7F1FF] font-sans">
       <AppHeader />
       <OnboardingProgress
-        activeStep={step}
+        activeStep={isParsing ? "resume-details" : step}
         availableSteps={[
           "resume-upload",
           ...(!isParsing && resumeData ? (["resume-details"] as const) : []),
           ...(pendingProfile ? (["job-preferences"] as const) : []),
         ]}
         completedSteps={[
-          ...(!isParsing && resumeData ? (["resume-upload"] as const) : []),
+          ...(resumeData ? (["resume-upload"] as const) : []),
           ...(pendingProfile ? (["resume-details"] as const) : []),
         ]}
         onStepChange={navigateToStep}
@@ -357,8 +370,12 @@ function OnboardingPageContent() {
         <ResumeUploadStep
           onParse={handleParseResume}
           onSkip={handleSkip}
+          onContinue={() => navigateToStep("resume-details")}
           isParsing={isParsing}
           error={parseError}
+          uploadedFileName={
+            resumeData ? getResumeDisplayName(resumeUrl) : undefined
+          }
         />
       ) : step === "resume-details" ? (
         resumeData && (
@@ -385,6 +402,7 @@ function OnboardingPageContent() {
               companyOptions={companyOptions}
               filters={jobFilters}
               isApplying={isCompleting}
+              isLoadingCompanyOptions={isLoadingCompanyOptions}
               onApply={() => void handleApplyPreferences()}
               roleOptions={JOB_ROLE_OPTIONS}
               setFilters={setJobFilters}

@@ -66,7 +66,11 @@ export function ExperienceCard({
           experience.map((entry, index) => (
             <div
               key={index}
-              className={editing ? "relative rounded-xl border border-[#EEEAF4] p-3" : "relative"}
+              className={
+                editing
+                  ? "relative rounded-xl border border-[#EEEAF4] p-3"
+                  : "relative border-b border-[#EAE6EE] pb-4 last:border-b-0 last:pb-0"
+              }
             >
               {editing && (
                 <div className="mb-2 flex items-center justify-between">

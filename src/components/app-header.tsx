@@ -84,6 +84,7 @@ export function AppHeader({
             onClick={openIssuesDialog}
             variant="secondary"
             type="button"
+            size={"sm"}
           >
             <IconSubtitlesEdit className="size-4" />
             Having issues?

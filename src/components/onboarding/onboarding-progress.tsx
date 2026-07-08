@@ -56,7 +56,7 @@ export function OnboardingProgress({
       aria-label="Onboarding progress"
       className="mx-auto w-full max-w-[680px] px-4 pt-7 md:pt-9"
     >
-      <ol className="grid w-full grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2">
+      <ol className="grid w-full grid-cols-[auto_auto_auto_auto_auto] items-center justify-center gap-2">
         {STEPS.map((step, index) => {
           const Icon = step.icon;
           const isActive = step.id === activeStep;
@@ -73,9 +73,9 @@ export function OnboardingProgress({
                   if (!isActive) onStepChange(step.id);
                 }}
                 className={cn(
-                  "inline-flex h-24 min-w-0 flex-col items-center justify-center gap-3 rounded-2xl border bg-white px-2 text-sm font-medium text-black shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6846E8] focus-visible:ring-offset-2 md:h-12 md:flex-row md:gap-2 md:rounded-full md:px-4 md:text-sm",
+                  "inline-flex h-24 min-w-0 flex-col items-center justify-center gap-3 rounded-2xl bg-white w-fit px-4 text-sm font-medium text-black shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6846E8] focus-visible:ring-offset-2 md:h-12 md:flex-row md:gap-2 md:rounded-full md:text-sm",
                   isActive
-                    ? "border-[#6846E8] font-semibold shadow-[0_6px_16px_rgba(104,70,232,0.12)]"
+                    ? "border-[#6846E8] border font-semibold shadow-[0_6px_16px_rgba(104,70,232,0.12)]"
                     : "border-[#DED7E9]",
                   isAvailable && !isActive && "hover:border-[#9C88E9]",
                   (!isAvailable || isActive) && "cursor-default",

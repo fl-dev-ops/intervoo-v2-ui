@@ -11,6 +11,7 @@ type JobPreferencesFormProps = {
   companyOptions: string[];
   filters: JobProfileFilters;
   isApplying?: boolean;
+  isLoadingCompanyOptions?: boolean;
   onApply: () => void;
   roleOptions: string[];
   setFilters: (
@@ -22,6 +23,7 @@ export function JobPreferencesForm({
   companyOptions,
   filters,
   isApplying = false,
+  isLoadingCompanyOptions = false,
   onApply,
   roleOptions,
   setFilters,
@@ -41,6 +43,7 @@ export function JobPreferencesForm({
         />
         <MultiCombobox
           closeOnValueChange
+          isLoading={isLoadingCompanyOptions}
           label="Company"
           onValueChange={(companies) =>
             setFilters((current) => ({ ...current, companies }))

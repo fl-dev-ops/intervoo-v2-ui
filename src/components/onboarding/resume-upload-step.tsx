@@ -9,15 +9,19 @@ import { cn } from "@/lib/utils";
 interface ResumeUploadStepProps {
   onParse: (file: File) => Promise<void>;
   onSkip: () => void;
+  onContinue?: () => void;
   isParsing: boolean;
   error: string | null;
+  uploadedFileName?: string;
 }
 
 export function ResumeUploadStep({
   onParse,
   onSkip,
+  onContinue,
   isParsing,
   error,
+  uploadedFileName,
 }: ResumeUploadStepProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -59,19 +63,19 @@ export function ResumeUploadStep({
   return (
     <div className="mx-auto flex w-full max-w-[680px] flex-col items-center px-4 pb-14 pt-9 md:pt-11">
       <div className="text-center">
-        <h1 className="font-serif text-2xl font-bold tracking-tight text-black">
+        <h1 className="font-serif text-2xl font-semibold tracking-tight text-black">
           Upload your resume
         </h1>
-        <p className="mx-auto mt-4 max-w-[480px] text-base leading-7 text-[#696969]">
-          Help us personalise your interview practice by analyzing your
-          background.
+        <p className="mx-auto mt-4 max-w-[480px] text-base leading-6 text-[#696969]">
+          Help us personalise your interview practice by <br />
+          analyzing your background.
         </p>
       </div>
 
-      <div className="mt-7 w-full max-w-[400px] rounded-[30px] border border-[#E1DDE5] bg-white px-6 py-8 shadow-[0_24px_70px_rgba(58,37,109,0.06)] md:px-8 md:py-10">
+      <div className="mt-7 w-full max-w-[400px] rounded-[30px] border border-[#E1DDE5] bg-white px-6 py-8 shadow-[0_24px_70px_rgba(58,37,109,0.06)] md:px-8 md:py-8 md:pb-4">
         <fieldset
           className={cn(
-            "relative flex min-h-[360px] flex-col items-center justify-center rounded-[14px] border-2 border-dashed border-[#C9BCF9] bg-[#FCFAFF] px-5 py-8 text-center transition-colors",
+            "relative flex flex-col items-center justify-center rounded-[14px] border-2 border-dashed border-[#C9BCF9] bg-[#FCFAFF] p-4 text-center transition-colors",
             dragActive && "border-[#6846E8] bg-[#F6F1FF]",
             isParsing && "pointer-events-none opacity-50",
           )}
@@ -97,16 +101,13 @@ export function ResumeUploadStep({
                 title="Resume document ready to upload"
               />
 
-              <p className="mt-5 text-base font-bold text-black">
+              <p className=" text-base font-semibold text-black">
                 Drag & drop your resume or{" "}
-                <label
-                  className="cursor-pointer hover:underline"
-                  htmlFor={inputId}
-                >
+                <label className="cursor-pointer underline" htmlFor={inputId}>
                   browse files
                 </label>
               </p>
-              <p className="mt-1 text-base text-[#888888]">
+              <p className="mt-1 text-xs text-[#888888]">
                 PDF, DOCX, DOC, or TXT
               </p>
 
@@ -151,6 +152,13 @@ export function ResumeUploadStep({
               <X />
             </Button>
           </div>
+        ) : uploadedFileName ? (
+          <div className="mt-6 flex min-h-16 w-full items-center gap-3 rounded-xl border border-[#E8E6EC] bg-[#F8F7F9] px-5 py-3">
+            <FileText className="size-6 shrink-0 text-black" />
+            <p className="min-w-0 flex-1 truncate text-base font-bold text-[#2D2D2D]">
+              {uploadedFileName}
+            </p>
+          </div>
         ) : null}
 
         {error && (
@@ -160,17 +168,23 @@ export function ResumeUploadStep({
           </div>
         )}
 
-        <div className="mt-8 grid">
-          <Button
-            onClick={handleUpload}
-            disabled={!selectedFile || isParsing}
-            size="lg"
-          >
-            Parse Resume
-          </Button>
+        <div className="mt-4 grid">
+          {!selectedFile && uploadedFileName ? (
+            <Button onClick={onContinue} size="lg">
+              Continue
+            </Button>
+          ) : (
+            <Button
+              onClick={handleUpload}
+              disabled={!selectedFile || isParsing}
+              size="lg"
+            >
+              Parse Resume
+            </Button>
+          )}
         </div>
 
-        <div className="mt-5 flex justify-center">
+        <div className="mt-2 flex justify-center">
           <Button
             type="button"
             variant="link"
