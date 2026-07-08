@@ -20,6 +20,7 @@ import {
   parseJobProfileFilters,
   writeStoredJobProfileFilters,
 } from "@/lib/job-profile-filters";
+import { JOB_ROLE_OPTIONS } from "@/lib/job-roles";
 import type { ResumeData, ResumeSection } from "@/lib/resume-client";
 import {
   type OnboardingResumePayload,
@@ -385,7 +386,7 @@ function OnboardingPageContent() {
               filters={jobFilters}
               isApplying={isCompleting}
               onApply={() => void handleApplyPreferences()}
-              roleOptions={jobFilters.roles}
+              roleOptions={JOB_ROLE_OPTIONS}
               setFilters={setJobFilters}
             />
             {preferenceError ? (
