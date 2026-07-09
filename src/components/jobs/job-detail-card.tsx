@@ -363,11 +363,27 @@ function MatchScoreRing({
     );
   }
 
+  const normalizedScore = normalizeScore(score);
+
   return (
-    <div className="flex size-18 items-center justify-center rounded-full border-2 border-[#00B87A] text-lg font-extrabold text-black md:size-16 md:text-base">
-      {typeof score === "number" ? `${Math.round(score)}%` : "—"}
+    <div
+      className="grid size-18 place-items-center rounded-full text-lg font-extrabold text-black md:size-16 md:text-base"
+      style={{
+        background: `conic-gradient(#3FB982 ${
+          normalizedScore * 3.6
+        }deg, #E4E0E7 0deg)`,
+      }}
+    >
+      <div className="grid size-16 place-items-center rounded-full bg-white md:size-14">
+        {typeof score === "number" ? `${normalizedScore}%` : "—"}
+      </div>
     </div>
   );
+}
+
+function normalizeScore(score?: number | null) {
+  if (score == null || Number.isNaN(score)) return 0;
+  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 function ScoreSkeletons() {

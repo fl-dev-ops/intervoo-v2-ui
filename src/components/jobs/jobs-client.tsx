@@ -3,12 +3,15 @@
 import { IconEdit } from "@tabler/icons-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowRight,
   BriefcaseBusiness,
   Check,
   Circle,
   CircleAlert,
   CircleDashed,
+  Crown,
   LoaderCircle,
+  Lock,
   Search,
   UserRound,
 } from "lucide-react";
@@ -20,6 +23,7 @@ import {
   type JobProfileFilters,
 } from "@/components/jobs/job-preferences-dialog";
 import { ProfileEditDialog } from "@/components/profile/profile-edit-dialog";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,8 +64,10 @@ type JobListCardBase = Pick<
 >;
 
 export type StartedJobCard = JobListCardBase & {
+  requiresPayment: boolean;
   roundProgress: {
     id: string;
+    isLocked: boolean;
     state: "completed" | "failed" | "generating" | "not-started" | "started";
     title: string;
   }[];
@@ -193,44 +199,44 @@ export function JobsClient({
           </section>
         )}
 
-        <h1 className="text-xl font-bold font-serif tracking-tight text-[#353238]">
-          Jobs matching your{" "}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 underline underline-offset-2"
-                />
-              }
-            >
-              preference
-              <IconEdit className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              sideOffset={8}
-              className="w-48 rounded-xl border border-[#E5E2E7] bg-white p-2 shadow-[0_18px_45px_rgba(31,27,36,0.14)]"
-            >
-              <DropdownMenuItem
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#2F2B35]"
-                onClick={() => void openJobPreferences()}
+        <div className="mt-4 flex justify-between">
+          <h1 className="text-xl font-bold font-serif tracking-tight text-[#353238]">
+            Jobs matching your{" "}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 underline underline-offset-2"
+                  />
+                }
               >
-                <UserRound className="size-4 text-[#56515A]" />
-                Job preferences
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#2F2B35]"
-                onClick={() => setIsProfileDialogOpen(true)}
+                preference
+                <IconEdit className="size-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                sideOffset={8}
+                className="w-48 rounded-xl border border-[#E5E2E7] bg-white p-2 shadow-[0_18px_45px_rgba(31,27,36,0.14)]"
               >
-                <BriefcaseBusiness className="size-4 text-[#56515A]" />
-                Profile edit
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </h1>
+                <DropdownMenuItem
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#2F2B35]"
+                  onClick={() => void openJobPreferences()}
+                >
+                  <UserRound className="size-4 text-[#56515A]" />
+                  Job preferences
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#2F2B35]"
+                  onClick={() => setIsProfileDialogOpen(true)}
+                >
+                  <BriefcaseBusiness className="size-4 text-[#56515A]" />
+                  Profile edit
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </h1>
 
-        <div className="mt-4 flex justify-end">
           <fieldset
             aria-label="Sort jobs"
             className="inline-grid grid-cols-2 rounded-xl bg-[#ECE8F1] p-1"
@@ -341,20 +347,85 @@ function JobListCard({ card }: { card: JobCard | StartedJobCard }) {
   const totalSkills = "totalSkills" in card ? card.totalSkills : null;
   const hasScore = score !== null;
   const strongMatch = hasScore && score >= 80;
-  const isStarted = "roundProgress" in card;
+  const isStarted = isStartedJobCard(card);
+  const requiresPayment = isStarted && card.requiresPayment;
+  const isPaid = isStarted && !card.requiresPayment;
+
+  if (isStarted) {
+    return (
+      <article
+        className={cn(
+          "grid w-full items-center gap-4 rounded-xl px-4 py-3 text-left shadow-sm",
+          requiresPayment || isPaid
+            ? "grid-cols-[72px_1fr] sm:grid-cols-[72px_1fr_auto]"
+            : "grid-cols-[72px_1fr]",
+          isPaid ? "border-[#6C47FF] bg-white" : "border-[#E4E0E7] bg-white",
+        )}
+      >
+        <div className="flex size-16 items-center justify-center rounded-lg border border-[#DDD8DF] bg-white p-2 text-center text-sm font-extrabold leading-tight">
+          {getLogoText(card.companyName)}
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push(`/jobs/${card.jobId}`)}
+          className="min-w-0 text-left"
+        >
+          {isPaid ? <PaidBadge /> : null}
+          <p
+            className={cn(
+              "truncate text-xs font-medium text-black",
+              isPaid && "mt-2",
+            )}
+          >
+            {card.companyName}
+          </p>
+          <h2 className="mt-1 truncate text-base font-bold tracking-tight text-black">
+            {card.jobTitle}
+          </h2>
+          <p className="mt-1 text-sm text-[#6D6873]">
+            {formatJobMeta(card, matchedSkills, totalSkills)}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {card.roundProgress.map((round) => (
+              <RoundProgressChip key={round.id} round={round} />
+            ))}
+          </div>
+        </button>
+        {requiresPayment ? (
+          <Button
+            className="col-span-2 text-[#5C40CB] justify-self-start sm:col-span-1 sm:justify-self-end"
+            size="lg"
+            type="button"
+            variant={"secondary"}
+            onClick={() => router.push(`/jobs/${card.jobId}`)}
+          >
+            Pay & continue
+          </Button>
+        ) : (
+          <Button
+            className="col-span-2 justify-self-start sm:col-span-1 sm:justify-self-end"
+            size="lg"
+            type="button"
+            onClick={() => router.push(`/jobs/${card.jobId}`)}
+          >
+            Continue
+            <ArrowRight className="size-4" />
+          </Button>
+        )}
+      </article>
+    );
+  }
 
   return (
     <button
       type="button"
       onClick={() => router.push(`/jobs/${card.jobId}`)}
       className={cn(
-        "grid w-full items-center gap-4 rounded-xl border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+        "grid w-full items-center gap-4 rounded-xl px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
         hasScore ? "grid-cols-[72px_1fr_60px]" : "grid-cols-[72px_1fr]",
-        isStarted
-          ? "border-[#E4E0E7] bg-white"
-          : strongMatch
-            ? "border-[#CBEDE0] bg-[#EFFFF8]"
-            : "border-[#E9E2D9] bg-[#FFF9EF]",
+        strongMatch
+          ? "border-[#CBEDE0] bg-[#EFFFF8]"
+          : "border-[#E9E2D9] bg-[#FFF9EF]",
       )}
     >
       <div className="flex size-16 items-center justify-center rounded-lg border border-[#DDD8DF] bg-white p-2 text-center text-sm font-extrabold leading-tight">
@@ -370,17 +441,25 @@ function JobListCard({ card }: { card: JobCard | StartedJobCard }) {
         <p className="mt-1 text-sm text-[#6D6873]">
           {formatJobMeta(card, matchedSkills, totalSkills)}
         </p>
-        {"roundProgress" in card && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {card.roundProgress.map((round) => (
-              <RoundProgressChip key={round.id} round={round} />
-            ))}
-          </div>
-        )}
       </div>
       {hasScore && <ScoreRing score={score} />}
     </button>
   );
+}
+
+function PaidBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-lg border border-[#D8D2A4] bg-[#FFFCE8] px-2 py-1 text-xs font-semibold text-[#2F2B35]">
+      <Crown className="size-3.5 text-[#D6B91E]" strokeWidth={2.5} />
+      Paid <span className="font-extrabold">₹299</span>
+    </span>
+  );
+}
+
+function isStartedJobCard(
+  card: JobCard | StartedJobCard,
+): card is StartedJobCard {
+  return "roundProgress" in card;
 }
 
 function RoundProgressChip({
@@ -391,6 +470,7 @@ function RoundProgressChip({
   const completed = round.state === "completed";
   const failed = round.state === "failed";
   const generating = round.state === "generating";
+  const locked = round.isLocked;
   const started = round.state === "started";
 
   return (
@@ -402,8 +482,10 @@ function RoundProgressChip({
               "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium",
               completed && "border-[#DDF2E8] bg-[#EAF8F1] text-[#176B4A]",
               failed && "border-red-200 bg-red-50 text-red-700",
+              locked && "border-[#E4E0E7] bg-white text-[#6D6873]",
               !completed &&
                 !failed &&
+                !locked &&
                 "border-[#E4E0E7] bg-white text-[#353238]",
             )}
           />
@@ -415,6 +497,8 @@ function RoundProgressChip({
           <CircleAlert className="size-3.5" />
         ) : generating ? (
           <LoaderCircle className="size-3.5 animate-spin" />
+        ) : locked ? (
+          <Lock className="size-3.5" />
         ) : started ? (
           <CircleDashed className="size-3.5" />
         ) : (
@@ -422,14 +506,16 @@ function RoundProgressChip({
         )}
         {round.title}
       </TooltipTrigger>
-      <TooltipContent>{getRoundProgressTooltip(round.state)}</TooltipContent>
+      <TooltipContent>{getRoundProgressTooltip(round)}</TooltipContent>
     </Tooltip>
   );
 }
 
 function getRoundProgressTooltip(
-  state: StartedJobCard["roundProgress"][number]["state"],
+  round: StartedJobCard["roundProgress"][number],
 ) {
+  if (round.isLocked) return "Pay to unlock this round";
+  const { state } = round;
   if (state === "completed") return "Report ready";
   if (state === "failed") return "Report generation failed. Retake this round.";
   if (state === "generating") return "Report is generating";

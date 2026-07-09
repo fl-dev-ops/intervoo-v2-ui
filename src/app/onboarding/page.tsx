@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/app-header";
@@ -64,10 +65,8 @@ function OnboardingPageContent() {
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | undefined>();
   const [loadedSections, setLoadedSections] = useState<ResumeSection[]>([]);
-  const [isParsing, setIsParsing] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [isLoadingCompanyOptions, setIsLoadingCompanyOptions] =
-    useState(false);
+  const [isLoadingCompanyOptions, setIsLoadingCompanyOptions] = useState(false);
   const [pendingProfile, setPendingProfile] =
     useState<OnboardingResumePayload | null>(null);
   const [companyOptions, setCompanyOptions] = useState<string[]>([]);
@@ -191,9 +190,8 @@ function OnboardingPageContent() {
     );
   }, [jobFilters, pendingProfile, step]);
 
-  const handleParseResume = useCallback(
-    async (file: File) => {
-      setIsParsing(true);
+  const parseMutation = useMutation({
+    mutationFn: async (file: File) => {
       setParseError(null);
       setLoadedSections([]);
       setResumeData(createEmptyResume(userDefaults));
@@ -202,39 +200,38 @@ function OnboardingPageContent() {
       window.sessionStorage.removeItem(PENDING_PROFILE_KEY);
       window.sessionStorage.removeItem(PENDING_FILTERS_KEY);
 
-      try {
-        const result = await uploadAndParseResume(file, {
-          async onEvent(event) {
-            if (event.type === "section") {
-              setResumeData((current) => ({
-                ...(current ?? createEmptyResume(userDefaults)),
-                ...event.data,
-              }));
-              setLoadedSections((current) =>
-                current.includes(event.section)
-                  ? current
-                  : [...current, event.section],
-              );
-              await waitForPaint();
-              return;
-            }
-          },
-        });
+      const result = await uploadAndParseResume(file, {
+        async onEvent(event) {
+          if (event.type === "section") {
+            setResumeData((current) => ({
+              ...(current ?? createEmptyResume(userDefaults)),
+              ...event.data,
+            }));
+            setLoadedSections((current) =>
+              current.includes(event.section)
+                ? current
+                : [...current, event.section],
+            );
+            await waitForPaint();
+          }
+        },
+      });
 
-        setResumeUrl(result.resumeUrl);
-        setResumeData(mergeWithUserDefaults(result.resume, userDefaults));
-
-        await waitForFinalSection();
-        setIsParsing(false);
-        navigateToStep("resume-details");
-      } catch (err) {
-        setParseError(
-          err instanceof Error ? err.message : "Failed to parse resume",
-        );
-        setIsParsing(false);
-      }
+      setResumeUrl(result.resumeUrl);
+      setResumeData(mergeWithUserDefaults(result.resume, userDefaults));
+      await waitForFinalSection();
     },
-    [navigateToStep, userDefaults],
+    onSuccess: () => navigateToStep("resume-details"),
+    onError: (err) =>
+      setParseError(
+        err instanceof Error ? err.message : "Failed to parse resume",
+      ),
+  });
+  const isParsing = parseMutation.isPending;
+
+  const handleParseResume = useCallback(
+    (file: File) => parseMutation.mutateAsync(file).catch(() => {}),
+    [parseMutation],
   );
 
   const handleSkip = useCallback(() => {

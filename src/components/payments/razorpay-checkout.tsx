@@ -2,23 +2,19 @@
 
 import { LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
 import { useRazorpay } from "@/components/payments/razorpay-provider";
 import { Button } from "@/components/ui/button";
+import {
+  useCreatePaymentOrder,
+  useVerifyPayment,
+} from "@/hooks/payments/hooks";
 
 type RazorpayCheckoutProps = {
   className?: string;
   diagnosticId: string;
   jobId: string;
   roundId?: string;
-};
-
-type PaymentOrderResponse = {
-  amount: number;
-  currency: string;
-  key: string;
-  razorpayOrderId: string;
 };
 
 export function RazorpayCheckout({
@@ -29,7 +25,9 @@ export function RazorpayCheckout({
 }: RazorpayCheckoutProps) {
   const router = useRouter();
   const { error: sdkError, isReady, openCheckout } = useRazorpay();
-  const [isLoading, setIsLoading] = useState(false);
+  const orderMutation = useCreatePaymentOrder();
+  const verifyMutation = useVerifyPayment();
+  const isLoading = orderMutation.isPending;
 
   async function handleCheckout() {
     if (isLoading) return;
@@ -40,15 +38,8 @@ export function RazorpayCheckout({
       return;
     }
 
-    setIsLoading(true);
     try {
-      const order = await postJson<PaymentOrderResponse>(
-        "/api/payments/order",
-        {
-          diagnosticId,
-          jobId,
-        },
-      );
+      const order = await orderMutation.mutateAsync({ diagnosticId, jobId });
 
       openCheckout({
         amount: order.amount,
@@ -57,22 +48,20 @@ export function RazorpayCheckout({
         name: "Intervoo Diagnostics",
         onSuccess: async (response) => {
           try {
-            await postJson("/api/payments/verify", response);
+            await verifyMutation.mutateAsync(
+              response as unknown as Record<string, unknown>,
+            );
             toast.success("Diagnostic unlocked");
             router.refresh();
           } catch (error) {
             toast.error(getErrorMessage(error));
-            setIsLoading(false);
           }
         },
         orderId: order.razorpayOrderId,
         theme: { color: "#6C47FF" },
       });
-
-      setIsLoading(false);
     } catch (error) {
       toast.error(getErrorMessage(error));
-      setIsLoading(false);
     }
   }
 
@@ -94,26 +83,6 @@ export function RazorpayCheckout({
       )}
     </Button>
   );
-}
-
-async function postJson<T = unknown>(
-  url: string,
-  body: Record<string, unknown>,
-) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const json = (await response.json().catch(() => ({}))) as T & {
-    error?: string;
-  };
-
-  if (!response.ok) {
-    throw new Error(json.error || "Payment request failed");
-  }
-
-  return json as T;
 }
 
 function getErrorMessage(error: unknown) {

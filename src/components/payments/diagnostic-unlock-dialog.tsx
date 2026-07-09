@@ -22,6 +22,13 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  type CouponValidationResponse,
+  useCreatePaymentOrder,
+  useUnlockWithCoupon,
+  useValidateCoupon,
+  useVerifyPayment,
+} from "@/hooks/payments/hooks";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import { cn } from "@/lib/utils";
@@ -31,21 +38,6 @@ type DiagnosticUnlockDialogProps = {
   completedRoundIds?: string[];
   diagnosticId: string;
   jobId: string;
-};
-
-type PaymentOrderResponse = {
-  amount: number;
-  currency: string;
-  key: string;
-  razorpayOrderId: string;
-};
-
-type CouponValidationResponse = {
-  code: string;
-  discountAmount: number;
-  finalAmount: number;
-  originalAmount: number;
-  valid: true;
 };
 
 const ORIGINAL_AMOUNT = 29_900;
@@ -130,13 +122,18 @@ function UnlockContent({
 }) {
   const router = useRouter();
   const { error: sdkError, isReady, openCheckout } = useRazorpay();
+  const validateCouponMutation = useValidateCoupon();
+  const orderMutation = useCreatePaymentOrder();
+  const verifyMutation = useVerifyPayment();
+  const unlockMutation = useUnlockWithCoupon();
   const [couponOpen, setCouponOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] =
     useState<CouponValidationResponse | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
-  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
+
+  const isApplyingCoupon = validateCouponMutation.isPending;
+  const isPaying = orderMutation.isPending || unlockMutation.isPending;
 
   const completedRoundSet = useMemo(
     () => new Set(completedRoundIds),
@@ -148,21 +145,19 @@ function UnlockContent({
     const code = couponCode.trim().toUpperCase();
     if (!code || isApplyingCoupon) return;
 
-    setIsApplyingCoupon(true);
     setCouponError(null);
     try {
-      const result = await postJson<CouponValidationResponse>(
-        "/api/payments/coupon/validate",
-        { code, diagnosticId, jobId },
-      );
+      const result = await validateCouponMutation.mutateAsync({
+        code,
+        diagnosticId,
+        jobId,
+      });
       setAppliedCoupon(result);
       setCouponCode(result.code);
       toast.success("Coupon applied");
     } catch (error) {
       setAppliedCoupon(null);
       setCouponError(getErrorMessage(error));
-    } finally {
-      setIsApplyingCoupon(false);
     }
   }
 
@@ -175,10 +170,9 @@ function UnlockContent({
       return;
     }
 
-    setIsPaying(true);
     try {
       if (amount <= 0 && appliedCoupon) {
-        await postJson("/api/payments/coupon/unlock", {
+        await unlockMutation.mutateAsync({
           code: appliedCoupon.code,
           diagnosticId,
           jobId,
@@ -189,14 +183,11 @@ function UnlockContent({
         return;
       }
 
-      const order = await postJson<PaymentOrderResponse>(
-        "/api/payments/order",
-        {
-          couponCode: appliedCoupon?.code,
-          diagnosticId,
-          jobId,
-        },
-      );
+      const order = await orderMutation.mutateAsync({
+        couponCode: appliedCoupon?.code,
+        diagnosticId,
+        jobId,
+      });
 
       openCheckout({
         amount: order.amount,
@@ -205,22 +196,21 @@ function UnlockContent({
         name: "Intervoo Diagnostics",
         onSuccess: async (response) => {
           try {
-            await postJson("/api/payments/verify", response);
+            await verifyMutation.mutateAsync(
+              response as unknown as Record<string, unknown>,
+            );
             toast.success("Diagnostic unlocked");
             onClose();
             router.refresh();
           } catch (error) {
             toast.error(getErrorMessage(error));
-            setIsPaying(false);
           }
         },
         orderId: order.razorpayOrderId,
         theme: { color: "#6C47FF" },
       });
-      setIsPaying(false);
     } catch (error) {
       toast.error(getErrorMessage(error));
-      setIsPaying(false);
     }
   }
 
@@ -445,26 +435,6 @@ function RoundUnlockRow({
       </div>
     </div>
   );
-}
-
-async function postJson<T = unknown>(
-  url: string,
-  body: Record<string, unknown>,
-) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const json = (await response.json().catch(() => ({}))) as T & {
-    error?: string;
-  };
-
-  if (!response.ok) {
-    throw new Error(json.error || "Request failed");
-  }
-
-  return json as T;
 }
 
 function getErrorMessage(error: unknown) {

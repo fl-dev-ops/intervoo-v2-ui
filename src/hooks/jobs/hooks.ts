@@ -95,6 +95,8 @@ export function useJobSearch(
       );
       return payload.cards ?? [];
     },
+    gcTime: Infinity,
+    staleTime: Infinity,
     enabled: options.enabled ?? true,
   });
 }

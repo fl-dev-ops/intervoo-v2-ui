@@ -62,37 +62,60 @@ function getStartedJobCards(
     const job = diagnostic.selectedJob as Partial<JobDetail>;
     if (!job.jobTitle || !job.companyName) continue;
 
+    const roundProgress = DIAGNOSTIC_ROUNDS.map((round) => {
+      const progress = diagnostic.rounds.find(
+        (candidate) => candidate.roundType === round.id,
+      );
+      const reportStatus = progress?.session?.report?.status ?? null;
+
+      let state: StartedJobCard["roundProgress"][number]["state"] =
+        "not-started";
+
+      if (progress) {
+        if (isDiagnosticRoundReadyForProgression(progress)) {
+          state = "completed";
+        } else if (reportStatus === "FAILED") {
+          state = "failed";
+        } else if (isDiagnosticSessionComplete(progress.status)) {
+          state = "generating";
+        } else {
+          state = "started";
+        }
+      }
+
+      return {
+        id: round.id,
+        isLocked: false,
+        state,
+        title: round.title,
+      };
+    });
+    const activeRoundIndex = Math.max(
+      roundProgress.findIndex(
+        (round) => round.state !== "completed" && round.state !== "generating",
+      ),
+      0,
+    );
+    const requiresPayment = !diagnostic.paidAt;
+
     jobs.set(jobId, {
       companyName: job.companyName,
       experienceMaxYears: job.experienceMaxYears ?? null,
       experienceMinYears: job.experienceMinYears ?? null,
       jobId,
       jobTitle: job.jobTitle,
-      roundProgress: DIAGNOSTIC_ROUNDS.map((round) => {
-        const progress = diagnostic.rounds.find(
-          (candidate) => candidate.roundType === round.id,
-        );
-        const reportStatus = progress?.session?.report?.status ?? null;
-
-        let state: StartedJobCard["roundProgress"][number]["state"] =
-          "not-started";
-
-        if (progress) {
-          if (isDiagnosticRoundReadyForProgression(progress)) {
-            state = "completed";
-          } else if (reportStatus === "FAILED") {
-            state = "failed";
-          } else if (isDiagnosticSessionComplete(progress.status)) {
-            state = "generating";
-          } else {
-            state = "started";
-          }
-        }
+      requiresPayment,
+      roundProgress: roundProgress.map((round, index) => {
+        const isDone = round.state === "completed";
+        const isProcessing = round.state === "generating";
 
         return {
-          id: round.id,
-          state,
-          title: round.title,
+          ...round,
+          isLocked:
+            requiresPayment &&
+            index >= activeRoundIndex &&
+            !isDone &&
+            !isProcessing,
         };
       }),
     });

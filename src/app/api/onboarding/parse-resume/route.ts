@@ -6,6 +6,7 @@ import {
   type OnboardingResumeStreamEvent,
   streamOnboardingResume,
 } from "@/lib/resume-client";
+import { upsertParsedResumeForUser } from "@/lib/resume-persistence";
 import { getResumeFile } from "@/lib/s3";
 
 export async function POST(request: NextRequest) {
@@ -33,16 +34,18 @@ export async function POST(request: NextRequest) {
       userId: session.user.id,
     });
 
-    return createNdjsonStreamResponse<OnboardingResumeStreamEvent>(
+    const events = persistParsedResume(
       streamOnboardingResume(file, resumeUrl, request.signal),
-      {
-        signal: request.signal,
-        errorEvent(error) {
-          console.error("Resume parse stream error:", error);
-          return { type: "error", error: "Failed to parse resume" };
-        },
-      },
+      session.user.id,
     );
+
+    return createNdjsonStreamResponse<OnboardingResumeStreamEvent>(events, {
+      signal: request.signal,
+      errorEvent(error) {
+        console.error("Resume parse stream error:", error);
+        return { type: "error", error: "Failed to parse resume" };
+      },
+    });
   } catch (error) {
     console.error("Resume parse error:", error);
 
@@ -50,5 +53,18 @@ export async function POST(request: NextRequest) {
       { error: "Failed to parse resume" },
       { status: 500 },
     );
+  }
+}
+
+async function* persistParsedResume(
+  events: AsyncIterable<OnboardingResumeStreamEvent>,
+  userId: string,
+): AsyncGenerator<OnboardingResumeStreamEvent> {
+  for await (const event of events) {
+    if (event.type === "complete") {
+      await upsertParsedResumeForUser(userId, event.resume);
+    }
+
+    yield event;
   }
 }

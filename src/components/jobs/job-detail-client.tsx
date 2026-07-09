@@ -503,7 +503,7 @@ function RoundTimelineItem({
                   </p>
                 </div>
               ) : isProcessing ? (
-                <span className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-10 py-6 text-xs font-medium text-purple-700 md:col-span-1 md:ml-auto">
+                <span className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-10 py-4 text-xs font-medium text-purple-700 md:col-span-1 md:ml-auto">
                   <LoaderCircle className="size-4 animate-spin" />
                   Report processing
                 </span>

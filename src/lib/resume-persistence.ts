@@ -7,6 +7,17 @@ export type PersistResumeData = Omit<ResumeData, "email" | "phoneNumber"> & {
   resumeUrl?: string;
 };
 
+export function upsertParsedResumeForUser(
+  userId: string,
+  parsedResume: ResumeData,
+) {
+  return prisma.resume.upsert({
+    where: { userId },
+    create: { userId, parsedResume },
+    update: { parsedResume },
+  });
+}
+
 export function upsertResumeForUser(userId: string, resume: PersistResumeData) {
   const richFields = {
     ...(resume.skillGlosses === undefined

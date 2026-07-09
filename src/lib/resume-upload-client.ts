@@ -4,12 +4,12 @@ import type {
   ResumeData,
 } from "@/lib/resume-client";
 
-type ResumeUploadResult = {
+export type ResumeUploadResult = {
   resume: ResumeData;
   resumeUrl: string;
 };
 
-type ResumeUploadOptions = {
+export type ResumeUploadOptions = {
   onEvent?: (event: OnboardingResumeStreamEvent) => Promise<void> | void;
 };
 

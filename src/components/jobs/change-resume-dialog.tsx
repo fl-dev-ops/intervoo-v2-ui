@@ -10,10 +10,8 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  PENDING_RESUME_STORAGE_KEY,
-  uploadResume,
-} from "@/lib/resume-upload-client";
+import { useUploadResume } from "@/hooks/resume/hooks";
+import { PENDING_RESUME_STORAGE_KEY } from "@/lib/resume-upload-client";
 import { cn } from "@/lib/utils";
 
 type ChangeResumeDialogProps = {
@@ -29,10 +27,11 @@ export function ChangeResumeDialog({
   open,
 }: ChangeResumeDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const uploadMutation = useUploadResume();
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isProcessing = uploadMutation.isPending;
 
   function handleOpenChange(nextOpen: boolean) {
     if (isProcessing) return;
@@ -44,11 +43,10 @@ export function ChangeResumeDialog({
   }
 
   async function handleFile(file: File) {
-    setIsProcessing(true);
     setError(null);
 
     try {
-      const resumeUrl = await uploadResume(file);
+      const resumeUrl = await uploadMutation.mutateAsync(file);
       window.sessionStorage.setItem(PENDING_RESUME_STORAGE_KEY, resumeUrl);
       window.location.assign("/profile?resume=parsing");
     } catch (uploadError) {
@@ -57,7 +55,6 @@ export function ChangeResumeDialog({
           ? uploadError.message
           : "Failed to replace resume",
       );
-      setIsProcessing(false);
     }
   }
 
@@ -148,8 +145,8 @@ export function ChangeResumeDialog({
 
         <DialogDescription className="mt-4 rounded-xl bg-[#FFF4DC] px-4 py-3 text-left text-sm leading-5 text-[#777379]">
           <strong className="text-black">Note · </strong>
-          It will replace the information we&apos;ve already extracted, including
-          your basic details, education, work experience, and skills.
+          It will replace the information we&apos;ve already extracted,
+          including your basic details, education, work experience, and skills.
         </DialogDescription>
         {selectedFile ? (
           <Button
