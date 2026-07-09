@@ -9,7 +9,6 @@ import {
 import {
   ArrowLeft,
   CheckIcon,
-  ChevronDown,
   CircleAlert,
   CloudUpload,
   LoaderCircle,
@@ -23,11 +22,6 @@ import { ChangeResumeDialog } from "@/components/jobs/change-resume-dialog";
 import { JobDetailCard } from "@/components/jobs/job-detail-card";
 import { DiagnosticUnlockDialog } from "@/components/payments/diagnostic-unlock-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { useRoundStatus } from "@/hooks/jobs/hooks";
 import {
   DIAGNOSTIC_ROUNDS,
@@ -367,29 +361,45 @@ function RoundTimelineItem({
   score: number | null;
   startingRoundId: string | null;
 }) {
-  const showQuestions = !isDone && !isProcessing;
   const isActiveCard = isCurrent && !isProcessing;
-  const [isOpen, setIsOpen] = useState(isActiveCard);
-
-  useEffect(() => {
-    if (isActiveCard) setIsOpen(true);
-  }, [isActiveCard]);
+  const showQuestions = (isActiveCard || isProcessing) && !isDone;
 
   return (
-    <article className="relative grid grid-cols-[3rem_1fr] gap-x-2 md:gap-x-4">
-      <div className="flex flex-col items-center">
-        <RoundStateIcon
-          config={config}
-          isCurrent={isCurrent}
-          isDone={isDone || isProcessing}
-        />
+    <article className="relative grid grid-cols-[3rem_1fr] gap-x-2 gap-y-2 md:gap-x-4 md:gap-y-0">
+      <div className="flex items-center justify-center">
+        <RoundStateIcon config={config} isCurrent={isCurrent} isDone={isDone} />
+      </div>
+
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <span
+          className={cn(
+            "text-xs font-semibold uppercase tracking-[0.12em]",
+            isActiveCard || isProcessing
+              ? "text-purple-400"
+              : isDone
+                ? "text-emerald-400"
+                : "text-white/40",
+          )}
+        >
+          ROUND {roundNumber}
+        </span>
+        {isDone ? (
+          <RoundResultBadge score={score} />
+        ) : (
+          <span className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white">
+            {config.duration}
+          </span>
+        )}
+      </div>
+
+      <div className="hidden justify-center md:flex">
         {!isLast && (
           <div
             className={cn(
-              "hidden min-h-12 w-1 flex-1 rounded-full md:block",
+              "hidden h-full min-h-28 w-1 rounded-full md:block",
               isActiveCard
                 ? "bg-[linear-gradient(180deg,rgba(108,71,255,0.75)_0%,rgba(0,180,0,0)_100%)]"
-                : isDone || isProcessing
+                : isDone
                   ? "bg-[linear-gradient(180deg,rgba(61,210,74,0.75)_0%,rgba(0,180,0,0)_100%)]"
                   : "bg-[linear-gradient(180deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0)_100%)]",
             )}
@@ -397,80 +407,29 @@ function RoundTimelineItem({
         )}
       </div>
 
-      <div className="min-w-0 pb-6">
-        <Collapsible
+      <div className="col-span-2 min-w-0 pb-6 md:col-span-1">
+        <div
           className={cn(
-            "cursor-pointer rounded-2xl border p-5 transition md:p-6",
+            "rounded-2xl border p-5 transition",
             isActiveCard
-              ? "border-white/80 bg-white shadow-sm"
-              : "border-white/15 bg-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.12)]",
+              ? "border-white/10 bg-white shadow-sm"
+              : "border-white/10 bg-white/10",
           )}
-          onClick={(event) => {
-            if (
-              event.target instanceof Element &&
-              event.target.closest("button, a, input, select, textarea")
-            ) {
-              return;
-            }
-            setIsOpen((current) => !current);
-          }}
-          onOpenChange={setIsOpen}
-          open={isOpen}
         >
-          <div className="min-w-0">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
-              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2
-                  className={cn(
-                    "text-base font-semibold tracking-tight",
-                    isActiveCard ? "text-foreground" : "text-white",
-                  )}
-                >
-                  {config.title}
-                </h2>
-                <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
-                  <span
-                    className={cn(
-                      "rounded-full px-3 py-1 text-xs font-medium",
-                      isActiveCard
-                        ? "bg-muted text-foreground"
-                        : "bg-white/10 text-white/80",
-                    )}
-                  >
-                    Round {roundNumber}
-                  </span>
-                  <span
-                    className={cn(
-                      "rounded-full px-3 py-1 text-xs font-medium",
-                      isActiveCard
-                        ? "bg-muted text-foreground"
-                        : "bg-white/10 text-white/80",
-                    )}
-                  >
-                    {config.duration}
-                  </span>
-                  {isDone ? (
-                    <span>
-                      <RoundResultBadge score={score} />
-                    </span>
-                  ) : null}
-                  <CollapsibleTrigger
-                    aria-label={`Toggle ${config.title} round details`}
-                    className={cn(
-                      "group rounded-full p-1 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50",
-                      isActiveCard
-                        ? "text-foreground hover:bg-muted"
-                        : "text-white hover:bg-white/10",
-                    )}
-                  >
-                    <ChevronDown className="size-5 transition-transform group-aria-expanded:rotate-180" />
-                  </CollapsibleTrigger>
-                </div>
-              </div>
+              <h2
+                className={cn(
+                  "text-lg font-semibold tracking-tight",
+                  isActiveCard ? "text-foreground" : "text-white/80",
+                )}
+              >
+                {config.title}
+              </h2>
               <p
                 className={cn(
                   "mt-2 max-w-3xl text-sm leading-6",
-                  isActiveCard ? "text-muted-foreground" : "text-white/55",
+                  isActiveCard ? "text-muted-foreground" : "text-white/50",
                 )}
               >
                 {config.description}
@@ -481,95 +440,97 @@ function RoundTimelineItem({
                 </p>
               ) : null}
             </div>
-          </div>
 
-          {showQuestions ? (
-            <CollapsibleContent>
-              <div className="grid items-end gap-4 pt-1 md:grid-cols-3">
-                <div className="md:col-span-2">
-                  <p
-                    className={cn(
-                      "mt-4 text-sm font-medium",
-                      isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
-                    )}
-                  >
-                    Questions may cover
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {questions.map((question) => (
-                      <span
-                        key={question}
-                        className={cn(
-                          "rounded-lg border px-3 py-1.5 text-xs",
-                          isActiveCard
-                            ? "border-border bg-muted/50 text-gray-600"
-                            : "border-white/15 bg-white/10 text-white/70",
-                        )}
-                      >
-                        {question}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {requiresPayment && diagnosticId ? (
-                  <div className="col-span-2 space-y-2 md:col-span-1 md:ml-auto">
-                    <DiagnosticUnlockDialog
-                      className="w-full rounded-full border-0 bg-button px-10 py-6 shadow-none"
-                      completedRoundIds={completedRoundIds}
-                      diagnosticId={diagnosticId}
-                      jobId={jobId}
-                    />
-                    <p
-                      className={cn(
-                        "text-center text-xs font-medium",
-                        isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
-                      )}
-                    >
-                      {paymentReason === "PAYMENT_REQUIRED"
-                        ? "Unlock all rounds for this JD."
-                        : "Payment required to continue."}
-                    </p>
-                  </div>
-                ) : !isProcessing && !isLocked ? (
-                  <Button
-                    className="col-span-2 w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:col-span-1 md:ml-auto"
-                    disabled={Boolean(startingRoundId)}
-                    type="button"
-                    size="lg"
-                    onClick={onStart}
-                  >
-                    {startingRoundId === config.id ? (
-                      <>
-                        <LoaderCircle className="mr-1 size-4 animate-spin" />
-                        Starting...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="mr-1 size-3 fill-current" />
-                        Start Round {roundNumber}
-                      </>
-                    )}
-                  </Button>
-                ) : null}
-              </div>
-            </CollapsibleContent>
-          ) : null}
-          {isDone && diagnosticId ? (
-            <CollapsibleContent>
-              <div className="flex justify-end pt-4">
+            {isDone && diagnosticId ? (
+              <div className="flex shrink-0 justify-end">
                 <Button
-                  className="w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:w-auto"
+                  className="h-10 rounded-full border-[#9C83FF]/40 bg-transparent px-5 text-[#9C83FF] hover:bg-[#9C83FF]/10 hover:text-[#B6A5FF]"
                   onClick={onViewReport}
-                  size="lg"
                   type="button"
+                  variant="outline"
                 >
                   View report
                 </Button>
               </div>
-            </CollapsibleContent>
+            ) : null}
+          </div>
+
+          {showQuestions ? (
+            <div className="grid items-end gap-4 md:grid-cols-3">
+              <div className="md:col-span-2">
+                <p
+                  className={cn(
+                    "mt-4 text-sm font-medium",
+                    isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
+                  )}
+                >
+                  Questions may cover
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {questions.map((question) => (
+                    <span
+                      key={question}
+                      className={cn(
+                        "rounded-lg border px-3 py-1.5 text-xs",
+                        isActiveCard
+                          ? "border-border bg-muted/50 text-gray-600"
+                          : "border-white/15 bg-white/10 text-white/70",
+                      )}
+                    >
+                      {question}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {requiresPayment && diagnosticId ? (
+                <div className="col-span-2 space-y-2 md:col-span-1 md:ml-auto">
+                  <DiagnosticUnlockDialog
+                    className="w-full rounded-full border-0 bg-button px-10 py-6 shadow-none"
+                    completedRoundIds={completedRoundIds}
+                    diagnosticId={diagnosticId}
+                    jobId={jobId}
+                  />
+                  <p
+                    className={cn(
+                      "text-center text-xs font-medium",
+                      isActiveCard ? "text-[#6B6B7A]" : "text-white/60",
+                    )}
+                  >
+                    {paymentReason === "PAYMENT_REQUIRED"
+                      ? "Unlock all rounds for this JD."
+                      : "Payment required to continue."}
+                  </p>
+                </div>
+              ) : isProcessing ? (
+                <span className="col-span-2 flex items-center justify-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-10 py-6 text-xs font-medium text-purple-700 md:col-span-1 md:ml-auto">
+                  <LoaderCircle className="size-4 animate-spin" />
+                  Report processing
+                </span>
+              ) : !isLocked ? (
+                <Button
+                  className="col-span-2 w-full rounded-full border-0 bg-button px-10 py-6 shadow-none md:col-span-1 md:ml-auto"
+                  disabled={Boolean(startingRoundId)}
+                  size="lg"
+                  type="button"
+                  onClick={onStart}
+                >
+                  {startingRoundId === config.id ? (
+                    <>
+                      <LoaderCircle className="mr-1 size-4 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-1 size-3 fill-current" />
+                      Start Round {roundNumber}
+                    </>
+                  )}
+                </Button>
+              ) : null}
+            </div>
           ) : null}
-        </Collapsible>
+        </div>
       </div>
     </article>
   );

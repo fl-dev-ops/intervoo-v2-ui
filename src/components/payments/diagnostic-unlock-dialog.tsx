@@ -22,9 +22,9 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { DIAGNOSTIC_ROUNDS } from "@/lib/diagnostics/rounds-config";
 import { cn } from "@/lib/utils";
-import { useMediaQuery } from "@/hooks/use-media-query";
 
 type DiagnosticUnlockDialogProps = {
   className?: string;
@@ -70,7 +70,7 @@ export function DiagnosticUnlockDialog({
         Pay ₹299 to unlock
       </Button>
       {isDesktop ? (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog disablePointerDismissal open={open} onOpenChange={setOpen}>
           <DialogContent className="overflow-hidden rounded-[1.6rem] bg-white p-0 sm:max-w-[64rem]">
             <DialogHeader className="sr-only">
               <DialogTitle>Unlock this JD</DialogTitle>
@@ -88,8 +88,13 @@ export function DiagnosticUnlockDialog({
           </DialogContent>
         </Dialog>
       ) : (
-        <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerContent className="max-h-[92vh] rounded-t-[1.6rem] border-0 bg-white">
+        <Drawer
+          disablePointerDismissal
+          open={open}
+          onOpenChange={setOpen}
+          showSwipeHandle={false}
+        >
+          <DrawerContent className="max-h-full rounded-t-[1.6rem]! border-0">
             <DrawerHeader className="sr-only">
               <DrawerTitle>Unlock this JD</DrawerTitle>
               <DrawerDescription>
@@ -164,7 +169,9 @@ function UnlockContent({
   async function handlePay() {
     if (isPaying) return;
     if (amount > 0 && !isReady) {
-      toast.error(sdkError ?? "Payment checkout is still loading. Please try again.");
+      toast.error(
+        sdkError ?? "Payment checkout is still loading. Please try again.",
+      );
       return;
     }
 
@@ -182,11 +189,14 @@ function UnlockContent({
         return;
       }
 
-      const order = await postJson<PaymentOrderResponse>("/api/payments/order", {
-        couponCode: appliedCoupon?.code,
-        diagnosticId,
-        jobId,
-      });
+      const order = await postJson<PaymentOrderResponse>(
+        "/api/payments/order",
+        {
+          couponCode: appliedCoupon?.code,
+          diagnosticId,
+          jobId,
+        },
+      );
 
       openCheckout({
         amount: order.amount,
@@ -247,7 +257,12 @@ function UnlockContent({
           Upgrade to see where you truly stand.
         </p>
 
-        <div className={cn("space-y-3", variant === "desktop" ? "mt-24" : "mt-8 hidden")}>
+        <div
+          className={cn(
+            "space-y-3",
+            variant === "desktop" ? "mt-24" : "mt-8 hidden",
+          )}
+        >
           {DIAGNOSTIC_ROUNDS.map((round, index) => (
             <RoundUnlockRow
               key={round.id}
@@ -264,7 +279,8 @@ function UnlockContent({
             <p className="text-4xl font-black">{formatPrice(amount)}</p>
             {appliedCoupon ? (
               <p className="mt-2 text-sm text-white/65">
-                Coupon {appliedCoupon.code} applied. You saved {formatPrice(appliedCoupon.discountAmount)}.
+                Coupon {appliedCoupon.code} applied. You saved{" "}
+                {formatPrice(appliedCoupon.discountAmount)}.
               </p>
             ) : (
               <p className="mt-2 text-sm text-white/65">
@@ -275,29 +291,26 @@ function UnlockContent({
         ) : null}
       </section>
 
-      <section className={cn("bg-white", variant === "desktop" ? "p-8" : "p-6")}>
+      <section
+        className={cn("bg-white", variant === "desktop" ? "p-8" : "p-6")}
+      >
         <div className="flex items-start justify-between gap-4">
           <h3 className="text-lg font-black uppercase tracking-tight text-black">
             What you'll get
           </h3>
-          <button
-            aria-label="Close"
-            className="hidden text-[#79747E] transition hover:text-black md:block"
-            onClick={onClose}
-            type="button"
-          >
-            <X className="size-5" />
-          </button>
         </div>
 
         <div className="mt-6 aspect-video rounded-3xl bg-[#F0EFF0]" />
 
         {variant === "desktop" ? (
           <div className="mt-8 text-center">
-            <p className="text-4xl font-black text-[#242225]">{formatPrice(amount)}</p>
+            <p className="text-4xl font-black text-[#242225]">
+              {formatPrice(amount)}
+            </p>
             {appliedCoupon ? (
               <p className="mt-2 text-sm text-[#8B858E]">
-                Coupon {appliedCoupon.code} applied. You saved {formatPrice(appliedCoupon.discountAmount)}.
+                Coupon {appliedCoupon.code} applied. You saved{" "}
+                {formatPrice(appliedCoupon.discountAmount)}.
               </p>
             ) : (
               <p className="mt-2 text-sm text-[#8B858E]">
@@ -346,7 +359,9 @@ function UnlockContent({
                 </Button>
               </div>
               {couponError ? (
-                <p className="mt-2 text-xs font-medium text-red-500">{couponError}</p>
+                <p className="mt-2 text-xs font-medium text-red-500">
+                  {couponError}
+                </p>
               ) : null}
             </div>
           ) : null}
@@ -378,7 +393,9 @@ function UnlockContent({
           >
             Choose new JD before pay
           </Button>
-          <p className="text-center text-sm text-[#807A83]">🔒 Secure payment</p>
+          <p className="text-center text-sm text-[#807A83]">
+            🔒 Secure payment
+          </p>
         </div>
       </section>
     </div>
@@ -421,14 +438,19 @@ function RoundUnlockRow({
             </p>
             <p className="mt-1 text-lg font-bold text-white">{title}</p>
           </div>
-          {!completed ? <p className="mt-6 text-sm text-white/70">{duration}</p> : null}
+          {!completed ? (
+            <p className="mt-6 text-sm text-white/70">{duration}</p>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-async function postJson<T = unknown>(url: string, body: Record<string, unknown>) {
+async function postJson<T = unknown>(
+  url: string,
+  body: Record<string, unknown>,
+) {
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
