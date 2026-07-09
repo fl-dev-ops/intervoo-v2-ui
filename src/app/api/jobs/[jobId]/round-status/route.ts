@@ -1,7 +1,8 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getLatestDiagnosticForJob } from "@/lib/diagnostics/jd-progress";
+import { deriveFinalDiagnosticReport } from "@/lib/diagnostics/final-report";
+import { getLatestDiagnosticRoundStatusForJob } from "@/lib/diagnostics/jd-progress";
 import {
   isDiagnosticRoundReadyForProgression,
   isDiagnosticSessionComplete,
@@ -19,7 +20,10 @@ export async function GET(
     }
 
     const { jobId } = await params;
-    const diagnostic = await getLatestDiagnosticForJob(session.user.id, jobId);
+    const diagnostic = await getLatestDiagnosticRoundStatusForJob(
+      session.user.id,
+      jobId,
+    );
     const roundsForJob = diagnostic?.rounds ?? [];
 
     const readyRoundIds = roundsForJob
@@ -49,6 +53,8 @@ export async function GET(
     );
 
     return NextResponse.json({
+      overallScore:
+        deriveFinalDiagnosticReport(roundsForJob)?.overall_score ?? null,
       processingRoundIds,
       readyRoundIds,
       roundScores,

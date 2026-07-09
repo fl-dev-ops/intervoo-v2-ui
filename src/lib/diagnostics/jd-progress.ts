@@ -3,7 +3,6 @@ import {
   areAllDiagnosticRoundsComplete,
   countProgressableDiagnosticRounds,
 } from "@/lib/diagnostics/rules";
-import { getSelectedJobId } from "@/lib/diagnostics/selected-job";
 import type { JobDetail } from "@/lib/jd-client";
 
 const diagnosticWithRounds = {
@@ -67,12 +66,68 @@ export async function getLockedDiagnosticForUser(userId: string) {
 }
 
 export async function getLatestDiagnosticForJob(userId: string, jobId: string) {
-  const diagnostics = await getUserDiagnosticsWithRounds(userId);
-  return (
-    diagnostics.find(
-      (diagnostic) => getSelectedJobId(diagnostic.selectedJob) === jobId,
-    ) ?? null
-  );
+  // Filter by the `selectedJob.jobId` JSON path in the query so the DB returns
+  // only this job's diagnostic — instead of loading every diagnostic (with all
+  // rounds + full report blobs) and filtering in JS.
+  return prisma.diagnostic.findFirst({
+    where: {
+      userId,
+      selectedJob: { path: ["jobId"], equals: jobId },
+    },
+    include: diagnosticWithRounds,
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getLatestDiagnosticSummaryForJob(
+  userId: string,
+  jobId: string,
+) {
+  return prisma.diagnostic.findFirst({
+    where: {
+      userId,
+      selectedJob: { path: ["jobId"], equals: jobId },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      paidAt: true,
+      selectedJob: true,
+    },
+  });
+}
+
+export async function getLatestDiagnosticRoundStatusForJob(
+  userId: string,
+  jobId: string,
+) {
+  return prisma.diagnostic.findFirst({
+    where: {
+      userId,
+      selectedJob: { path: ["jobId"], equals: jobId },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      rounds: {
+        orderBy: { roundNumber: "asc" },
+        select: {
+          roundType: true,
+          status: true,
+          session: {
+            select: {
+              report: {
+                select: {
+                  metadata: true,
+                  reportJson: true,
+                  status: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
 }
 
 export async function getOrCreateDiagnosticForJob(

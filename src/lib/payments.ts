@@ -45,15 +45,22 @@ export async function hasUserTakenAnyRound(userId: string) {
 
 export async function getDiagnosticPaymentEligibility(params: {
   diagnosticId?: string | null;
+  // Pass an already-loaded diagnostic (id + paidAt, or null if none exists for
+  // the job) to skip re-querying it. Callers that have it avoid a redundant —
+  // and potentially expensive — diagnostic lookup.
+  diagnostic?: { id: string; paidAt: Date | null } | null;
   jobId: string;
   userId: string;
 }): Promise<DiagnosticPaymentEligibility> {
-  const diagnostic = params.diagnosticId
-    ? await prisma.diagnostic.findFirst({
-        where: { id: params.diagnosticId, userId: params.userId },
-        select: { id: true, paidAt: true },
-      })
-    : await getLatestDiagnosticForJob(params.userId, params.jobId);
+  const diagnostic =
+    params.diagnostic !== undefined
+      ? params.diagnostic
+      : params.diagnosticId
+        ? await prisma.diagnostic.findFirst({
+            where: { id: params.diagnosticId, userId: params.userId },
+            select: { id: true, paidAt: true },
+          })
+        : await getLatestDiagnosticForJob(params.userId, params.jobId);
 
   if (diagnostic?.paidAt) {
     return {

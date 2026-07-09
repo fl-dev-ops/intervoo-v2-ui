@@ -66,6 +66,9 @@ export function JobDetailClient({
   const [localProcessingRoundIds, setLocalProcessingRoundIds] =
     useState(processingRoundIds);
   const [localRoundScores, setLocalRoundScores] = useState(roundScores);
+  const [localOverallScore, setLocalOverallScore] = useState(
+    overallScore ?? null,
+  );
   const [isAddSkillsOpen, setIsAddSkillsOpen] = useState(false);
   const [isChangeResumeOpen, setIsChangeResumeOpen] = useState(false);
   const [dialogJobSkills, setDialogJobSkills] = useState<string[]>([]);
@@ -94,7 +97,8 @@ export function JobDetailClient({
     setLocalReadyRoundIds(readyRoundIds);
     setLocalProcessingRoundIds(processingRoundIds);
     setLocalRoundScores(roundScores);
-  }, [processingRoundIds, readyRoundIds, roundScores]);
+    setLocalOverallScore(overallScore ?? null);
+  }, [overallScore, processingRoundIds, readyRoundIds, roundScores]);
 
   useEffect(() => {
     if (searchParams.get("step")) return;
@@ -108,10 +112,16 @@ export function JobDetailClient({
   }, [job.jobId, searchParams]);
 
   // Poll round status while a report is still generating; the query stops
-  // itself once nothing is processing. Seeded with the server-rendered state.
+  // itself once nothing is processing. The first fetch hydrates deferred server
+  // state so the initial RSC render doesn't need full report payloads.
   const roundStatusQuery = useRoundStatus(job.jobId, {
-    enabled: localProcessingRoundIds.length > 0,
-    initialData: { readyRoundIds, processingRoundIds, roundScores },
+    enabled: Boolean(diagnosticId),
+    initialData: {
+      overallScore: overallScore ?? null,
+      readyRoundIds,
+      processingRoundIds,
+      roundScores,
+    },
   });
 
   // Mirror polled status into local state so the CTA flips to "View Report"
@@ -122,6 +132,7 @@ export function JobDetailClient({
     setLocalReadyRoundIds(status.readyRoundIds);
     setLocalProcessingRoundIds(status.processingRoundIds);
     setLocalRoundScores(status.roundScores);
+    setLocalOverallScore(status.overallScore);
   }, [roundStatusQuery.data]);
 
   async function handleStart(roundId: string) {
@@ -206,7 +217,7 @@ export function JobDetailClient({
             onStartInterview={
               step === "match-details" ? () => setStep("round-list") : undefined
             }
-            overallScore={overallScore}
+            overallScore={localOverallScore}
             refreshKey={refreshKey}
             roundCount={rounds.length}
             salary={formatSalaryRange(

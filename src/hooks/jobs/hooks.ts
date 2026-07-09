@@ -15,6 +15,7 @@ export type JobOptions = { companies: JobOption[] };
 export type JobSort = NonNullable<SearchInput["sort"]>;
 
 export type RoundStatus = {
+  overallScore: number | null;
   processingRoundIds: string[];
   readyRoundIds: string[];
   roundScores: Record<string, number | null>;
