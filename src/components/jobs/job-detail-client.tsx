@@ -38,6 +38,7 @@ type JobDetailClientProps = {
   processingRoundIds?: string[];
   roundScores?: Record<string, number | null>;
   diagnosticId?: string | null;
+  isPurchased?: boolean;
   overallScore?: number | null;
   paymentReason?: string;
   requiresPayment?: boolean;
@@ -50,6 +51,7 @@ export function JobDetailClient({
   processingRoundIds = [],
   roundScores = {},
   diagnosticId,
+  isPurchased = false,
   overallScore,
   paymentReason,
   requiresPayment = false,
@@ -303,6 +305,7 @@ export function JobDetailClient({
                     isLast={isLast(index, rounds.length)}
                     isLocked={isLocked}
                     isProcessing={isProcessing}
+                    isPurchased={isPurchased}
                     jobId={job.jobId}
                     completedRoundIds={localReadyRoundIds}
                     paymentReason={paymentReason}
@@ -343,6 +346,7 @@ function RoundTimelineItem({
   isLast,
   isLocked,
   isProcessing,
+  isPurchased,
   jobId,
   completedRoundIds,
   onStart,
@@ -361,6 +365,7 @@ function RoundTimelineItem({
   isLast: boolean;
   isLocked: boolean;
   isProcessing: boolean;
+  isPurchased: boolean;
   jobId: string;
   completedRoundIds: string[];
   onStart: () => void;
@@ -373,7 +378,8 @@ function RoundTimelineItem({
   startingRoundId: string | null;
 }) {
   const isActiveCard = isCurrent && !isProcessing;
-  const showQuestions = (isActiveCard || isProcessing) && !isDone;
+  const showQuestions =
+    (isPurchased || isActiveCard || isProcessing) && !isDone;
 
   return (
     <article className="relative grid grid-cols-[3rem_1fr] gap-x-2 gap-y-2 md:gap-x-4 md:gap-y-0">

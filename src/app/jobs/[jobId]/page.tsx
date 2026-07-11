@@ -54,6 +54,7 @@ export default async function JobDetailPage({ params }: Props) {
       roundScores={{}}
       diagnosticId={diagnostic?.id ?? null}
       overallScore={null}
+      isPurchased={paymentEligibility.isPaid}
       paymentReason={paymentEligibility.reason}
       requiresPayment={paymentEligibility.requiresPayment}
       user={{ email: user.email ?? null, name: user.name ?? null }}
